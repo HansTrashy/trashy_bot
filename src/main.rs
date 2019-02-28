@@ -69,6 +69,7 @@ fn main() {
             })
             .command("about", |c| c.cmd(commands::about::about))
             .command("roll", |c| c.cmd(commands::roll::roll))
+            .command("choose", |c| c.cmd(commands::choose::choose))
             .help(help_commands::with_embeds),
     );
 
