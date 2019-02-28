@@ -16,6 +16,8 @@ use serenity::{
 // This imports `typemap`'s `Key` as `TypeMapKey`.
 use serenity::prelude::*;
 
+mod commands;
+
 struct Handler;
 
 impl EventHandler for Handler {
@@ -37,8 +39,8 @@ fn main() {
                 c.allow_whitespace(true)
                     .on_mention(true)
                     .prefix("~")
-                    .prefix_only_cmd(about)
-                    .delimiters(vec![", ", ","])
+                    .prefix_only_cmd(commands::about::about)
+                    .delimiter(" ")
             })
             .before(|ctx, msg, command_name| {
                 println!(
@@ -65,7 +67,8 @@ fn main() {
                         .say(&format!("Try this again in {} seconds.", seconds));
                 }
             })
-            .command("about", |c| c.cmd(about))
+            .command("about", |c| c.cmd(commands::about::about))
+            .command("roll", |c| c.cmd(commands::roll::roll))
             .help(help_commands::with_embeds),
     );
 
@@ -73,9 +76,3 @@ fn main() {
         println!("Client error: {:?}", why);
     }
 }
-
-command!(about(_ctx, msg, _args) {
-    if let Err(why) = msg.channel_id.say("This is a small test-bot! : )") {
-        println!("Error sending message: {:?}", why);
-    }
-});

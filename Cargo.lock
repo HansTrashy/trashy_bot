@@ -768,6 +768,7 @@ name = "trashy_bot"
 version = "0.1.0"
 dependencies = [
  "kankyo 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "rand 0.6.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "serenity 0.5.12 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
