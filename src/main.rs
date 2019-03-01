@@ -1,5 +1,7 @@
 #[macro_use]
 extern crate serenity;
+#[macro_use]
+extern crate diesel;
 
 use std::{collections::HashMap, env, fmt::Write, sync::Arc};
 
@@ -8,7 +10,9 @@ use serenity::{
     framework::standard::{
         help_commands, Args, CommandOptions, DispatchError, HelpBehaviour, StandardFramework,
     },
-    model::{channel::Message, gateway::Ready, Permissions},
+    model::{
+        channel::Message, channel::Reaction, channel::ReactionType, gateway::Ready, Permissions,
+    },
     prelude::*,
     utils::{content_safe, ContentSafeOptions},
 };
@@ -17,21 +21,16 @@ use serenity::{
 use serenity::prelude::*;
 
 mod commands;
-
-struct Handler;
-
-impl EventHandler for Handler {
-    fn ready(&self, _: Context, ready: Ready) {
-        println!("{} is connected!", ready.user.name);
-    }
-}
+mod handler;
+mod models;
+mod schema;
 
 fn main() {
     // load .env file
     kankyo::load().expect("no env file");
     // Configure the client with your Discord bot token in the environment.
     let token = env::var("DISCORD_TOKEN").expect("Expected a token in the environment");
-    let mut client = Client::new(&token, Handler).expect("Err creating client");
+    let mut client = Client::new(&token, handler::Handler).expect("Err creating client");
 
     client.with_framework(
         StandardFramework::new()
@@ -77,3 +76,6 @@ fn main() {
         println!("Client error: {:?}", why);
     }
 }
+
+#[cfg(test)]
+mod tests {}
