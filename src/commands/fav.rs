@@ -3,7 +3,7 @@ use crate::schema::favs::dsl::*;
 use diesel::pg::PgConnection;
 use diesel::prelude::*;
 use rand::prelude::*;
-use serenity::model::{channel::Message, id::MessageId};
+use serenity::model::{channel::Message, id::ChannelId, id::MessageId};
 
 command!(fav(_ctx, msg, _args) {
     let mut rng = rand::thread_rng();
@@ -15,7 +15,9 @@ command!(fav(_ctx, msg, _args) {
 
     let chosen_fav = results.iter().choose(&mut rng).unwrap();
 
-    if let Err(why) = msg.channel_id.say(&format!("Fav: {:?}", chosen_fav)) {
+    let fav_msg = ChannelId(chosen_fav.channel_id as u64).message(chosen_fav.msg_id as u64).unwrap();
+
+    if let Err(why) = msg.channel_id.say(&format!("Fav: {}", fav_msg.content)) {
         println!("Error sending message: {:?}", why);
     }
 });

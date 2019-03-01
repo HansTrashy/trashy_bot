@@ -3,12 +3,12 @@ use diesel::prelude::*;
 
 #[derive(Identifiable, Queryable, Debug)]
 pub struct Fav {
-    id: i64,
-    server_id: i64,
-    channel_id: i64,
-    msg_id: i64,
-    user_id: i64,
-    author_id: i64,
+    pub id: i64,
+    pub server_id: i64,
+    pub channel_id: i64,
+    pub msg_id: i64,
+    pub user_id: i64,
+    pub author_id: i64,
 }
 
 #[derive(Insertable)]
