@@ -1,17 +1,23 @@
 use crate::models::favs::Fav;
 use crate::schema::favs::dsl::*;
-use diesel::pg::PgConnection;
+use crate::DatabaseConnection;
 use diesel::prelude::*;
 use rand::prelude::*;
 use serenity::model::{channel::Message, id::ChannelId, id::MessageId};
 
-command!(fav(_ctx, msg, _args) {
+command!(fav(ctx, msg, _args) {
     let mut rng = rand::thread_rng();
     // select random fav from user
-    let conn = PgConnection::establish("postgres://postgres:root@localhost/trashy_bot")
-                    .expect("Error connecting to postgres://postgres:root@localhost/trashy_bot");
+    let data = ctx.data.lock();
+    let conn = match data.get::<DatabaseConnection>() {
+        Some(v) => v.clone(),
+        None => {
+            let _ = msg.reply("Could not retrieve the database connection!");
+            return Ok(());
+        }
+    };
 
-    let results = favs.load::<Fav>(&conn).expect("could not retrieve favs");
+    let results = favs.load::<Fav>(&*conn.lock()).expect("could not retrieve favs");
 
     let chosen_fav = results.iter().choose(&mut rng).unwrap();
 

@@ -3,8 +3,8 @@ extern crate serenity;
 #[macro_use]
 extern crate diesel;
 
-use std::{collections::HashMap, env, fmt::Write, sync::Arc};
-
+use diesel::pg::PgConnection;
+use diesel::prelude::*;
 use serenity::{
     client::bridge::gateway::{ShardId, ShardManager},
     framework::standard::{
@@ -16,6 +16,7 @@ use serenity::{
     prelude::*,
     utils::{content_safe, ContentSafeOptions},
 };
+use std::{collections::HashMap, env, fmt::Write, sync::Arc};
 
 // This imports `typemap`'s `Key` as `TypeMapKey`.
 use serenity::prelude::*;
@@ -25,12 +26,37 @@ mod handler;
 mod models;
 mod schema;
 
+struct ShardManagerContainer;
+
+impl TypeMapKey for ShardManagerContainer {
+    type Value = Arc<Mutex<ShardManager>>;
+}
+
+struct DatabaseConnection;
+
+impl TypeMapKey for DatabaseConnection {
+    type Value = Arc<Mutex<PgConnection>>;
+}
+
 fn main() {
     // load .env file
     kankyo::load().expect("no env file");
     // Configure the client with your Discord bot token in the environment.
     let token = env::var("DISCORD_TOKEN").expect("Expected a token in the environment");
     let mut client = Client::new(&token, handler::Handler).expect("Err creating client");
+
+    let conn = Arc::new(Mutex::new(
+        PgConnection::establish(
+            &env::var("DATABASE_URL").expect("Expected a database in the environment"),
+        )
+        .expect("Error connecting to database"),
+    ));
+
+    {
+        let mut data = client.data.lock();
+        data.insert::<DatabaseConnection>(conn);
+        data.insert::<ShardManagerContainer>(Arc::clone(&client.shard_manager));
+    }
 
     client.with_framework(
         StandardFramework::new()
@@ -41,7 +67,7 @@ fn main() {
                     .prefix_only_cmd(commands::about::about)
                     .delimiter(" ")
             })
-            .before(|ctx, msg, command_name| {
+            .before(|_ctx, msg, command_name| {
                 println!(
                     "Got command '{}' by user '{}'",
                     command_name, msg.author.name
