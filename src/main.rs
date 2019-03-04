@@ -96,6 +96,7 @@ fn main() {
             .command("roll", |c| c.cmd(commands::roll::roll))
             .command("choose", |c| c.cmd(commands::choose::choose))
             .command("fav", |c| c.cmd(commands::fav::fav))
+            .command("kick", |c| c.cmd(commands::kick::kick))
             .help(help_commands::with_embeds),
     );
 

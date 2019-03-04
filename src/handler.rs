@@ -1,5 +1,3 @@
-use diesel::pg::PgConnection;
-use diesel::prelude::*;
 use serenity::{
     client::bridge::gateway::{ShardId, ShardManager},
     framework::standard::{
@@ -12,6 +10,8 @@ use serenity::{
     utils::{content_safe, ContentSafeOptions},
 };
 
+mod fav;
+
 pub struct Handler;
 
 impl EventHandler for Handler {
@@ -19,32 +19,11 @@ impl EventHandler for Handler {
         println!("{} is connected!", ready.user.name);
     }
 
-    fn reaction_add(&self, _ctx: Context, add_reaction: Reaction) {
+    fn reaction_add(&self, ctx: Context, add_reaction: Reaction) {
         match add_reaction.emoji {
             ReactionType::Unicode(ref s) if s == "📗" => {
                 // add fav for this user
-                let conn = PgConnection::establish("postgres://postgres:root@localhost/trashy_bot")
-                    .expect("Error connecting to postgres://postgres:root@localhost/trashy_bot");
-
-                crate::models::favs::create_fav(
-                    &conn,
-                    *add_reaction
-                        .channel()
-                        .unwrap()
-                        .guild()
-                        .unwrap()
-                        .read()
-                        .guild_id
-                        .as_u64() as i64,
-                    *add_reaction.channel_id.as_u64() as i64,
-                    *add_reaction.message_id.as_u64() as i64,
-                    *add_reaction.user_id.as_u64() as i64,
-                    *add_reaction.message().unwrap().author.id.as_u64() as i64,
-                );
-
-                if let Err(why) = add_reaction.user().unwrap().dm(|m| m.content("Fav saved!")) {
-                    println!("Error sending message: {:?}", why);
-                }
+                fav::fav(ctx, add_reaction);
             }
             _ => (),
         }

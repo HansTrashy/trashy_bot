@@ -23,7 +23,9 @@ command!(fav(ctx, msg, _args) {
 
     let fav_msg = ChannelId(chosen_fav.channel_id as u64).message(chosen_fav.msg_id as u64).unwrap();
 
-    if let Err(why) = msg.channel_id.say(&format!("Fav: {}", fav_msg.content)) {
-        println!("Error sending message: {:?}", why);
-    }
+    let _ = msg.channel_id.send_message(|m| m.embed(|e| {
+        e.author(|a| {a.name("Some author")})
+        .title("fav'd this:")
+        .description(fav_msg.content)
+        .colour((255,120,120)) } ));
 });
