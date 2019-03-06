@@ -98,6 +98,7 @@ fn main() {
             .command("fav", |c| c.cmd(commands::fav::fav))
             .command("kick", |c| c.cmd(commands::kick::kick))
             .command("ban", |c| c.cmd(commands::ban::ban))
+            .command("quote", |c| c.cmd(commands::quote::quote))
             .help(help_commands::with_embeds),
     );
 
