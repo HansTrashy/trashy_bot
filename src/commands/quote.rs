@@ -12,7 +12,7 @@ command!(quote(_ctx, msg, args) {
                         e.author(|a| a.name(&quoted_msg.author.name).icon_url(&quoted_msg.author.static_avatar_url().unwrap_or_default()))
                         .color((0,120,220))
                         .description(&quoted_msg.content)
-                        .footer(|f| f.text(&format!("{} | Quoted by: {}", &quoted_msg.timestamp.format("%d.%m.%Y, %H:%M:S"), &msg.author.name)))
+                        .footer(|f| f.text(&format!("{} | Quoted by: {}", &quoted_msg.timestamp.format("%d.%m.%Y, %H:%M:%S"), &msg.author.name)))
                 )});
                 let _ = msg.delete();
                 break;
