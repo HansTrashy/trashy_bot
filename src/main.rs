@@ -96,8 +96,8 @@ fn main() {
             .command("roll", |c| c.cmd(commands::roll::roll))
             .command("choose", |c| c.cmd(commands::choose::choose))
             .command("fav", |c| c.cmd(commands::fav::fav))
-            .command("kick", |c| c.cmd(commands::kick::kick))
-            .command("ban", |c| c.cmd(commands::ban::ban))
+            .command("kick", |c| c.check(admin_check).cmd(commands::kick::kick))
+            .command("ban", |c| c.check(admin_check).cmd(commands::ban::ban))
             .command("quote", |c| c.cmd(commands::quote::quote))
             .help(help_commands::with_embeds),
     );
@@ -105,6 +105,16 @@ fn main() {
     if let Err(why) = client.start() {
         println!("Client error: {:?}", why);
     }
+}
+
+fn admin_check(_: &mut Context, msg: &Message, _: &mut Args, _: &CommandOptions) -> bool {
+    if let Some(member) = msg.member() {
+        if let Ok(permissions) = member.permissions() {
+            return permissions.administrator();
+        }
+    }
+
+    false
 }
 
 #[cfg(test)]
