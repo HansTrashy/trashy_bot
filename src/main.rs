@@ -63,7 +63,7 @@ fn main() {
             .configure(|c| {
                 c.allow_whitespace(true)
                     .on_mention(true)
-                    .prefix("~")
+                    .prefixes(vec![".", "$", "%", "&"])
                     .prefix_only_cmd(commands::about::about)
                     .delimiter(" ")
             })
