@@ -1,9 +1,12 @@
 use crate::models::favs::Fav;
 use crate::schema::favs::dsl::*;
 use crate::DatabaseConnection;
+use crate::Waiter;
+use crate::interaction::wait::{WaitEvent, Action};
 use diesel::prelude::*;
 use rand::prelude::*;
 use serenity::model::{channel::Message, id::ChannelId, id::MessageId};
+use chrono::prelude::*;
 
 command!(fav(ctx, msg, _args) {
     let mut rng = rand::thread_rng();
@@ -24,6 +27,11 @@ command!(fav(ctx, msg, _args) {
     let fav_msg = ChannelId(chosen_fav.channel_id as u64).message(chosen_fav.msg_id as u64).unwrap();
 
     let _ = msg.delete();
+
+    if let Some(waiter) = data.get::<Waiter>() {
+        let mut wait = waiter.lock();
+        wait.wait(*msg.author.id.as_u64(), WaitEvent::new(Action::DeleteFav, chosen_fav.id, Utc::now()));
+    }
 
     let _ = msg.channel_id.send_message(|m| m.embed(|e| 
         e.author(|a| a.name(&fav_msg.author.name).icon_url(&fav_msg.author.static_avatar_url().unwrap_or_default()))

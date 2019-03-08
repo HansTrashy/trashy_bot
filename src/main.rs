@@ -23,6 +23,7 @@ use serenity::prelude::*;
 
 mod commands;
 mod handler;
+mod interaction;
 mod models;
 mod schema;
 
@@ -36,6 +37,12 @@ struct DatabaseConnection;
 
 impl TypeMapKey for DatabaseConnection {
     type Value = Arc<Mutex<PgConnection>>;
+}
+
+struct Waiter;
+
+impl TypeMapKey for Waiter {
+    type Value = Arc<Mutex<self::interaction::wait::Wait>>;
 }
 
 fn main() {
@@ -52,10 +59,13 @@ fn main() {
         .expect("Error connecting to database"),
     ));
 
+    let waiter = Arc::new(Mutex::new(self::interaction::wait::Wait::new()));
+
     {
         let mut data = client.data.lock();
         data.insert::<DatabaseConnection>(conn);
         data.insert::<ShardManagerContainer>(Arc::clone(&client.shard_manager));
+        data.insert::<Waiter>(waiter);
     }
 
     client.with_framework(

@@ -8,6 +8,7 @@ edition = "2018"
 kankyo = "0.2.0"
 rand = "0.6"
 diesel = { version = "1.0.0", features = ["postgres"] }
+chrono = "0.4"
 
 [dependencies.serenity]
 version = "0.5.12"

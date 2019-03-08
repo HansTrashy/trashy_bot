@@ -21,10 +21,8 @@ impl EventHandler for Handler {
 
     fn reaction_add(&self, ctx: Context, add_reaction: Reaction) {
         match add_reaction.emoji {
-            ReactionType::Unicode(ref s) if s == "📗" => {
-                // add fav for this user
-                fav::fav(ctx, add_reaction);
-            }
+            ReactionType::Unicode(ref s) if s == "📗" => fav::add_fav(ctx, add_reaction),
+            ReactionType::Unicode(ref s) if s == "🗑" => fav::remove_fav(ctx, add_reaction),
             _ => (),
         }
     }
