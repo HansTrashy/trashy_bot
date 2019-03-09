@@ -3,7 +3,9 @@ use std::collections::HashMap;
 
 #[derive(Debug, PartialEq)]
 pub enum Action {
-    DeleteFav,
+    DeleteFav, // waiting on deletion
+    ReqTags,   // waiting on label request
+    AddTags,   // waiting on labels
 }
 
 #[derive(Debug)]
@@ -39,13 +41,9 @@ impl Wait {
     pub fn waiting(&mut self, user_id: u64, action: Action) -> Option<i64> {
         let wait_events = self.0.entry(user_id).or_insert_with(Vec::new);
 
-        // println!("Check if waiting for something of user: {}", &user_id);
-
         let mut was_waiting = None;
         wait_events.retain(|w| {
-            // dbg!(&w);
             if w.action == action {
-                // println!("Found something!");
                 was_waiting = Some(w.action_id);
                 false
             } else {

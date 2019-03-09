@@ -1,14 +1,15 @@
+use crate::interaction::wait::{Action, WaitEvent};
 use crate::models::favs::Fav;
+use crate::models::tags::Tag;
 use crate::schema::favs::dsl::*;
 use crate::DatabaseConnection;
 use crate::Waiter;
-use crate::interaction::wait::{WaitEvent, Action};
+use chrono::prelude::*;
 use diesel::prelude::*;
 use rand::prelude::*;
 use serenity::model::{channel::Message, id::ChannelId, id::MessageId};
-use chrono::prelude::*;
 
-command!(fav(ctx, msg, _args) {
+command!(fav(ctx, msg, args) {
     let mut rng = rand::thread_rng();
     // select random fav from user
     let data = ctx.data.lock();
@@ -20,9 +21,30 @@ command!(fav(ctx, msg, _args) {
         }
     };
 
+    let labels: Vec<String> = args.iter::<String>().filter_map(Result::ok).collect();
+
     let results = favs.filter(user_id.eq(*msg.author.id.as_u64() as i64)).load::<Fav>(&*conn.lock()).expect("could not retrieve favs");
 
-    let chosen_fav = results.iter().choose(&mut rng).unwrap();
+    let fav_tags = Tag::belonging_to(&results).load::<Tag>(&*conn.lock()).expect("could not retrieve tags").grouped_by(&results);
+    let zipped = results.into_iter().zip(fav_tags).collect::<Vec<_>>();
+
+    let possible_favs: Vec<(Fav, Vec<Tag>)> = zipped
+            .into_iter()
+            .filter_map(|(f, f_tags)| {
+                for l in &labels {
+                    let x = f_tags
+                        .iter()
+                        .fold(0, |acc, x| if &*x.label == l { acc + 1 } else { acc });
+                    if x == 0 {
+                        return None;
+                    }
+                }
+
+                Some((f, f_tags))
+            })
+            .collect();
+
+    let (chosen_fav, _tags) = possible_favs.iter().choose(&mut rng).unwrap();
 
     let fav_msg = ChannelId(chosen_fav.channel_id as u64).message(chosen_fav.msg_id as u64).unwrap();
 
@@ -31,6 +53,7 @@ command!(fav(ctx, msg, _args) {
     if let Some(waiter) = data.get::<Waiter>() {
         let mut wait = waiter.lock();
         wait.wait(*msg.author.id.as_u64(), WaitEvent::new(Action::DeleteFav, chosen_fav.id, Utc::now()));
+        wait.wait(*msg.author.id.as_u64(), WaitEvent::new(Action::ReqTags, chosen_fav.id, Utc::now()));
     }
 
     let _ = msg.channel_id.send_message(|m| m.embed(|e| 
@@ -39,3 +62,124 @@ command!(fav(ctx, msg, _args) {
         .color((0,120,220))
         .footer(|f| f.text(&format!("{} | Quoted by: {}", &fav_msg.timestamp.format("%d.%m.%Y, %H:%M:%S"), &msg.author.name)))));
 });
+
+#[cfg(test)]
+mod tests {
+    use crate::models::favs::Fav;
+    use crate::models::tags::Tag;
+    use crate::schema::favs::dsl::*;
+
+    #[test]
+    fn test_filter() {
+        let input = vec![
+            (
+                Fav {
+                    id: 1,
+                    server_id: 1,
+                    channel_id: 1,
+                    msg_id: 1,
+                    user_id: 1,
+                    author_id: 1,
+                },
+                vec![
+                    Tag {
+                        id: 1,
+                        fav_id: 1,
+                        label: String::from("Haus"),
+                    },
+                    Tag {
+                        id: 2,
+                        fav_id: 1,
+                        label: String::from("Fenster"),
+                    },
+                ],
+            ),
+            (
+                Fav {
+                    id: 2,
+                    server_id: 2,
+                    channel_id: 2,
+                    msg_id: 2,
+                    user_id: 2,
+                    author_id: 2,
+                },
+                vec![
+                    Tag {
+                        id: 3,
+                        fav_id: 2,
+                        label: String::from("Auto"),
+                    },
+                    Tag {
+                        id: 4,
+                        fav_id: 2,
+                        label: String::from("Haus"),
+                    },
+                ],
+            ),
+            (
+                Fav {
+                    id: 1,
+                    server_id: 1,
+                    channel_id: 1,
+                    msg_id: 1,
+                    user_id: 1,
+                    author_id: 1,
+                },
+                vec![
+                    Tag {
+                        id: 1,
+                        fav_id: 1,
+                        label: String::from("Haus"),
+                    },
+                    Tag {
+                        id: 2,
+                        fav_id: 1,
+                        label: String::from("Haus"),
+                    },
+                ],
+            ),
+            (
+                Fav {
+                    id: 1,
+                    server_id: 1,
+                    channel_id: 1,
+                    msg_id: 1,
+                    user_id: 1,
+                    author_id: 1,
+                },
+                vec![
+                    Tag {
+                        id: 1,
+                        fav_id: 1,
+                        label: String::from("Haus"),
+                    },
+                    Tag {
+                        id: 2,
+                        fav_id: 1,
+                        label: String::from("Turm"),
+                    },
+                ],
+            ),
+        ];
+
+        let labels = vec!["Haus", "Turm", "Auto"];
+
+        let possible_favs: Vec<(Fav, Vec<Tag>)> = input
+            .into_iter()
+            .filter_map(|(f, f_tags)| {
+                for l in &labels {
+                    let x = f_tags
+                        .iter()
+                        .fold(0, |acc, x| if &&*x.label == l { acc + 1 } else { acc });
+                    if x == 0 {
+                        return None;
+                    }
+                }
+
+                Some((f, f_tags))
+            })
+            .collect();
+
+        dbg!(&possible_favs);
+    }
+}
