@@ -109,6 +109,7 @@ fn main() {
             .command("kick", |c| c.check(admin_check).cmd(commands::kick::kick))
             .command("ban", |c| c.check(admin_check).cmd(commands::ban::ban))
             .command("quote", |c| c.cmd(commands::quote::quote))
+            .command("untagged", |c| c.cmd(commands::fav::untagged))
             .help(help_commands::with_embeds),
     );
 
