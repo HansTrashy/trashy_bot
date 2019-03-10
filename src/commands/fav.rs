@@ -7,7 +7,7 @@ use crate::Waiter;
 use chrono::prelude::*;
 use diesel::prelude::*;
 use rand::prelude::*;
-use serenity::model::{channel::Message, id::ChannelId, id::MessageId};
+use serenity::model::{channel::Message, channel::ReactionType, id::ChannelId, id::MessageId};
 
 command!(fav(ctx, msg, args) {
     let mut rng = rand::thread_rng();
@@ -54,7 +54,8 @@ command!(fav(ctx, msg, args) {
 
         //first remove all other waits for this user and these actions
         // dont do this until checked this is really necessary
-        // wait.purge(*msg.author.id.as_u64(), vec![Action::DeleteFav, Action::ReqTags]);
+        // => necessary for now, has to be changed wenn switching to async handling of this waiting thing
+        wait.purge(*msg.author.id.as_u64(), vec![Action::DeleteFav, Action::ReqTags]);
 
         wait.wait(*msg.author.id.as_u64(), WaitEvent::new(Action::DeleteFav, chosen_fav.id, Utc::now()));
         wait.wait(*msg.author.id.as_u64(), WaitEvent::new(Action::ReqTags, chosen_fav.id, Utc::now()));
@@ -94,31 +95,33 @@ command!(untagged(ctx, msg, args) {
             })
             .collect();
 
-        for (fa, _t) in &possible_favs {
+        if !possible_favs.is_empty() {
+            let (fa, _t) = possible_favs.first().unwrap();
             let fav_msg = ChannelId(fa.channel_id as u64).message(fa.msg_id as u64).unwrap();
 
             if let Some(waiter) = data.get::<Waiter>() {
                 let mut wait = waiter.lock();
 
-                //first remove all other waits for this user and these actions
-                // dont do this until checked this is really necessary
-                // wait.purge(*msg.author.id.as_u64(), vec![Action::DeleteFav, Action::ReqTags]);
+                wait.purge(*msg.author.id.as_u64(), vec![Action::DeleteFav, Action::ReqTags]);
 
                 wait.wait(*msg.author.id.as_u64(), WaitEvent::new(Action::DeleteFav, fa.id, Utc::now()));
                 wait.wait(*msg.author.id.as_u64(), WaitEvent::new(Action::ReqTags, fa.id, Utc::now()));
             }
 
-            let _ = msg.channel_id.send_message(|m| m.embed(|e| 
+            let sent_msg = msg.channel_id.send_message(|m| m.embed(|e| 
                 e.author(|a| a.name(&fav_msg.author.name).icon_url(&fav_msg.author.static_avatar_url().unwrap_or_default()))
                 .description(&fav_msg.content)
                 .color((0,120,220))
                 .footer(|f| f.text(&format!("{} | Quoted by: {}", &fav_msg.timestamp.format("%d.%m.%Y, %H:%M:%S"), &msg.author.name)))));
+
+            let sent_msg = sent_msg.unwrap();
+            let _ = sent_msg.react(ReactionType::Unicode("🗑".to_string()));
+            let _ = sent_msg.react(ReactionType::Unicode("🏷".to_string()));
         }
 
     } else {
         let _ = msg.channel_id.send_message(|m| m.content("Only works in DMs"));
     }
-
 });
 
 #[cfg(test)]
