@@ -1,8 +1,8 @@
 use rand::prelude::*;
 
 command!(roll(_ctx, msg, args) {
-    let amount_of_dice = args.single::<u32>().unwrap();
-    let number_of_eyes = args.single::<u32>().unwrap();
+    let amount_of_dice = args.single::<u64>().unwrap();
+    let number_of_eyes = args.single::<u64>().unwrap();
 
     if amount_of_dice > 50 {
         if let Err(why) = msg.channel_id.say("Only < 50 dice allowed") {
