@@ -1,5 +1,5 @@
 use crate::interaction::wait::Action;
-use crate::models::tags::NewTag;
+use crate::models::tag::NewTag;
 use crate::DatabaseConnection;
 use crate::Waiter;
 use diesel::prelude::*;
@@ -51,7 +51,7 @@ impl EventHandler for Handler {
                         .split(' ')
                         .map(|t| NewTag::new(waited_fav_id, t.to_string()))
                         .collect();
-                    crate::models::tags::create_tags(&*conn.lock(), received_tags);
+                    crate::models::tag::create_tags(&*conn.lock(), received_tags);
 
                     let _ = msg.reply("added the tags!");
                 }

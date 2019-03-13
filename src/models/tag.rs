@@ -1,4 +1,4 @@
-use crate::models::favs::Fav;
+use crate::models::fav::Fav;
 use crate::schema::tags;
 use diesel::prelude::*;
 

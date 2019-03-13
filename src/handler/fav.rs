@@ -21,7 +21,7 @@ pub fn add_fav(ctx: Context, add_reaction: Reaction) {
     let data = ctx.data.lock();
 
     if let Some(conn) = data.get::<DatabaseConnection>() {
-        crate::models::favs::create_fav(
+        crate::models::fav::create_fav(
             &*conn.lock(),
             *add_reaction
                 .channel()

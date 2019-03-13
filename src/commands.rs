@@ -5,3 +5,4 @@ pub mod fav;
 pub mod kick;
 pub mod quote;
 pub mod roll;
+pub mod bank;

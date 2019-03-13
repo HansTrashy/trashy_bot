@@ -1,3 +1,3 @@
-pub mod favs;
-pub mod tags;
-pub mod banks;
+pub mod fav;
+pub mod tag;
+pub mod bank;

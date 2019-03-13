@@ -1,5 +1,3 @@
-#![recursion_limit="128"]
-
 #[macro_use]
 extern crate serenity;
 #[macro_use]
@@ -112,6 +110,9 @@ fn main() {
             .command("ban", |c| c.check(admin_check).cmd(commands::ban::ban))
             .command("quote", |c| c.cmd(commands::quote::quote))
             .command("untagged", |c| c.cmd(commands::fav::untagged))
+            .command("bank", |c| c.cmd(commands::bank::bank))
+            .command("payday", |c| c.cmd(commands::bank::payday))
+            .command("slot", |c| c.cmd(commands::bank::slot))
             .help(help_commands::with_embeds),
     );
 

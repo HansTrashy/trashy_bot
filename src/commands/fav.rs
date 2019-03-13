@@ -1,6 +1,6 @@
 use crate::interaction::wait::{Action, WaitEvent};
-use crate::models::favs::Fav;
-use crate::models::tags::Tag;
+use crate::models::fav::Fav;
+use crate::models::tag::Tag;
 use crate::schema::favs::dsl::*;
 use crate::DatabaseConnection;
 use crate::Waiter;
