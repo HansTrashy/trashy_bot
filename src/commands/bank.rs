@@ -23,14 +23,14 @@ command!(bank(ctx, msg, args) {
 
     // create bank if not existing
     if results.is_empty() {
-        crate::models::bank::create_bank(&*conn.lock(), *msg.author.id.as_u64() as i64, 0, Utc::now().naive_utc());
+        crate::models::bank::create_bank(&*conn.lock(), *msg.author.id.as_u64() as i64, 1000, Utc::now().naive_utc());
         let _ = msg.reply("Created bank!");
     } else {
         let _ = msg.reply("You already own a bank");
     }
 });
 
-command!(payday(_ctx, msg, args) {
+command!(payday(ctx, msg, args) {
     // check if user has a bank & last payday was over 24h ago
     let data = ctx.data.lock();
     let conn = match data.get::<DatabaseConnection>() {
@@ -46,21 +46,22 @@ command!(payday(_ctx, msg, args) {
     if results.is_empty() {
         let _ = msg.reply("You do not own a bank, please create one using the bank command");
     } else {
-        if Utc::now().naive_utc().signed_duration_since(results[0].last_payday).hours() > 23 {
-            let new_amount = results[0].amount + 1000;
-            
+        let hours_diff = Utc::now().naive_utc().signed_duration_since(results[0].last_payday).num_hours();
+        println!("Hours Diff: {}", hours_diff);
+        if  hours_diff > 23 {
+            let mut updated_bank = results[0].clone();
+            updated_bank.amount = results[0].amount + 1000;
+            updated_bank.last_payday = Utc::now().naive_utc();
+
+            diesel::update(banks).set(&updated_bank).execute(&*conn.lock()).expect("failed update bank");
+            let _ = msg.reply(&format!("Your new balance: {}", &updated_bank.amount));
+        } else {
+            let _ = msg.reply(&format!("Wait {} hours for your next Payday!", (24 - &hours_diff)));
         }
-    }
-
-
-    // add 1000 to user amount
-
-    if let Err(why) = msg.channel_id.say("Increased your balance by x!") {
-        println!("Error sending message: {:?}", why);
     }
 });
 
-command!(slot(_ctx, msg, args) {
+command!(slot(ctx, msg, args) {
     // check if user already owns a bank & has enough balance
 
 

@@ -2,7 +2,7 @@ use crate::schema::banks;
 use diesel::prelude::*;
 use chrono::NaiveDateTime;
 
-#[derive(Identifiable, Queryable, Debug)]
+#[derive(Identifiable, AsChangeset, Queryable, Debug, Clone)]
 pub struct Bank {
     pub id: i64,
     pub user_id: i64,
