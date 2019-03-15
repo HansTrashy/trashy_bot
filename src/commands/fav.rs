@@ -126,8 +126,8 @@ command!(untagged(ctx, msg, args) {
 
 #[cfg(test)]
 mod tests {
-    use crate::models::favs::Fav;
-    use crate::models::tags::Tag;
+    use crate::models::fav::Fav;
+    use crate::models::tag::Tag;
     use crate::schema::favs::dsl::*;
 
     #[test]
