@@ -113,6 +113,7 @@ fn main() {
             .command("bank", |c| c.cmd(commands::bank::bank))
             .command("payday", |c| c.cmd(commands::bank::payday))
             .command("slot", |c| c.cmd(commands::bank::slot))
+            .command("leaderboard", |c| c.cmd(commands::bank::leaderboard))
             .help(help_commands::with_embeds),
     );
 

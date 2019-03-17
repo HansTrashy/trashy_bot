@@ -2,6 +2,7 @@ table! {
     banks (id) {
         id -> Int8,
         user_id -> Int8,
+        user_name -> Text,
         amount -> Int8,
         last_payday -> Timestamp,
     }
