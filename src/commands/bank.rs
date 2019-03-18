@@ -71,7 +71,7 @@ command!(leaderboard(ctx, msg, _args) {
         }
     };
     // get top 10 on leaderboard
-    let results = banks.order(amount).limit(10).load::<Bank>(&*conn.lock()).expect("could not retrieve banks");
+    let results = banks.order(amount.desc()).limit(10).load::<Bank>(&*conn.lock()).expect("could not retrieve banks");
 
     let mut rendered_leaderboard = String::from("Top Ten:\n");
     for (i, r) in results.iter().enumerate() {
