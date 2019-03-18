@@ -5,6 +5,7 @@ extern crate diesel;
 
 use diesel::pg::PgConnection;
 use diesel::prelude::*;
+use log::{debug, error, info, trace, warn};
 use serenity::{
     client::bridge::gateway::{ShardId, ShardManager},
     framework::standard::{
@@ -24,6 +25,7 @@ use serenity::prelude::*;
 mod commands;
 mod handler;
 mod interaction;
+mod logger;
 mod models;
 mod schema;
 
@@ -90,10 +92,10 @@ fn main() {
                 Err(why) => println!("Command '{}' returned error {:?}", command_name, why),
             })
             .unrecognised_command(|_, _, unknown_command_name| {
-                println!("Could not find command named '{}'", unknown_command_name);
+                debug!("Could not find command named '{}'", unknown_command_name);
             })
             .message_without_command(|_, message| {
-                println!("Message is not a command '{}'", message.content);
+                debug!("Message is not a command '{}'", message.content);
             })
             .on_dispatch_error(|_ctx, msg, error| {
                 if let DispatchError::RateLimited(seconds) = error {
@@ -128,7 +130,6 @@ fn admin_check(_: &mut Context, msg: &Message, _: &mut Args, _: &CommandOptions)
             return permissions.administrator();
         }
     }
-
     false
 }
 
