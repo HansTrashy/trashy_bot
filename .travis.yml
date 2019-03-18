@@ -8,11 +8,3 @@ matrix:
     - rust: nightly
   fast_finish: true
 cache: cargo
-deploy:
-  - provider: codedeploy
-    revision_type: github
-    access_key_id: "AKIAJZBY5YIDWENCYFQA"
-    secret_access_key: ""
-    application: "trashybot"
-    deployment_group: "trashybotgroup"
-    region: "eu-central-1"
