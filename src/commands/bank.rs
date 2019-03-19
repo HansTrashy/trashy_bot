@@ -83,6 +83,62 @@ command!(leaderboard(ctx, msg, _args) {
                 .color((0,120,220))));
 });
 
+command!(transfer(ctx, msg, args) {
+    let data = ctx.data.lock();
+    let conn = match data.get::<DatabaseConnection>() {
+        Some(v) => v.clone(),
+        None => {
+            let _ = msg.channel_id.say("Datenbankfehler, bitte informiere einen Moderator!");
+            return Ok(());
+        }
+    };
+    let amount_to_transfer = match args.single::<i64>() {
+        Ok(v) if v > 0 => v,
+        Ok(_) => {
+            // log
+            let _ = msg.channel_id.say("Ungültiger Transferbetrag!");
+            return Ok(());
+        }
+        Err(e) => {
+            // log
+            let _ = msg.channel_id.say("Ungültiger Transferbetrag!");
+            return Ok(());
+        }
+    };
+
+    let mentions_count = msg.mentions.len() as i64;
+
+
+    // get user entry
+    let results = banks.filter(user_id.eq(*msg.author.id.as_u64() as i64)).load::<Bank>(&*conn.lock()).expect("could not retrieve banks");
+
+    // check if user has bank
+    if !results.is_empty() {
+
+        // check if user has enough balance
+        if mentions_count * amount_to_transfer > results[0].amount {
+
+            let updated_amount = results[0].amount - mentions_count * amount_to_transfer;
+
+            // remove the needed money
+            diesel::update(banks.filter(id.eq(results[0].id))).set(amount.eq(updated_amount)).execute(&*conn.lock()).expect("failed update bank");
+
+            for mention in &msg.mentions {
+                let mentioned_users = banks.filter(user_id.eq(*mention.id.as_u64() as i64)).load::<Bank>(&*conn.lock()).expect("could not retrieve banks");
+                if !mentioned_users.is_empty() {
+                    let mentioned_user_amount = mentioned_users[0].amount + amount_to_transfer;
+                    diesel::update(banks.filter(user_id.eq(*mention.id.as_u64() as i64))).set(amount.eq(mentioned_user_amount)).execute(&*conn.lock()).expect("failed update bank");
+                }
+            }
+
+        } else {
+            let _ = msg.reply("Du hast nicht genügend credits für den Transfer!");
+        }
+    } else {
+        let _ = msg.reply("Du besitzt noch keine Bank!");
+    }
+});
+
 command!(slot(ctx, msg, args) {
     let mut rng = rand::thread_rng();
     let data = ctx.data.lock();
@@ -134,7 +190,7 @@ command!(slot(ctx, msg, args) {
         let delta = payout - amount_to_bet;
         let updated_amount =  results[0].amount + delta;
 
-        // TODO: investigate why this does not work
+        // TODO: investigate why the aschangeset version does not work
         diesel::update(banks.filter(id.eq(results[0].id))).set(amount.eq(updated_amount)).execute(&*conn.lock()).expect("failed update bank");
 
         let slot_machine_output = display_reels(&full_reels, payout);
