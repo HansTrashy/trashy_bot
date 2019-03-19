@@ -116,7 +116,7 @@ command!(transfer(ctx, msg, args) {
     if !results.is_empty() {
 
         // check if user has enough balance
-        if mentions_count * amount_to_transfer > results[0].amount {
+        if mentions_count * amount_to_transfer < results[0].amount {
 
             let updated_amount = results[0].amount - mentions_count * amount_to_transfer;
 
@@ -130,6 +130,9 @@ command!(transfer(ctx, msg, args) {
                     diesel::update(banks.filter(user_id.eq(*mention.id.as_u64() as i64))).set(amount.eq(mentioned_user_amount)).execute(&*conn.lock()).expect("failed update bank");
                 }
             }
+
+            let mentioned_user_names: Vec<String> = msg.mentions.iter().map(|u| u.name.to_owned()).collect();
+            let _ = msg.reply(&format!("Transferred: {}, to: {:?}", amount_to_transfer, mentioned_user_names));
 
         } else {
             let _ = msg.reply("Du hast nicht genügend credits für den Transfer!");
