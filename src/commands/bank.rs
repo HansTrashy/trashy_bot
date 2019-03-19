@@ -127,7 +127,7 @@ command!(transfer(ctx, msg, args) {
                 let mentioned_users = banks.filter(user_id.eq(*mention.id.as_u64() as i64)).load::<Bank>(&*conn.lock()).expect("could not retrieve banks");
                 if !mentioned_users.is_empty() {
                     let mentioned_user_amount = mentioned_users[0].amount + amount_to_transfer;
-                    diesel::update(banks.filter(user_id.eq(*mention.id.as_u64() as i64))).set(amount.eq(mentioned_user_amount)).execute(&*conn.lock()).expect("failed update bank");
+                    diesel::update(banks.filter(id.eq(mentioned_users[0].id))).set(amount.eq(mentioned_user_amount)).execute(&*conn.lock()).expect("failed update bank");
                 }
             }
 
