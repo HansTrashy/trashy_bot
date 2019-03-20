@@ -14,7 +14,7 @@ command!(quote(_ctx, msg, args) {
                         .description(&quoted_msg.content)
                         .footer(|f| f.text(&format!("{} | Quoted by: {}", &quoted_msg.timestamp.format("%d.%m.%Y, %H:%M:%S"), &msg.author.name)))
                 )});
-                let _ = msg.delete();
+                // let _ = msg.delete();
                 break;
             },
             Err(_e) => (),
