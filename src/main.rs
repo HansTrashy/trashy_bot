@@ -104,6 +104,7 @@ fn main() {
                         .say(&format!("Try this again in {} seconds.", seconds));
                 }
             })
+            .simple_bucket("slotmachine", 10)
             .command("about", |c| c.cmd(commands::about::about))
             .command("roll", |c| c.cmd(commands::roll::roll))
             .command("choose", |c| c.cmd(commands::choose::choose))
@@ -114,7 +115,9 @@ fn main() {
             .command("untagged", |c| c.cmd(commands::fav::untagged))
             .command("bank", |c| c.cmd(commands::bank::bank))
             .command("payday", |c| c.cmd(commands::bank::payday))
-            .command("slot", |c| c.cmd(commands::bank::slot))
+            .command("slot", |c| {
+                c.bucket("slotmachine").cmd(commands::bank::slot)
+            })
             .command("leaderboard", |c| c.cmd(commands::bank::leaderboard))
             .command("transfer", |c| c.cmd(commands::bank::transfer))
             .help(help_commands::with_embeds),

@@ -7,8 +7,9 @@ use chrono::prelude::*;
 use diesel::prelude::*;
 use rand::prelude::*;
 use serenity::model::{channel::Message, channel::ReactionType, id::ChannelId, id::MessageId};
+use serenity::utils::{content_safe, ContentSafeOptions};
 
-command!(bank(ctx, msg, args) {
+command!(bank(ctx, msg, _args) {
     let data = ctx.data.lock();
     let conn = match data.get::<DatabaseConnection>() {
         Some(v) => v.clone(),
@@ -30,7 +31,7 @@ command!(bank(ctx, msg, args) {
     }
 });
 
-command!(payday(ctx, msg, args) {
+command!(payday(ctx, msg, _args) {
     // check if user has a bank & last payday was over 24h ago
     let data = ctx.data.lock();
     let conn = match data.get::<DatabaseConnection>() {
