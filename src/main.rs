@@ -28,6 +28,7 @@ mod interaction;
 mod logger;
 mod models;
 mod schema;
+mod util;
 
 struct ShardManagerContainer;
 

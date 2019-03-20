@@ -1,5 +1,6 @@
 use rand::prelude::*;
 // use rand::seq::SliceRandom;
+use crate::util::sanitize_for_other_bot_commands;
 use serenity::utils::{content_safe, ContentSafeOptions};
 
 command!(choose(_ctx, msg, args) {
@@ -16,7 +17,7 @@ command!(choose(_ctx, msg, args) {
 
     let chosen = args.iter::<String>().choose(&mut rng).unwrap().unwrap();
 
-    if let Err(why) = msg.channel_id.say(content_safe(&chosen, &settings)) {
+    if let Err(why) = msg.channel_id.say(content_safe(&sanitize_for_other_bot_commands(&chosen), &settings)) {
         println!("Error sending message: {:?}", why);
     }
 });
