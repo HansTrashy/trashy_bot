@@ -118,7 +118,7 @@ command!(transfer(ctx, msg, args) {
     if !results.is_empty() {
 
         // check if user has enough balance
-        if mentions_count * amount_to_transfer < results[0].amount {
+        if mentions_count * amount_to_transfer <= results[0].amount {
 
             let updated_amount = results[0].amount - mentions_count * amount_to_transfer;
 
