@@ -81,7 +81,7 @@ fn main() {
                     .delimiter(" ")
             })
             .before(|_ctx, msg, command_name| {
-                println!(
+                debug!(
                     "Got command '{}' by user '{}'",
                     command_name, msg.author.name
                 );
@@ -89,8 +89,8 @@ fn main() {
                 true
             })
             .after(|_, _, command_name, error| match error {
-                Ok(()) => println!("Processed command '{}'", command_name),
-                Err(why) => println!("Command '{}' returned error {:?}", command_name, why),
+                Ok(()) => debug!("Processed command '{}'", command_name),
+                Err(why) => debug!("Command '{}' returned error {:?}", command_name, why),
             })
             .unrecognised_command(|_, _, unknown_command_name| {
                 debug!("Could not find command named '{}'", unknown_command_name);
@@ -102,25 +102,91 @@ fn main() {
                 if let DispatchError::RateLimited(seconds) = error {
                     let _ = msg
                         .channel_id
-                        .say(&format!("Try this again in {} seconds.", seconds));
+                        .say(&format!("Versuche es in {} sekunden noch einmal.", seconds));
                 }
             })
             .simple_bucket("slotmachine", 10)
-            .command("about", |c| c.cmd(commands::about::about))
-            .command("roll", |c| c.cmd(commands::roll::roll))
-            .command("choose", |c| c.cmd(commands::choose::choose))
-            .command("fav", |c| c.cmd(commands::fav::fav))
-            .command("kick", |c| c.check(admin_check).cmd(commands::kick::kick))
-            .command("ban", |c| c.check(admin_check).cmd(commands::ban::ban))
-            // .command("quote", |c| c.cmd(commands::quote::quote))
-            .command("untagged", |c| c.cmd(commands::fav::untagged))
-            .command("bank", |c| c.cmd(commands::bank::bank))
-            .command("payday", |c| c.cmd(commands::bank::payday))
-            .command("slot", |c| {
-                c.bucket("slotmachine").cmd(commands::bank::slot)
+            // commands
+            .command("about", |c| {
+                c.desc("Gibt eine kurze Info über den Bot")
+                    .usage("about")
+                    .num_args(0)
+                    .cmd(commands::about::about)
             })
-            .command("leaderboard", |c| c.cmd(commands::bank::leaderboard))
-            .command("transfer", |c| c.cmd(commands::bank::transfer))
+            .command("roll", |c| {
+                c.desc("Rollt x Würfel mit y Augen.")
+                    .num_args(2)
+                    .example("1 6")
+                    .usage(".roll x y")
+                    .cmd(commands::roll::roll)
+            })
+            .command("choose", |c| {
+                c.desc("Wählt eines der übergebenen Dinge.")
+                    .example(r#"a "b mit spaces""#)
+                    .usage(".choose apfel birne")
+                    .cmd(commands::choose::choose)
+            })
+            .command("fav", |c| {
+                c.desc("Postet einen zufälligen Fav. Kann mit labels präzisiert werden. Use 📗 on Messages to add a fav. See *untagged*")
+                    .usage("fav hint1 hint2 ...")
+                    .example("dödelsuppe")
+                    .cmd(commands::fav::fav)
+            })
+            .command("kick", |c| {
+                c.check(admin_check)
+                    .desc("Kickt alle mentioned user")
+                    .guild_only(true)
+                    .cmd(commands::kick::kick)
+            })
+            .command("ban", |c| {
+                c.check(admin_check)
+                    .desc("Bannt alle mentioned user")
+                    .usage("ban x ...")
+                    .example("@user")
+                    .guild_only(true)
+                    .cmd(commands::ban::ban)
+            })
+            // .command("quote", |c| c.cmd(commands::quote::quote))
+            .command("untagged", |c| {
+                c.desc("Direkt an den Bot schreiben um untagged favs zu löschen/labeln")
+                    .usage("untagged")
+                    .num_args(0)
+                    .dm_only(true)
+                    .cmd(commands::fav::untagged)
+            })
+            .command("bank", |c| {
+                c.desc("Erstellt eine Bank für dich oder gibt dir deinen Kontostand")
+                    .usage("bank")
+                    .num_args(0)
+                    .cmd(commands::bank::bank)
+            })
+            .command("payday", |c| {
+                c.desc("Erhöht max alle 24std deinen Kontostand um 1000")
+                    .known_as("paydaddy")
+                    .usage("payday")
+                    .num_args(0)
+                    .cmd(commands::bank::payday)
+            })
+            .command("slot", |c| {
+                c.bucket("slotmachine")
+                    .desc("Setzt x von deiner Bank, limitiert auf 1x alle 10 Sekunden")
+                    .usage("slot x")
+                    .example("1000")
+                    .num_args(1)
+                    .cmd(commands::bank::slot)
+            })
+            .command("leaderboard", |c| {
+                c.desc("Listet die Glücklichen und Süchtigen auf")
+                    .usage("leaderboard")
+                    .num_args(0)
+                    .cmd(commands::bank::leaderboard)
+            })
+            .command("transfer", |c| {
+                c.desc("Für den Sunshower-Moment. Beispiel: ")
+                    .usage("transfer 1000 @HansTrashy")
+                    .example("1000 @user1 @user2")
+                    .cmd(commands::bank::transfer)
+            })
             .help(help_commands::with_embeds),
     );
 

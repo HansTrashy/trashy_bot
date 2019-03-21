@@ -68,8 +68,8 @@ command!(fav(ctx, msg, args) {
         .footer(|f| f.text(&format!("{} | Quoted by: {}", &fav_msg.timestamp.format("%d.%m.%Y, %H:%M:%S"), &msg.author.name)))));
 });
 
-command!(untagged(ctx, msg, args) {
-    if msg.is_private() {
+command!(untagged(ctx, msg, _args) {
+
         let data = ctx.data.lock();
         let conn = match data.get::<DatabaseConnection>() {
             Some(v) => v.clone(),
@@ -117,11 +117,9 @@ command!(untagged(ctx, msg, args) {
             let sent_msg = sent_msg.unwrap();
             let _ = sent_msg.react(ReactionType::Unicode("🗑".to_string()));
             let _ = sent_msg.react(ReactionType::Unicode("🏷".to_string()));
+        } else {
+            let _ = msg.reply("Du hat keine untagged Favs!");
         }
-
-    } else {
-        let _ = msg.channel_id.send_message(|m| m.content("Only works in DMs"));
-    }
 });
 
 #[cfg(test)]
