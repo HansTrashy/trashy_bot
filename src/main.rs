@@ -127,28 +127,33 @@ fn main() {
                     .cmd(commands::choose::choose)
             })
             .command("fav", |c| {
-                c.desc("Postet einen zufälligen Fav. Kann mit labels präzisiert werden. Use 📗 on Messages to add a fav. See *untagged*")
+                c.desc("Postet einen zufälligen Fav. Kann mit labels präzisiert werden. Reagiere mit 📗 auf Nachrichten um einen Fav zu erstellen. Siehe auch `untagged`.")
                     .usage("fav hint1 hint2 ...")
                     .example("dödelsuppe")
                     .cmd(commands::fav::fav)
             })
-            .command("kick", |c| {
-                c.check(admin_check)
-                    .desc("Kickt alle mentioned user")
+            // .command("kick", |c| {
+            //     c.check(admin_check)
+            //         .desc("Kickt alle mentioned user")
+            //         .guild_only(true)
+            //         .cmd(commands::kick::kick)
+            // })
+            // .command("ban", |c| {
+            //     c.check(admin_check)
+            //         .desc("Bannt alle mentioned user")
+            //         .usage("ban x ...")
+            //         .example("@user")
+            //         .guild_only(true)
+            //         .cmd(commands::ban::ban)
+            // })
+            .command("quote", |c|
+                c.desc("Zitiert eine Nachricht")
+                    .num_args(1)
                     .guild_only(true)
-                    .cmd(commands::kick::kick)
-            })
-            .command("ban", |c| {
-                c.check(admin_check)
-                    .desc("Bannt alle mentioned user")
-                    .usage("ban x ...")
-                    .example("@user")
-                    .guild_only(true)
-                    .cmd(commands::ban::ban)
-            })
-            .command("quote", |c| c.cmd(commands::quote::quote))
+                    .usage("quote message_id")
+                    .cmd(commands::quote::quote))
             .command("untagged", |c| {
-                c.desc("Direkt an den Bot schreiben um untagged favs zu löschen/labeln")
+                c.desc("Direkt an den Bot schreiben um untagged favs zu löschen/labeln. (Dazu dann auf die 🗑 oder 🏷 klicken)")
                     .usage("untagged")
                     .num_args(0)
                     .dm_only(true)
@@ -187,7 +192,18 @@ fn main() {
                     .example("1000 @user1 @user2")
                     .cmd(commands::bank::transfer)
             })
-            .help(help_commands::with_embeds),
+            .customised_help(help_commands::with_embeds, |c| {
+                c.individual_command_tip("Wenn du genaueres über einen Befehl wissen willst übergib ihn einfach als Argument.")
+                .command_not_found_text("Konnte `{}` nicht finden.")
+                .max_levenshtein_distance(3)
+                .lacking_permissions(HelpBehaviour::Hide)
+                .lacking_role(HelpBehaviour::Nothing)
+                .wrong_channel(HelpBehaviour::Strike)
+                .suggestion_text("Meintest du vielleicht `{}`?")
+                .no_help_available_text("Dafür gibt es leider noch keine Hilfe.")
+                .striked_commands_tip_in_guild(Some("Durchgestrichene Befehle können nur in Direktnachrichten mit dem Bot benutzt werden.".to_string()))
+                .striked_commands_tip_in_direct_message(Some("Durchgestrichene Befehle können nur auf einem Server mit dem Bot benutzt werden.".to_string()))
+            }),
     );
 
     if let Err(why) = client.start() {

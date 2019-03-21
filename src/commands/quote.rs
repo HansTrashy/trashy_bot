@@ -1,3 +1,5 @@
+use log::error;
+
 command!(quote(_ctx, msg, args) {
     let quote_msg_id = args.single::<u64>().unwrap();
 
@@ -8,7 +10,7 @@ command!(quote(_ctx, msg, args) {
         match channel.message(quote_msg_id) {
             Ok(quoted_msg) => {
                 let _ = msg.channel_id.send_message(|m| {
-                    m.embed(|e| 
+                    m.embed(|e|
                         e.author(|a| a.name(&quoted_msg.author.name).icon_url(&quoted_msg.author.static_avatar_url().unwrap_or_default()))
                         .color((0,120,220))
                         .description(&quoted_msg.content)
@@ -16,7 +18,7 @@ command!(quote(_ctx, msg, args) {
                 )});
                 break;
             },
-            Err(_e) => (),
+            Err(_e) => error!("failed to get message"),
         }
     }
 });
