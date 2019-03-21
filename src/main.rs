@@ -146,7 +146,7 @@ fn main() {
                     .guild_only(true)
                     .cmd(commands::ban::ban)
             })
-            // .command("quote", |c| c.cmd(commands::quote::quote))
+            .command("quote", |c| c.cmd(commands::quote::quote))
             .command("untagged", |c| {
                 c.desc("Direkt an den Bot schreiben um untagged favs zu löschen/labeln")
                     .usage("untagged")
