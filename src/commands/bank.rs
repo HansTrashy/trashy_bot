@@ -50,12 +50,13 @@ command!(payday(ctx, msg, _args) {
         let hours_diff = Utc::now().naive_utc().signed_duration_since(results[0].last_payday).num_hours();
         println!("Hours Diff: {}", hours_diff);
         if  hours_diff > 23 {
-            let mut updated_bank = results[0].clone();
-            updated_bank.amount = results[0].amount + 1000;
-            updated_bank.last_payday = Utc::now().naive_utc();
+            let updated_amount =results[0].amount + 1000;
 
-            diesel::update(banks).set(&updated_bank).execute(&*conn.lock()).expect("failed update bank");
-            let _ = msg.reply(&format!("Your new balance: {}", &updated_bank.amount));
+            diesel::update(banks.filter(user_id.eq(*msg.author.id.as_u64() as i64)))
+                .set((amount.eq(updated_amount), last_payday.eq(Utc::now().naive_utc())))
+                .execute(&*conn.lock())
+                .expect("failed update bank");
+            let _ = msg.reply(&format!("Your new balance: {}", &updated_amount));
         } else {
             let _ = msg.reply(&format!("Wait {} hours for your next Payday!", (24 - &hours_diff)));
         }
