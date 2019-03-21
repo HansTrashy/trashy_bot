@@ -153,7 +153,7 @@ fn main() {
                     .usage("quote message_id")
                     .cmd(commands::quote::quote))
             .command("untagged", |c| {
-                c.desc("Direkt an den Bot schreiben um untagged favs zu löschen/labeln. (Dazu dann auf die 🗑 oder 🏷 klicken)")
+                c.desc("Direkt an den Bot schreiben um untagged favs zu löschen/labeln. (Dazu dann auf 🗑 oder 🏷 klicken)")
                     .usage("untagged")
                     .num_args(0)
                     .dm_only(true)
