@@ -65,7 +65,7 @@ command!(fav(ctx, msg, args) {
         e.author(|a| a.name(&fav_msg.author.name).icon_url(&fav_msg.author.static_avatar_url().unwrap_or_default()))
         .description(&fav_msg.content)
         .color((0,120,220))
-        .footer(|f| f.text(&format!("{} | Quoted by: {}", &fav_msg.timestamp.format("%d.%m.%Y, %H:%M:%S"), &msg.author.name)))));
+        .footer(|f| f.text(&format!("{} | Zitiert von: {}", &fav_msg.timestamp.format("%d.%m.%Y, %H:%M:%S"), &msg.author.name)))));
 });
 
 command!(untagged(ctx, msg, _args) {
@@ -112,7 +112,7 @@ command!(untagged(ctx, msg, _args) {
                 e.author(|a| a.name(&fav_msg.author.name).icon_url(&fav_msg.author.static_avatar_url().unwrap_or_default()))
                 .description(&fav_msg.content)
                 .color((0,120,220))
-                .footer(|f| f.text(&format!("{} | Quoted by: {}", &fav_msg.timestamp.format("%d.%m.%Y, %H:%M:%S"), &msg.author.name)))));
+                .footer(|f| f.text(&format!("{} | Zitiert von: {}", &fav_msg.timestamp.format("%d.%m.%Y, %H:%M:%S"), &msg.author.name)))));
 
             let sent_msg = sent_msg.unwrap();
             let _ = sent_msg.react(ReactionType::Unicode("🗑".to_string()));
