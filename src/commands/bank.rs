@@ -48,7 +48,6 @@ command!(payday(ctx, msg, _args) {
         let _ = msg.reply("You do not own a bank, please create one using the bank command");
     } else {
         let hours_diff = Utc::now().naive_utc().signed_duration_since(results[0].last_payday).num_hours();
-        println!("Hours Diff: {}", hours_diff);
         if  hours_diff > 23 {
             let updated_amount =results[0].amount + 1000;
 
