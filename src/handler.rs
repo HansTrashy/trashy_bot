@@ -3,17 +3,30 @@ use crate::models::tag::NewTag;
 use crate::DatabaseConnection;
 use crate::Waiter;
 use diesel::prelude::*;
+use lazy_static::lazy_static;
+use regex::Regex;
 use serenity::{
     client::bridge::gateway::{ShardId, ShardManager},
     framework::standard::{
         help_commands, Args, CommandOptions, DispatchError, HelpBehaviour, StandardFramework,
     },
     model::{
-        channel::Message, channel::Reaction, channel::ReactionType, gateway::Ready, Permissions,
+        channel::Message, channel::Reaction, channel::ReactionType, gateway::Ready, id::ChannelId,
+        Permissions,
     },
     prelude::*,
     utils::{content_safe, ContentSafeOptions},
 };
+
+// Regexes for bad words
+lazy_static! {
+    static ref BAD_WORDS: Vec<Regex> = {
+        vec![
+            Regex::new(r"ell[a|e]*").unwrap(),
+            Regex::new(r"sex[a|e]*").unwrap(),
+        ]
+    };
+}
 
 mod fav;
 
@@ -55,6 +68,30 @@ impl EventHandler for Handler {
 
                     let _ = msg.reply("added the tags!");
                 }
+            }
+        } else {
+            // using wordfilter to check messages on guild for bad words
+            let mut contains_bad_word = false;
+            for r in BAD_WORDS.iter() {
+                if r.is_match(&msg.content) {
+                    contains_bad_word = true;
+                }
+            }
+            if contains_bad_word {
+                let _ = ChannelId::from(553_508_425_745_563_648).send_message(|m| {
+                    m.embed(|e| {
+                        e.author(|a| {
+                            a.name(&msg.author.name)
+                                .icon_url(&msg.author.static_avatar_url().unwrap_or_default())
+                        })
+                        .title("Potenzieller Verstoß gegen die Regeln")
+                        .description(&msg.content)
+                        .color((0, 120, 220))
+                        .footer(|f| {
+                            f.text(&format!("{}", &msg.timestamp.format("%d.%m.%Y, %H:%M:%S"),))
+                        })
+                    })
+                });
             }
         }
     }
