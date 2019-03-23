@@ -5,10 +5,12 @@ command!(quote(_ctx, msg, args) {
 
     let guild = msg.guild_id.ok_or("Failed to get guild_id")?.to_guild_cached();
     let guild = guild.ok_or("failed to get guild")?;
-
+    
+    let mut found_message = false;
     for (_c_id, channel) in guild.read().channels().unwrap() {
         match channel.message(quote_msg_id) {
             Ok(quoted_msg) => {
+                found_message = true;
                 let _ = msg.channel_id.send_message(|m| {
                     m.embed(|e|
                         e.author(|a| a.name(&quoted_msg.author.name).icon_url(&quoted_msg.author.static_avatar_url().unwrap_or_default()))
@@ -16,9 +18,13 @@ command!(quote(_ctx, msg, args) {
                         .description(&quoted_msg.content)
                         .footer(|f| f.text(&format!("{} | Zitiert von: {}", &quoted_msg.timestamp.format("%d.%m.%Y, %H:%M:%S"), &msg.author.name)))
                 )});
+                let _ = msg.delete();
                 break;
             },
             Err(_e) => error!("failed to get message"),
         }
+    }
+    if !found_message {
+        let _ = msg.reply("Tut mir leid, ich kann diese Nachricht nicht finden.");
     }
 });
