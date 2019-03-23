@@ -198,7 +198,7 @@ command!(slot(ctx, msg, args) {
         // TODO: investigate why the aschangeset version does not work
         diesel::update(banks.filter(id.eq(results[0].id))).set(amount.eq(updated_amount)).execute(&*conn.lock()).expect("failed update bank");
 
-        let slot_machine_output = display_reels(&full_reels, payout);
+        let slot_machine_output = display_reels(&full_reels, payout, updated_amount);
         let _ = msg.channel_id.send_message(|m| m.embed(|e| 
                 e.description(&slot_machine_output)
                 .color((0,120,220))));
@@ -225,8 +225,8 @@ fn get_payout(full_reels: &Vec<Vec<i64>>, betted_amount: i64) -> i64 {
     }
 }
 
-fn display_reels(full_reels: &Vec<Vec<i64>>, payout: i64) -> String {
-    format!("{} | {} | {} \n{} | {} | {}\n {} | {} | {}\n\n You won: {}",
+fn display_reels(full_reels: &Vec<Vec<i64>>, payout: i64, updated_amount: i64) -> String {
+    format!("{} | {} | {} \n{} | {} | {}\n {} | {} | {}\n\n Gewonnen: {}\nBank: {}",
         number_to_emoji(full_reels[0][0]),
         number_to_emoji(full_reels[1][0]),
         number_to_emoji(full_reels[2][0]),
@@ -237,6 +237,7 @@ fn display_reels(full_reels: &Vec<Vec<i64>>, payout: i64) -> String {
         number_to_emoji(full_reels[1][2]),
         number_to_emoji(full_reels[2][2]),
         payout,
+        updated_amount
     )
 }
 
