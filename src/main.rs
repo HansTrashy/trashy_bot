@@ -51,6 +51,8 @@ impl TypeMapKey for Waiter {
 fn main() {
     // load .env file
     kankyo::load().expect("no env file");
+    // setup logging
+    logger::setup_logger().expect("Could not setup logging");
     // Configure the client with your Discord bot token in the environment.
     let token = env::var("DISCORD_TOKEN").expect("Expected a token in the environment");
     let mut client = Client::new(&token, handler::Handler).expect("Err creating client");
