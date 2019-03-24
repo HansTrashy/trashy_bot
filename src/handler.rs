@@ -77,7 +77,7 @@ impl EventHandler for Handler {
             }
             let source = if msg.guild_id.is_some() {
                 format!(
-                    "| [Hier](https://discordapp.com/channels/{}/{}/{})",
+                    "https://discordapp.com/channels/{}/{}/{}",
                     msg.guild_id.unwrap(),
                     msg.channel_id,
                     msg.id,
