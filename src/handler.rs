@@ -4,6 +4,7 @@ use crate::DatabaseConnection;
 use crate::Waiter;
 use diesel::prelude::*;
 use lazy_static::lazy_static;
+use log::{debug, error, info, warn};
 use regex::Regex;
 use serenity::{
     client::bridge::gateway::{ShardId, ShardManager},
@@ -33,8 +34,8 @@ impl EventHandler for Handler {
     }
 
     fn message(&self, ctx: Context, msg: Message) {
-        use crate::schema::tags::dsl::*;
         if msg.is_private() {
+            use crate::schema::tags::dsl::*;
             // check if waiting for labels
             let data = ctx.data.lock();
             if let Some(waiter) = data.get::<Waiter>() {
@@ -65,6 +66,7 @@ impl EventHandler for Handler {
                 }
             }
         } else if msg.author.id != 399343003233157124 && msg.channel_id != 385838671770943489 {
+            info!("Bad word found!");
             // using wordfilter to check messages on guild for bad words
             let mut contains_bad_word = false;
             for r in BAD_WORDS.iter() {
@@ -83,7 +85,7 @@ impl EventHandler for Handler {
                 String::new()
             };
             if contains_bad_word {
-                let _ = ChannelId::from(559317647372713984).send_message(|m| {
+                match ChannelId::from(559317647372713984).send_message(|m| {
                     m.embed(|e| {
                         e.author(|a| {
                             a.name(&msg.author.name)
@@ -100,7 +102,10 @@ impl EventHandler for Handler {
                             f.text(&format!("{}", &msg.timestamp.format("%d.%m.%Y, %H:%M:%S"),))
                         })
                     })
-                });
+                }) {
+                    Ok(v) => (),
+                    Err(e) => error!("Failure to send message: {}", e),
+                }
             }
         }
     }
