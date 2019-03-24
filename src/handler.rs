@@ -95,12 +95,9 @@ impl EventHandler for Handler {
                         ))
                         .description(&msg.content)
                         .color((0, 120, 220))
+                        .url(&source)
                         .footer(|f| {
-                            f.text(&format!(
-                                "{} {}",
-                                &msg.timestamp.format("%d.%m.%Y, %H:%M:%S"),
-                                source
-                            ))
+                            f.text(&format!("{}", &msg.timestamp.format("%d.%m.%Y, %H:%M:%S"),))
                         })
                     })
                 });
