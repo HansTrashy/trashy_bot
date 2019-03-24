@@ -34,6 +34,7 @@ impl EventHandler for Handler {
     }
 
     fn message(&self, ctx: Context, msg: Message) {
+        info!("Message: {:?}", msg);
         if msg.is_private() {
             use crate::schema::tags::dsl::*;
             // check if waiting for labels
