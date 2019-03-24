@@ -21,7 +21,9 @@ use serenity::{
 
 // Regexes for bad words
 lazy_static! {
-    static ref BAD_WORDS: Vec<Regex> = { vec![Regex::new(r"ell[a|e]*").unwrap(),] };
+    static ref BAD_WORDS: Vec<Regex> = { vec![
+        // Regex::new(r"ell[a|e]*").unwrap(),
+    ] };
 }
 
 mod fav;
