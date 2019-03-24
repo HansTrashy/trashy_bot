@@ -86,7 +86,8 @@ impl EventHandler for Handler {
                 String::new()
             };
             if contains_bad_word {
-                match ChannelId::from(559317647372713984).send_message(|m| {
+                let report_channel_id = ChannelId::from(559317647372713984);
+                let _ = report_channel_id.send_message(|m| {
                     m.embed(|e| {
                         e.author(|a| {
                             a.name(&msg.author.name)
@@ -98,15 +99,12 @@ impl EventHandler for Handler {
                         ))
                         .description(&msg.content)
                         .color((0, 120, 220))
-                        .url(&source)
                         .footer(|f| {
                             f.text(&format!("{}", &msg.timestamp.format("%d.%m.%Y, %H:%M:%S"),))
                         })
                     })
-                }) {
-                    Ok(v) => (),
-                    Err(e) => error!("Failure to send message: {}", e),
-                }
+                });
+                let _ = report_channel_id.say(&source);
             }
         }
     }
