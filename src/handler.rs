@@ -20,12 +20,7 @@ use serenity::{
 
 // Regexes for bad words
 lazy_static! {
-    static ref BAD_WORDS: Vec<Regex> = {
-        vec![
-            Regex::new(r"ell[a|e]*").unwrap(),
-            Regex::new(r"sex[a|e]*").unwrap(),
-        ]
-    };
+    static ref BAD_WORDS: Vec<Regex> = { vec![Regex::new(r"ell[a|e]*").unwrap(),] };
 }
 
 mod fav;
@@ -69,7 +64,7 @@ impl EventHandler for Handler {
                     let _ = msg.reply("added the tags!");
                 }
             }
-        } else {
+        } else if msg.author.id != 399343003233157124 && msg.channel_id != 385838671770943489 {
             // using wordfilter to check messages on guild for bad words
             let mut contains_bad_word = false;
             for r in BAD_WORDS.iter() {
@@ -77,18 +72,35 @@ impl EventHandler for Handler {
                     contains_bad_word = true;
                 }
             }
+            let source = if msg.guild_id.is_some() {
+                format!(
+                    "| [Hier](https://discordapp.com/channels/{}/{}/{})",
+                    msg.guild_id.unwrap(),
+                    msg.channel_id,
+                    msg.id,
+                )
+            } else {
+                String::new()
+            };
             if contains_bad_word {
-                let _ = ChannelId::from(553_508_425_745_563_648).send_message(|m| {
+                let _ = ChannelId::from(559317647372713984).send_message(|m| {
                     m.embed(|e| {
                         e.author(|a| {
                             a.name(&msg.author.name)
                                 .icon_url(&msg.author.static_avatar_url().unwrap_or_default())
                         })
-                        .title("Potenzieller Verstoß gegen die Regeln")
+                        .title(&format!(
+                            "Potenzieller Verstoß in {}",
+                            msg.channel_id.name().unwrap_or_default()
+                        ))
                         .description(&msg.content)
                         .color((0, 120, 220))
                         .footer(|f| {
-                            f.text(&format!("{}", &msg.timestamp.format("%d.%m.%Y, %H:%M:%S"),))
+                            f.text(&format!(
+                                "{} {}",
+                                &msg.timestamp.format("%d.%m.%Y, %H:%M:%S"),
+                                source
+                            ))
                         })
                     })
                 });
