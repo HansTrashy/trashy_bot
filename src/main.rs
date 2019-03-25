@@ -194,6 +194,15 @@ fn main() {
                     .example("1000 @user1 @user2")
                     .cmd(commands::bank::transfer)
             })
+            .command("createrr", |c| {
+                c.cmd(commands::reaction_roles::createrr)
+            })
+            .command("removerr", |c| {
+                c.cmd(commands::reaction_roles::removerr)
+            })
+            .command("listrr", |c| {
+                c.cmd(commands::reaction_roles::listrr)
+            })
             .customised_help(help_commands::with_embeds, |c| {
                 c.individual_command_tip("Wenn du genaueres über einen Befehl wissen willst übergib ihn einfach als Argument.")
                 .command_not_found_text("Konnte `{}` nicht finden.")

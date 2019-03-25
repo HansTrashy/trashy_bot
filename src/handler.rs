@@ -44,6 +44,7 @@ lazy_static! {
 }
 
 mod fav;
+mod reaction_roles;
 
 pub struct Handler;
 
@@ -133,7 +134,11 @@ impl EventHandler for Handler {
             ReactionType::Unicode(ref s) if s == "📗" => fav::add_fav(ctx, add_reaction),
             ReactionType::Unicode(ref s) if s == "🗑" => fav::remove_fav(ctx, add_reaction),
             ReactionType::Unicode(ref s) if s == "🏷" => fav::add_label(ctx, add_reaction),
-            _ => (),
+            _ => reaction_roles::add_role(ctx, add_reaction),
         }
+    }
+
+    fn reaction_remove(&self, ctx: Context, removed_reaction: Reaction) {
+        reaction_roles::remove_role(ctx, removed_reaction);
     }
 }
