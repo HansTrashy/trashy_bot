@@ -23,22 +23,7 @@ use serenity::{
 lazy_static! {
     static ref BAD_WORDS: Vec<Regex> = {
         vec![
-            Regex::new(r"fag[got|ot]*").unwrap(),
-            Regex::new(r"chink").unwrap(),
-            Regex::new(r"gay").unwrap(),
-            Regex::new(r"homo").unwrap(),
-            Regex::new(r"hurensohn").unwrap(),
-            Regex::new(r"mi[s]*geburt").unwrap(),
-            Regex::new(r"nafri").unwrap(),
-            Regex::new(r"nigg[a|er]*").unwrap(),
-            Regex::new(r"negro").unwrap(),
-            Regex::new(r"neger").unwrap(),
-            Regex::new(r"rape").unwrap(),
-            Regex::new(r"retard").unwrap(),
-            Regex::new(r"sandauge").unwrap(),
-            Regex::new(r"schwuchtel").unwrap(),
-            Regex::new(r"tunte").unwrap(),
-            Regex::new(r"schlitzauge").unwrap(),
+            // es gibt keine bösen wörter
         ]
     };
 }
