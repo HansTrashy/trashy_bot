@@ -205,18 +205,25 @@ fn main() {
                     .cmd(commands::bank::transfer)
             })
             .group("Reaction Roles", |g| {
-                    g.prefix("rr")
-                    .required_permissions(Permissions::MANAGE_ROLES)
-                    .desc("Commands for Reaction Roles Setup")
-                    .default_cmd(commands::reaction_roles::listrr)
-                    .command("create", |c| { c.cmd(commands::reaction_roles::createrr)
+                g.prefix("rr")
+                .required_permissions(Permissions::MANAGE_ROLES)
+                .desc("Befehle für Reaction Roles Setup")
+                .default_cmd(commands::reaction_roles::listrr)
+                .command("create", |c| {
+                    c.desc("Fügt eine neue Reaction Role zu einer gruppe hinzu.")
+                    .example("🧀 gruppenname rollenname")
+                    .cmd(commands::reaction_roles::createrr)
                 })
-                .command("remove", |c| c.cmd(commands::reaction_roles::removerr))
+                .command("remove", |c| { 
+                    c.desc("Entfernt eine Reaction Role")
+                    .example("🧀 rollenname")
+                    .cmd(commands::reaction_roles::removerr)
+                })
                 .command("list", |c| {
-                    c.cmd(commands::reaction_roles::listrr)
+                    c.desc("Auflistung aller ReactionRoles").usage("rr").cmd(commands::reaction_roles::listrr)
                 })
                 .command("postgroups", |c| {
-                    c.cmd(commands::reaction_roles::postrrgroups)
+                    c.desc("Postet die Reaction Nachrichten").cmd(commands::reaction_roles::postrrgroups)
                 })
             })
             .customised_help(help_commands::with_embeds, |c| {
