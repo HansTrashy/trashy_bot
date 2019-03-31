@@ -27,6 +27,7 @@ mod handler;
 mod interaction;
 mod logger;
 mod models;
+mod reaction_roles;
 mod schema;
 mod util;
 
@@ -48,6 +49,12 @@ impl TypeMapKey for Waiter {
     type Value = Arc<Mutex<self::interaction::wait::Wait>>;
 }
 
+struct ReactionRolesState;
+
+impl TypeMapKey for ReactionRolesState {
+    type Value = Arc<Mutex<self::reaction_roles::State>>;
+}
+
 fn main() {
     // load .env file
     kankyo::load().expect("no env file");
@@ -66,11 +73,14 @@ fn main() {
 
     let waiter = Arc::new(Mutex::new(self::interaction::wait::Wait::new()));
 
+    let rr_state = Arc::new(Mutex::new(self::reaction_roles::State::load_set()));
+
     {
         let mut data = client.data.lock();
         data.insert::<DatabaseConnection>(conn);
         data.insert::<ShardManagerContainer>(Arc::clone(&client.shard_manager));
         data.insert::<Waiter>(waiter);
+        data.insert::<ReactionRolesState>(rr_state);
     }
 
     client.with_framework(
@@ -194,14 +204,20 @@ fn main() {
                     .example("1000 @user1 @user2")
                     .cmd(commands::bank::transfer)
             })
-            .command("createrr", |c| {
-                c.cmd(commands::reaction_roles::createrr)
-            })
-            .command("removerr", |c| {
-                c.cmd(commands::reaction_roles::removerr)
-            })
-            .command("listrr", |c| {
-                c.cmd(commands::reaction_roles::listrr)
+            .group("Reaction Roles", |g| {
+                    g.prefix("rr")
+                    .required_permissions(Permissions::MANAGE_ROLES)
+                    .desc("Commands for Reaction Roles Setup")
+                    .default_cmd(commands::reaction_roles::listrr)
+                    .command("create", |c| { c.cmd(commands::reaction_roles::createrr)
+                })
+                .command("remove", |c| c.cmd(commands::reaction_roles::removerr))
+                .command("list", |c| {
+                    c.cmd(commands::reaction_roles::listrr)
+                })
+                .command("postgroups", |c| {
+                    c.cmd(commands::reaction_roles::postrrgroups)
+                })
             })
             .customised_help(help_commands::with_embeds, |c| {
                 c.individual_command_tip("Wenn du genaueres über einen Befehl wissen willst übergib ihn einfach als Argument.")

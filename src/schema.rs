@@ -24,6 +24,8 @@ table! {
         id -> Int8,
         server_id -> Int8,
         role_id -> Int8,
+        role_name -> Text,
+        role_group -> Text,
         emoji -> Text,
     }
 }

@@ -1,8 +1,10 @@
 use crate::interaction::wait::Action;
 use crate::interaction::wait::WaitEvent;
 use crate::models::reaction_role::ReactionRole;
+use crate::reaction_roles::State;
 use crate::schema::reaction_roles::dsl::*;
 use crate::DatabaseConnection;
+use crate::ReactionRolesState;
 use crate::Waiter;
 use chrono::prelude::*;
 use diesel::pg::PgConnection;
@@ -27,9 +29,19 @@ pub fn add_role(ctx: Context, add_reaction: Reaction) {
         Some(v) => v.clone(),
         None => return,
     };
+    let (rr_channel_id, rr_message_ids) = match data.get::<ReactionRolesState>() {
+        Some(v) => match *v.lock() {
+            State::Set {
+                ref channel_id,
+                ref message_ids,
+            } => (*channel_id, message_ids.to_owned()),
+            State::NotSet => return,
+        },
+        None => return,
+    };
     // check if reaction is on rr message
-    if add_reaction.channel_id == 553508425745563648
-        && add_reaction.message_id == 559851083422498836
+    if add_reaction.channel_id == rr_channel_id
+        && rr_message_ids.contains(add_reaction.message_id.as_u64())
     {
         info!("On correct message reacted!");
         if let ReactionType::Unicode(ref s) = add_reaction.emoji {
@@ -41,14 +53,15 @@ pub fn add_role(ctx: Context, add_reaction: Reaction) {
 
             if !results.is_empty() {
                 info!("Found role for this emoji!");
-                // got reaction role, add it to user!
-                let guild_id = GuildId::from(553329127705411614);
-                if let Ok(mut member) = guild_id.member(add_reaction.user_id) {
-                    let rs = member.add_role(RoleId::from(165575458954543104));
-                    // info!("{:?}", member);
-                    // let r_id = results[0].role_id as u64;
-                    // let rs = member.add_role(results[0].role_id as u64);
-                    info!("{:?}", rs);
+                if let Some(guild) = add_reaction
+                    .channel_id
+                    .to_channel()
+                    .ok()
+                    .and_then(|c| c.guild())
+                {
+                    if let Ok(mut member) = guild.read().guild_id.member(add_reaction.user_id) {
+                        let _ = member.add_role(results[0].role_id as u64);
+                    }
                 }
             }
         }
@@ -61,9 +74,19 @@ pub fn remove_role(ctx: Context, remove_reaction: Reaction) {
         Some(v) => v.clone(),
         None => return,
     };
+    let (rr_channel_id, rr_message_ids) = match data.get::<ReactionRolesState>() {
+        Some(v) => match *v.lock() {
+            State::Set {
+                ref channel_id,
+                ref message_ids,
+            } => (*channel_id, message_ids.to_owned()),
+            State::NotSet => return,
+        },
+        None => return,
+    };
     // check if reaction is on rr message
-    if remove_reaction.channel_id == 553508425745563648
-        && remove_reaction.message_id == 559851083422498836
+    if remove_reaction.channel_id == rr_channel_id
+        && rr_message_ids.contains(remove_reaction.message_id.as_u64())
     {
         info!("On correct message reacted!");
         if let ReactionType::Unicode(ref s) = remove_reaction.emoji {
@@ -75,12 +98,15 @@ pub fn remove_role(ctx: Context, remove_reaction: Reaction) {
 
             if !results.is_empty() {
                 info!("Found role for this emoji!");
-                // got reaction role, add it to user!
-                let guild_id = GuildId::from(553329127705411614);
-                if let Ok(mut member) = guild_id.member(remove_reaction.user_id) {
-                    info!("{:?}", member);
-                    let rs = member.remove_role(results[0].role_id as u64);
-                    info!("{:?}", rs);
+                if let Some(guild) = remove_reaction
+                    .channel_id
+                    .to_channel()
+                    .ok()
+                    .and_then(|c| c.guild())
+                {
+                    if let Ok(mut member) = guild.read().guild_id.member(remove_reaction.user_id) {
+                        let _ = member.remove_role(results[0].role_id as u64);
+                    }
                 }
             }
         }

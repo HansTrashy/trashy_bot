@@ -8,6 +8,8 @@ pub struct ReactionRole {
     pub id: i64,
     pub server_id: i64,
     pub role_id: i64,
+    pub role_name: String,
+    pub role_group: String,
     pub emoji: String,
 }
 
@@ -16,6 +18,8 @@ pub struct ReactionRole {
 pub struct NewReactionRole {
     server_id: i64,
     role_id: i64,
+    role_name: String,
+    role_group: String,
     emoji: String,
 }
 
@@ -23,6 +27,8 @@ pub fn create_reaction_role(
     conn: &PgConnection,
     server_id: i64,
     role_id: i64,
+    role_name: String,
+    role_group: String,
     emoji: String,
 ) -> ReactionRole {
     use crate::schema::reaction_roles;
@@ -30,6 +36,8 @@ pub fn create_reaction_role(
     let new_rr = NewReactionRole {
         server_id,
         role_id,
+        role_name,
+        role_group,
         emoji,
     };
 
