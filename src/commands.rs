@@ -1,8 +1,9 @@
 pub mod about;
 pub mod ban;
+pub mod bank;
 pub mod choose;
 pub mod fav;
 pub mod kick;
 pub mod quote;
+pub mod reaction_roles;
 pub mod roll;
-pub mod bank;

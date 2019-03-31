@@ -207,7 +207,6 @@ command!(slot(ctx, msg, args) {
     
 });
 
-
 fn get_payout(full_reels: &Vec<Vec<i64>>, betted_amount: i64) -> i64 {
     // win condition 1
     if full_reels[0][1] == full_reels[1][1] && full_reels[1][1] == full_reels[2][1] {
@@ -225,7 +224,8 @@ fn get_payout(full_reels: &Vec<Vec<i64>>, betted_amount: i64) -> i64 {
 }
 
 fn display_reels(full_reels: &Vec<Vec<i64>>, payout: i64, updated_amount: i64) -> String {
-    format!("{} | {} | {} \n{} | {} | {}\n {} | {} | {}\n\n Gewonnen: {}\nBank: {}",
+    format!(
+        "{} | {} | {} \n{} | {} | {}\n {} | {} | {}\n\n Gewonnen: {}\nBank: {}",
         number_to_emoji(full_reels[0][0]),
         number_to_emoji(full_reels[1][0]),
         number_to_emoji(full_reels[2][0]),
@@ -255,9 +255,7 @@ fn number_to_emoji(n: i64) -> &'static str {
 #[cfg(test)]
 mod tests {
     use super::get_payout;
-    use rand::{
-        Rng,
-    };
+    use rand::Rng;
 
     #[test]
     fn test_reels() {

@@ -20,6 +20,17 @@ table! {
 }
 
 table! {
+    reaction_roles (id) {
+        id -> Int8,
+        server_id -> Int8,
+        role_id -> Int8,
+        role_name -> Text,
+        role_group -> Text,
+        emoji -> Text,
+    }
+}
+
+table! {
     tags (id) {
         id -> Int8,
         fav_id -> Int8,
@@ -30,5 +41,6 @@ table! {
 allow_tables_to_appear_in_same_query!(
     banks,
     favs,
+    reaction_roles,
     tags,
 );
