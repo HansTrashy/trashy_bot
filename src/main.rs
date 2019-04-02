@@ -22,14 +22,34 @@ use std::{collections::HashMap, env, fmt::Write, sync::Arc};
 // This imports `typemap`'s `Key` as `TypeMapKey`.
 use serenity::prelude::*;
 
-mod commands;
 mod handler;
-mod interaction;
 mod logger;
-mod models;
 mod reaction_roles;
 mod schema;
 mod util;
+
+mod interaction {
+    pub mod wait;
+}
+
+mod models {
+    pub mod bank;
+    pub mod fav;
+    pub mod reaction_role;
+    pub mod tag;
+}
+
+mod commands {
+    pub mod about;
+    pub mod ban;
+    pub mod bank;
+    pub mod choose;
+    pub mod fav;
+    pub mod kick;
+    pub mod quote;
+    pub mod reaction_roles;
+    pub mod roll;
+}
 
 struct ShardManagerContainer;
 
