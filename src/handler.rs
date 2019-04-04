@@ -72,45 +72,45 @@ impl EventHandler for Handler {
                 }
             }
         } else if msg.author.id != 399343003233157124 && msg.channel_id != 385838671770943489 {
-            info!("Bad word found!");
-            // using wordfilter to check messages on guild for bad words
-            let mut contains_bad_word = false;
-            for r in BAD_WORDS.iter() {
-                if r.is_match(&msg.content) {
-                    contains_bad_word = true;
-                }
-            }
-            let source = if msg.guild_id.is_some() {
-                format!(
-                    "https://discordapp.com/channels/{}/{}/{}",
-                    msg.guild_id.unwrap(),
-                    msg.channel_id,
-                    msg.id,
-                )
-            } else {
-                String::new()
-            };
-            if contains_bad_word {
-                let report_channel_id = ChannelId::from(559317647372713984);
-                let _ = report_channel_id.send_message(|m| {
-                    m.embed(|e| {
-                        e.author(|a| {
-                            a.name(&msg.author.name)
-                                .icon_url(&msg.author.static_avatar_url().unwrap_or_default())
-                        })
-                        .title(&format!(
-                            "Potenzieller Verstoß in {}",
-                            msg.channel_id.name().unwrap_or_default()
-                        ))
-                        .description(&msg.content)
-                        .color((0, 120, 220))
-                        .footer(|f| {
-                            f.text(&format!("{}", &msg.timestamp.format("%d.%m.%Y, %H:%M:%S"),))
-                        })
-                    })
-                });
-                let _ = report_channel_id.say(&source);
-            }
+            // info!("Bad word found!");
+            // // using wordfilter to check messages on guild for bad words
+            // let mut contains_bad_word = false;
+            // for r in BAD_WORDS.iter() {
+            //     if r.is_match(&msg.content) {
+            //         contains_bad_word = true;
+            //     }
+            // }
+            // let source = if msg.guild_id.is_some() {
+            //     format!(
+            //         "https://discordapp.com/channels/{}/{}/{}",
+            //         msg.guild_id.unwrap(),
+            //         msg.channel_id,
+            //         msg.id,
+            //     )
+            // } else {
+            //     String::new()
+            // };
+            // if contains_bad_word {
+            //     let report_channel_id = ChannelId::from(559317647372713984);
+            //     let _ = report_channel_id.send_message(|m| {
+            //         m.embed(|e| {
+            //             e.author(|a| {
+            //                 a.name(&msg.author.name)
+            //                     .icon_url(&msg.author.static_avatar_url().unwrap_or_default())
+            //             })
+            //             .title(&format!(
+            //                 "Potenzieller Verstoß in {}",
+            //                 msg.channel_id.name().unwrap_or_default()
+            //             ))
+            //             .description(&msg.content)
+            //             .color((0, 120, 220))
+            //             .footer(|f| {
+            //                 f.text(&format!("{}", &msg.timestamp.format("%d.%m.%Y, %H:%M:%S"),))
+            //             })
+            //         })
+            //     });
+            //     let _ = report_channel_id.say(&source);
+            // }
         }
     }
 

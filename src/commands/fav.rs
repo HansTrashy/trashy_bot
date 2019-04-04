@@ -7,7 +7,8 @@ use crate::Waiter;
 use chrono::prelude::*;
 use diesel::prelude::*;
 use rand::prelude::*;
-use serenity::model::{channel::Message, channel::ReactionType, id::ChannelId, id::MessageId};
+use serenity::model::{channel::Message, channel::Attachment, channel::ReactionType, id::ChannelId, id::MessageId};
+use log::{warn, info, debug, trace, error};
 
 command!(fav(ctx, msg, args) {
     let mut rng = rand::thread_rng();
@@ -61,11 +62,20 @@ command!(fav(ctx, msg, args) {
         wait.wait(*msg.author.id.as_u64(), WaitEvent::new(Action::ReqTags, chosen_fav.id, Utc::now()));
     }
 
-    let _ = msg.channel_id.send_message(|m| m.embed(|e| 
+    if let Some(image) = fav_msg.attachments.iter().cloned().filter(|a| a.width.is_some()).collect::<Vec<Attachment>>().first() {
+        let _ = msg.channel_id.send_message(|m| m.embed(|e| 
+        e.author(|a| a.name(&fav_msg.author.name).icon_url(&fav_msg.author.static_avatar_url().unwrap_or_default()))
+        .description(&fav_msg.content)
+        .color((0,120,220))
+        .image(&image.url)
+        .footer(|f| f.text(&format!("{} | Zitiert von: {}", &fav_msg.timestamp.format("%d.%m.%Y, %H:%M:%S"), &msg.author.name)))));
+    } else {
+        let _ = msg.channel_id.send_message(|m| m.embed(|e| 
         e.author(|a| a.name(&fav_msg.author.name).icon_url(&fav_msg.author.static_avatar_url().unwrap_or_default()))
         .description(&fav_msg.content)
         .color((0,120,220))
         .footer(|f| f.text(&format!("{} | Zitiert von: {}", &fav_msg.timestamp.format("%d.%m.%Y, %H:%M:%S"), &msg.author.name)))));
+    }
 });
 
 command!(untagged(ctx, msg, _args) {
@@ -108,11 +118,20 @@ command!(untagged(ctx, msg, _args) {
                 wait.wait(*msg.author.id.as_u64(), WaitEvent::new(Action::ReqTags, fa.id, Utc::now()));
             }
 
-            let sent_msg = msg.channel_id.send_message(|m| m.embed(|e| 
+            let sent_msg = if let Some(image) = fav_msg.attachments.iter().cloned().filter(|a| a.width.is_some()).collect::<Vec<Attachment>>().first() {
+                msg.channel_id.send_message(|m| m.embed(|e| 
                 e.author(|a| a.name(&fav_msg.author.name).icon_url(&fav_msg.author.static_avatar_url().unwrap_or_default()))
                 .description(&fav_msg.content)
                 .color((0,120,220))
-                .footer(|f| f.text(&format!("{} | Zitiert von: {}", &fav_msg.timestamp.format("%d.%m.%Y, %H:%M:%S"), &msg.author.name)))));
+                .image(&image.url)
+                .footer(|f| f.text(&format!("{} | Zitiert von: {}", &fav_msg.timestamp.format("%d.%m.%Y, %H:%M:%S"), &msg.author.name)))))
+            } else {
+                msg.channel_id.send_message(|m| m.embed(|e| 
+                e.author(|a| a.name(&fav_msg.author.name).icon_url(&fav_msg.author.static_avatar_url().unwrap_or_default()))
+                .description(&fav_msg.content)
+                .color((0,120,220))
+                .footer(|f| f.text(&format!("{} | Zitiert von: {}", &fav_msg.timestamp.format("%d.%m.%Y, %H:%M:%S"), &msg.author.name)))))
+            };
 
             let sent_msg = sent_msg.unwrap();
             let _ = sent_msg.react(ReactionType::Unicode("🗑".to_string()));

@@ -1,4 +1,5 @@
 use log::error;
+use serenity::model::channel::Attachment;
 
 command!(quote(_ctx, msg, args) {
     let quote_msg_id = args.single::<u64>().unwrap();
@@ -11,13 +12,25 @@ command!(quote(_ctx, msg, args) {
         match channel.message(quote_msg_id) {
             Ok(quoted_msg) => {
                 found_message = true;
-                let _ = msg.channel_id.send_message(|m| {
+                if let Some(image) = quoted_msg.attachments.iter().cloned().filter(|a| a.width.is_some()).collect::<Vec<Attachment>>().first() {
+                    let _ = msg.channel_id.send_message(|m| {
+                    m.embed(|e|
+                        e.author(|a| a.name(&quoted_msg.author.name).icon_url(&quoted_msg.author.static_avatar_url().unwrap_or_default()))
+                        .color((0,120,220))
+                        .description(&quoted_msg.content)
+                        .image(&image.url)
+                        .footer(|f| f.text(&format!("{} | Zitiert von: {}", &quoted_msg.timestamp.format("%d.%m.%Y, %H:%M:%S"), &msg.author.name)))
+                    )});
+                } else {
+                    let _ = msg.channel_id.send_message(|m| {
                     m.embed(|e|
                         e.author(|a| a.name(&quoted_msg.author.name).icon_url(&quoted_msg.author.static_avatar_url().unwrap_or_default()))
                         .color((0,120,220))
                         .description(&quoted_msg.content)
                         .footer(|f| f.text(&format!("{} | Zitiert von: {}", &quoted_msg.timestamp.format("%d.%m.%Y, %H:%M:%S"), &msg.author.name)))
-                )});
+                    )});
+                }
+                
                 let _ = msg.delete();
                 break;
             },
