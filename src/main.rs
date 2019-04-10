@@ -23,6 +23,7 @@ use std::{collections::HashMap, env, fmt::Write, sync::Arc};
 use serenity::prelude::*;
 
 mod handler;
+mod lockdown;
 mod logger;
 mod reaction_roles;
 mod schema;
@@ -46,6 +47,7 @@ mod commands {
     pub mod choose;
     pub mod fav;
     pub mod kick;
+    pub mod lockdown;
     pub mod quote;
     pub mod reaction_roles;
     pub mod roll;
@@ -73,6 +75,12 @@ struct ReactionRolesState;
 
 impl TypeMapKey for ReactionRolesState {
     type Value = Arc<Mutex<self::reaction_roles::State>>;
+}
+
+struct LockdownState;
+
+impl TypeMapKey for LockdownState {
+    type Value = Arc<Mutex<self::lockdown::State>>;
 }
 
 fn main() {
@@ -224,6 +232,20 @@ fn main() {
                     .example("1000 @user1 @user2")
                     .cmd(commands::bank::transfer)
             })
+            // .command("lockdown", |c| {
+            //     c.desc("Nimmt allen Schreib & Reaction Rechte außer den mods.")
+            //     .required_permissions(Permissions::MANAGE_ROLES | Permissions::MANAGE_CHANNELS)
+            //     .num_args(0)
+            //     .guild_only(true)
+            //     .cmd(commands::lockdown::lockdown)
+            // })
+            // .command("unlock", |c| {
+            //     c.desc("Setzt Schreib & Reaction Rechte wieder auf den ursprungszustand zurück.")
+            //     .required_permissions(Permissions::MANAGE_ROLES | Permissions::MANAGE_CHANNELS)
+            //     .num_args(0)
+            //     .guild_only(true)
+            //     .cmd(commands::lockdown::unlock)
+            // })
             .group("Reaction Roles", |g| {
                 g.prefix("rr")
                 .required_permissions(Permissions::MANAGE_ROLES)
