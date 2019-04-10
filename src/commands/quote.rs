@@ -37,4 +37,5 @@ command!(quote(_ctx, msg, args) {
             let _ = msg.reply("Tut mir leid, ich kann diese Nachricht nicht finden.");
         }
     }
+    let _ = msg.delete();
 });
