@@ -186,12 +186,12 @@ fn main() {
             //         .guild_only(true)
             //         .cmd(commands::ban::ban)
             // })
-            .command("quote", |c|
-                c.desc("Zitiert eine Nachricht")
-                    .num_args(1)
-                    .guild_only(true)
-                    .usage("quote message_id")
-                    .cmd(commands::quote::quote))
+            // .command("quote", |c|
+            //     c.desc("Zitiert eine Nachricht")
+            //         .num_args(1)
+            //         .guild_only(true)
+            //         .usage("quote message_id")
+            //         .cmd(commands::quote::quote))
             .command("untagged", |c| {
                 c.desc("Direkt an den Bot schreiben um untagged favs zu löschen/labeln. (Dazu dann auf 🗑 oder 🏷 klicken)")
                     .usage("untagged")
