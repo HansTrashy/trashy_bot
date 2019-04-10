@@ -83,6 +83,10 @@ impl TypeMapKey for LockdownState {
     type Value = Arc<Mutex<self::lockdown::State>>;
 }
 
+command!(setstatus(ctx, _msg, _args) {
+    ctx.set_game(serenity::model::gateway::Game::listening("$help"));
+});
+
 fn main() {
     // load .env file
     kankyo::load().expect("no env file");
@@ -147,6 +151,12 @@ fn main() {
             })
             .simple_bucket("slotmachine", 10)
             // commands
+            .command("setstatus", |c| {
+                c.desc("Sets the status of the bot")
+                .num_args(0)
+                .required_permissions(Permissions::MANAGE_ROLES | Permissions::MANAGE_CHANNELS)
+                .cmd(setstatus)
+            })
             .command("about", |c| {
                 c.desc("Gibt eine kurze Info über den Bot")
                     .usage("about")
@@ -186,12 +196,12 @@ fn main() {
             //         .guild_only(true)
             //         .cmd(commands::ban::ban)
             // })
-            // .command("quote", |c|
-            //     c.desc("Zitiert eine Nachricht")
-            //         .num_args(1)
-            //         .guild_only(true)
-            //         .usage("quote message_id")
-            //         .cmd(commands::quote::quote))
+            .command("quote", |c|
+                c.desc("Zitiert eine Nachricht")
+                    .num_args(1)
+                    .guild_only(true)
+                    .usage("quote message_id")
+                    .cmd(commands::quote::quote))
             .command("untagged", |c| {
                 c.desc("Direkt an den Bot schreiben um untagged favs zu löschen/labeln. (Dazu dann auf 🗑 oder 🏷 klicken)")
                     .usage("untagged")
