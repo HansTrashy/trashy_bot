@@ -152,7 +152,7 @@ fn main() {
             .simple_bucket("slotmachine", 10)
             // commands
             .command("setstatus", |c| {
-                c.desc("Sets the status of the bot")
+                c.desc("Setzt den Status des Bots")
                 .num_args(0)
                 .required_permissions(Permissions::MANAGE_ROLES | Permissions::MANAGE_CHANNELS)
                 .cmd(setstatus)
@@ -176,12 +176,12 @@ fn main() {
                     .usage(".choose apfel birne")
                     .cmd(commands::choose::choose)
             })
-            .command("fav", |c| {
-                c.desc("Postet einen zufälligen Fav. Kann mit labels präzisiert werden. Reagiere mit 📗 auf Nachrichten um einen Fav zu erstellen. Siehe auch `untagged`.")
-                    .usage("fav hint1 hint2 ...")
-                    .example("dödelsuppe")
-                    .cmd(commands::fav::fav)
-            })
+            // .command("fav", |c| {
+            //     c.desc("Postet einen zufälligen Fav. Kann mit labels präzisiert werden. Reagiere mit 📗 auf Nachrichten um einen Fav zu erstellen. Siehe auch `untagged`.")
+            //         .usage("fav hint1 hint2 ...")
+            //         .example("dödelsuppe")
+            //         .cmd(commands::fav::fav)
+            // })
             // .command("kick", |c| {
             //     c.check(admin_check)
             //         .desc("Kickt alle mentioned user")
@@ -202,13 +202,13 @@ fn main() {
                     .guild_only(true)
                     .usage("quote message_link")
                     .cmd(commands::quote::quote))
-            .command("untagged", |c| {
-                c.desc("Direkt an den Bot schreiben um untagged favs zu löschen/labeln. (Dazu dann auf 🗑 oder 🏷 klicken)")
-                    .usage("untagged")
-                    .num_args(0)
-                    .dm_only(true)
-                    .cmd(commands::fav::untagged)
-            })
+            // .command("untagged", |c| {
+            //     c.desc("Direkt an den Bot schreiben um untagged favs zu löschen/labeln. (Dazu dann auf 🗑 oder 🏷 klicken)")
+            //         .usage("untagged")
+            //         .num_args(0)
+            //         .dm_only(true)
+            //         .cmd(commands::fav::untagged)
+            // })
             .command("bank", |c| {
                 c.desc("Erstellt eine Bank für dich oder gibt dir deinen Kontostand")
                     .usage("bank")
@@ -256,6 +256,29 @@ fn main() {
             //     .guild_only(true)
             //     .cmd(commands::lockdown::unlock)
             // })
+            .group("Grünbuch", |g| {
+                g.prefix("fav")
+                .desc("Befehle für Grünbuch")
+                .default_cmd(commands::fav::fav)
+                .command("post", |c| {
+                    c.desc("Postet einen zufälligen fav unter berücksichtigung der label.")
+                    .example("taishi wichsen")
+                    .cmd(commands::fav::fav)
+                })
+                .command("untagged", |c| {
+                    c.desc("Direkt an den Bot schreiben um untagged favs zu löschen/labeln. (Dazu dann auf 🗑 oder 🏷 klicken)")
+                    .usage("untagged")
+                    .num_args(0)
+                    .dm_only(true)
+                    .cmd(commands::fav::untagged)
+                })
+                .command("add", |c| {
+                    c.desc("Manuell einen fav per link hinzufügen")
+                    .num_args(1)
+                    .dm_only(true)
+                    .cmd(commands::fav::add)
+                })
+            })
             .group("Reaction Roles", |g| {
                 g.prefix("rr")
                 .required_permissions(Permissions::MANAGE_ROLES)
@@ -287,8 +310,8 @@ fn main() {
                 .wrong_channel(HelpBehaviour::Strike)
                 .suggestion_text("Meintest du vielleicht `{}`?")
                 .no_help_available_text("Dafür gibt es leider noch keine Hilfe.")
-                .striked_commands_tip_in_guild(Some("Durchgestrichene Befehle können nur in Direktnachrichten mit dem Bot benutzt werden.".to_string()))
-                .striked_commands_tip_in_direct_message(Some("Durchgestrichene Befehle können nur auf einem Server mit dem Bot benutzt werden.".to_string()))
+                .striked_commands_tip_in_guild(Some("Durchgestrichene Befehle können nur auf einem Server mit dem Bot benutzt werden.".to_string()))
+                .striked_commands_tip_in_direct_message(Some("Durchgestrichene Befehle können nur in Direktnachrichten mit dem Bot benutzt werden.".to_string()))
             }),
     );
 

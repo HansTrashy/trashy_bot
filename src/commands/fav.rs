@@ -8,7 +8,9 @@ use chrono::prelude::*;
 use diesel::prelude::*;
 use rand::prelude::*;
 use serenity::model::{channel::Message, channel::Attachment, channel::ReactionType, id::ChannelId, id::MessageId};
-use log::{warn, info, debug, trace, error};
+use log::*;
+use lazy_static::lazy_static;
+use regex::Regex;
 
 command!(fav(ctx, msg, args) {
     let mut rng = rand::thread_rng();
@@ -139,6 +141,36 @@ command!(untagged(ctx, msg, _args) {
         } else {
             let _ = msg.reply("Du hat keine untagged Favs!");
         }
+});
+
+command!(add(ctx, msg, args) {
+    let data = ctx.data.lock();
+    lazy_static! {
+        static ref FAV_LINK_REGEX: Regex = Regex::new(r#"https://discordapp.com/channels/(\d+)/(\d+)/(\d+)"#)
+            .expect("couldnt compile quote link regex");
+    }
+    for caps in FAV_LINK_REGEX.captures_iter(&args.rest()) {
+        let fav_server_id = caps[1].parse::<u64>().unwrap();
+        let fav_channel_id = caps[2].parse::<u64>().unwrap();
+        let fav_msg_id = caps[3].parse::<u64>().unwrap();
+
+        let fav_msg = ChannelId(fav_channel_id).message(fav_msg_id).expect("cannot find this message");
+
+        if let Some(conn) = data.get::<DatabaseConnection>() {
+            crate::models::fav::create_fav(
+                &*conn.lock(),
+                fav_server_id as i64,
+                fav_channel_id as i64,
+                fav_msg_id as i64,
+                *msg.author.id.as_u64() as i64,
+                *fav_msg.author.id.as_u64() as i64,
+            );
+
+            if let Err(why) = msg.author.dm(|m| m.content("Fav saved!")) {
+                println!("Error sending message: {:?}", why);
+            }
+        }
+    }
 });
 
 #[cfg(test)]
