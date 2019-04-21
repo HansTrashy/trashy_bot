@@ -51,6 +51,7 @@ mod commands {
     pub mod quote;
     pub mod reaction_roles;
     pub mod roll;
+    pub mod xkcd;
 }
 
 struct ShardManagerContainer;
@@ -175,6 +176,12 @@ fn main() {
                     .example(r#"a "b mit spaces""#)
                     .usage(".choose apfel birne")
                     .cmd(commands::choose::choose)
+            })
+            .command("xkcd", |c| {
+                c.desc("Postet einen Xkcd comic")
+                .num_args(1)
+                .example("1425")
+                .cmd(commands::xkcd::xkcd)
             })
             .command("fav", |c| {
                 c.desc("Postet einen zufälligen Fav. Kann mit labels präzisiert werden. Reagiere mit 📗 auf Nachrichten um einen Fav zu erstellen. Siehe auch `untagged`.")
