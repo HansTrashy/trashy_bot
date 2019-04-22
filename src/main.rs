@@ -194,12 +194,6 @@ fn main() {
                 .example("1425")
                 .cmd(commands::xkcd::xkcd)
             })
-            .command("fav", |c| {
-                c.desc("Postet einen zufälligen Fav. Kann mit labels präzisiert werden. Reagiere mit 📗 auf Nachrichten um einen Fav zu erstellen. Siehe auch `untagged`.")
-                    .usage("fav hint1 hint2 ...")
-                    .example("dödelsuppe")
-                    .cmd(commands::fav::fav)
-            })
             // .command("kick", |c| {
             //     c.check(admin_check)
             //         .desc("Kickt alle mentioned user")
