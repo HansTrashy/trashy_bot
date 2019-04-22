@@ -26,6 +26,7 @@ mod handler;
 mod lockdown;
 mod logger;
 mod reaction_roles;
+mod rules;
 mod schema;
 mod util;
 
@@ -51,6 +52,7 @@ mod commands {
     pub mod quote;
     pub mod reaction_roles;
     pub mod roll;
+    pub mod rules;
 }
 
 struct ShardManagerContainer;
@@ -83,6 +85,12 @@ impl TypeMapKey for LockdownState {
     type Value = Arc<Mutex<self::lockdown::State>>;
 }
 
+struct RulesState;
+
+impl TypeMapKey for RulesState {
+    type Value = Arc<Mutex<self::rules::State>>;
+}
+
 command!(setstatus(ctx, _msg, _args) {
     ctx.set_game(serenity::model::gateway::Game::listening("$help"));
 });
@@ -107,12 +115,15 @@ fn main() {
 
     let rr_state = Arc::new(Mutex::new(self::reaction_roles::State::load_set()));
 
+    let rules_state = Arc::new(Mutex::new(self::rules::State::load()));
+
     {
         let mut data = client.data.lock();
         data.insert::<DatabaseConnection>(conn);
         data.insert::<ShardManagerContainer>(Arc::clone(&client.shard_manager));
         data.insert::<Waiter>(waiter);
         data.insert::<ReactionRolesState>(rr_state);
+        data.insert::<RulesState>(rules_state);
     }
 
     client.with_framework(
@@ -277,6 +288,37 @@ fn main() {
                     .num_args(1)
                     .dm_only(true)
                     .cmd(commands::fav::add)
+                })
+            })
+            .group("rules", |g| {
+                g.prefix("rules")
+                .desc("Befehle im Zusammenhang mit den Regeln.")
+                .default_cmd(commands::rules::de)
+                .command("de", |c| {
+                    c.desc("Sendet dir die Regeln per DM.")
+                    .num_args(0)
+                    .cmd(commands::rules::de)
+                })
+                .command("en", |c| {
+                    c.desc("Sendet dir die Regeln auf Englisch.")
+                    .num_args(0)
+                    .cmd(commands::rules::en)
+                })
+                .command("seten", |c| {
+                    c.desc("Setzt die en Regeln")
+                    .required_permissions(Permissions::MANAGE_ROLES)
+                    .cmd(commands::rules::seten)
+                })
+                .command("setde", |c| {
+                    c.desc("Setzt die de Regeln")
+                    .required_permissions(Permissions::MANAGE_ROLES)
+                    .cmd(commands::rules::setde)
+                })
+                .command("post", |c| {
+                    c.desc("Lässt den bot die regeln posten")
+                    .num_args(1)
+                    .example("de")
+                    .cmd(commands::rules::post)
                 })
             })
             .group("Reaction Roles", |g| {
