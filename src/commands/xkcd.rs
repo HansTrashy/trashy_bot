@@ -20,10 +20,14 @@ command!(xkcd(_ctx, msg, args) {
 
     let comic: Comic = reqwest::get(&format!("https://xkcd.com/{}/info.0.json", xkcd_id)).expect("no answer").json().expect("invalid response");
 
+    let xkcd_link = format!("https://xkcd.com/{}", xkcd_id);
+
     let _ = msg.channel_id.send_message(|m| m.embed(|e| 
         e.author(|a| a.name("Xkcd"))
         .title(&comic.title)
         .description(&comic.alt)
         .color((0,120,220))
-        .image(&comic.img)));
+        .image(&comic.img)
+        .url(&xkcd_link)
+        .footer(|f| f.text(&xkcd_link))));
 });
