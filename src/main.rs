@@ -313,11 +313,13 @@ fn main() {
                 })
                 .command("seten", |c| {
                     c.desc("Setzt die en Regeln")
+                    .example("Regeltext")
                     .required_permissions(Permissions::MANAGE_ROLES)
                     .cmd(commands::rules::seten)
                 })
                 .command("setde", |c| {
                     c.desc("Setzt die de Regeln")
+                    .example("Regeltext")
                     .required_permissions(Permissions::MANAGE_ROLES)
                     .cmd(commands::rules::setde)
                 })
@@ -325,6 +327,7 @@ fn main() {
                     c.desc("Lässt den bot die regeln posten")
                     .num_args(1)
                     .example("de")
+                    .required_permissions(Permissions::MANAGE_ROLES)
                     .cmd(commands::rules::post)
                 })
             })

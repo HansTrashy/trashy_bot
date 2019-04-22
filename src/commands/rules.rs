@@ -30,7 +30,7 @@ command!(en(ctx, msg, _args) {
     let _ = msg.react(ReactionType::Unicode("📬".to_string()));
 });
 
-command!(setde(ctx, msg, _args) {
+command!(setde(ctx, msg, args) {
     let rules = match ctx.data.lock().get::<RulesState>() {
         Some(v) => v.clone(),
         None => {
@@ -38,11 +38,11 @@ command!(setde(ctx, msg, _args) {
             return Ok(());
         }
     };
-    rules.lock().set_de(&msg.content);
+    rules.lock().set_de(&args.rest());
     let _ = msg.react(ReactionType::Unicode("👌".to_string()));
 });
 
-command!(seten(ctx, msg, _args) {
+command!(seten(ctx, msg, args) {
     let rules = match ctx.data.lock().get::<RulesState>() {
         Some(v) => v.clone(),
         None => {
@@ -50,7 +50,7 @@ command!(seten(ctx, msg, _args) {
             return Ok(());
         }
     };
-    rules.lock().set_en(&msg.content);
+    rules.lock().set_en(&args.rest());
     let _ = msg.react(ReactionType::Unicode("👌".to_string()));
 });
 
@@ -63,11 +63,12 @@ command!(post(ctx, msg, args) {
             return Ok(());
         }
     };
+    let settings = ContentSafeOptions::default().clean_channel(false);
     let lock = rules.lock();
 
-    let _ = msg.channel_id.say(match lang.as_str() {
+    let _ = msg.channel_id.say(content_safe(match lang.as_str() {
         "en" => &lock.en,
         "de" => &lock.de,
         _ => &*lock.de,
-    });
+    }, &settings));
 });

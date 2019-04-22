@@ -8,9 +8,9 @@ pub struct State {
 
 impl State {
     pub fn load() -> Self {
-        match std::fs::read_to_string("rr_state.storage") {
+        match std::fs::read_to_string("rules_state.storage") {
             Ok(data) => {
-                serde_json::from_str::<State>(&data).expect("could not deserialize rr state")
+                serde_json::from_str::<State>(&data).expect("could not deserialize rules state")
             }
 
             Err(_e) => Self {
