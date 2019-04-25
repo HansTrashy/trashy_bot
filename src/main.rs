@@ -317,6 +317,18 @@ fn main() {
                     .required_permissions(Permissions::MANAGE_ROLES)
                     .cmd(commands::rules::setde)
                 })
+                .command("adden", |c| {
+                    c.desc("Fügt Text and die en Regeln an")
+                    .example("Regeltexterweiterung")
+                    .required_permissions(Permissions::MANAGE_ROLES)
+                    .cmd(commands::rules::adden)
+                })
+                .command("addde", |c| {
+                    c.desc("Fügt Text and die de Regeln an")
+                    .example("Regeltexterweiterung")
+                    .required_permissions(Permissions::MANAGE_ROLES)
+                    .cmd(commands::rules::addde)
+                })
                 .command("post", |c| {
                     c.desc("Lässt den bot die regeln posten")
                     .num_args(1)
