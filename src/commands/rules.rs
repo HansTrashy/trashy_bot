@@ -82,7 +82,7 @@ command!(adden(ctx, msg, args) {
         }
     };
     let new_rules = format!("{}\n\n{}", rules.lock().en, &args.rest());
-    rules.lock().set_de(&new_rules);
+    rules.lock().set_en(&new_rules);
     let _ = msg.react(ReactionType::Unicode("👌".to_string()));
 });
 
