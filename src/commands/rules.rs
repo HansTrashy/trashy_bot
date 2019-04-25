@@ -56,7 +56,7 @@ command!(addde(ctx, msg, args) {
             return Ok(());
         }
     };
-    let new_rules = format!("{}{}", rules.lock().de, &args.rest());
+    let new_rules = format!("{}\n\n{}", rules.lock().de, &args.rest());
     rules.lock().set_de(&new_rules);
     let _ = msg.react(ReactionType::Unicode("👌".to_string()));
 });
@@ -81,7 +81,7 @@ command!(adden(ctx, msg, args) {
             return Ok(());
         }
     };
-    let new_rules = format!("{}{}", rules.lock().en, &args.rest());
+    let new_rules = format!("{}\n\n{}", rules.lock().en, &args.rest());
     rules.lock().set_de(&new_rules);
     let _ = msg.react(ReactionType::Unicode("👌".to_string()));
 });
