@@ -22,6 +22,7 @@ use std::{collections::HashMap, env, fmt::Write, sync::Arc};
 // This imports `typemap`'s `Key` as `TypeMapKey`.
 use serenity::prelude::*;
 
+mod blackjack;
 mod handler;
 mod lockdown;
 mod logger;
@@ -44,7 +45,11 @@ mod models {
 mod commands {
     pub mod about;
     pub mod ban;
-    pub mod bank;
+    pub mod account {
+        pub mod blackjack;
+        pub mod general;
+        pub mod slot;
+    }
     pub mod choose;
     pub mod fav;
     pub mod kick;
@@ -162,6 +167,7 @@ fn main() {
                 }
             })
             .simple_bucket("slotmachine", 10)
+            .simple_bucket("blackjack", 600)
             // commands
             .command("setstatus", |c| {
                 c.desc("Setzt den Status des Bots")
@@ -221,39 +227,6 @@ fn main() {
             //         .dm_only(true)
             //         .cmd(commands::fav::untagged)
             // })
-            .command("bank", |c| {
-                c.desc("Erstellt eine Bank für dich oder gibt dir deinen Kontostand")
-                    .usage("bank")
-                    .num_args(0)
-                    .cmd(commands::bank::bank)
-            })
-            .command("payday", |c| {
-                c.desc("Erhöht max alle 24std deinen Kontostand um 1000")
-                    .known_as("paydaddy")
-                    .usage("payday")
-                    .num_args(0)
-                    .cmd(commands::bank::payday)
-            })
-            .command("slot", |c| {
-                c.bucket("slotmachine")
-                    .desc("Setzt x von deiner Bank, limitiert auf 1x alle 10 Sekunden")
-                    .usage("slot x")
-                    .example("1000")
-                    .num_args(1)
-                    .cmd(commands::bank::slot)
-            })
-            .command("leaderboard", |c| {
-                c.desc("Listet die Glücklichen und Süchtigen auf")
-                    .usage("leaderboard")
-                    .num_args(0)
-                    .cmd(commands::bank::leaderboard)
-            })
-            .command("transfer", |c| {
-                c.desc("Für den Sunshower-Moment. Beispiel: ")
-                    .usage("transfer 1000 @HansTrashy")
-                    .example("1000 @user1 @user2")
-                    .cmd(commands::bank::transfer)
-            })
             // .command("lockdown", |c| {
             //     c.desc("Nimmt allen Schreib & Reaction Rechte außer den mods.")
             //     .required_permissions(Permissions::MANAGE_ROLES | Permissions::MANAGE_CHANNELS)
@@ -268,6 +241,52 @@ fn main() {
             //     .guild_only(true)
             //     .cmd(commands::lockdown::unlock)
             // })
+            .group("Account", |g| {
+                g.prefix("acc")
+                .desc("Befehle im Zusammenhang mit deinem Konto")
+                .default_cmd(commands::account::general::payday)
+                .command("bank", |c| {
+                    c.desc("Erstellt eine Bank für dich oder gibt dir deinen Kontostand")
+                        .usage("bank")
+                        .num_args(0)
+                        .cmd(commands::account::general::createaccount)
+                })
+                .command("payday", |c| {
+                    c.desc("Erhöht max alle 24std deinen Kontostand um 1000")
+                        .known_as("paydaddy")
+                        .usage("payday")
+                        .num_args(0)
+                        .cmd(commands::account::general::payday)
+                })
+                .command("leaderboard", |c| {
+                    c.desc("Listet die Glücklichen und Süchtigen auf")
+                        .usage("leaderboard")
+                        .num_args(0)
+                        .cmd(commands::account::general::leaderboard)
+                })
+                .command("transfer", |c| {
+                    c.desc("Für den Sunshower-Moment. Beispiel: ")
+                        .usage("transfer 1000 @HansTrashy")
+                        .example("1000 @user1 @user2")
+                        .cmd(commands::account::general::transfer)
+                })
+                .command("slot", |c| {
+                    c.bucket("slotmachine")
+                        .desc("Setzt x von deiner Bank, limitiert auf 1x alle 10 Sekunden")
+                        .usage("slot x")
+                        .example("1000")
+                        .num_args(1)
+                        .cmd(commands::account::slot::play)
+                })
+                .command("blackjack", |c| {
+                    c.bucket("blackjack")
+                        .desc("Spiele eine/mehrere runden Blackjack gegen die Bank")
+                        .usage("blackjack x")
+                        .example("1000")
+                        .num_args(1)
+                        .cmd(commands::account::blackjack::play)
+                })
+            })
             .group("Grünbuch", |g| {
                 g.prefix("fav")
                 .desc("Befehle für Grünbuch")
