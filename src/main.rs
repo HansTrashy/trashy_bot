@@ -97,6 +97,12 @@ impl TypeMapKey for RulesState {
     type Value = Arc<Mutex<self::rules::State>>;
 }
 
+struct BlackjackState;
+
+impl TypeMapKey for BlackjackState {
+    type Value = Arc<Mutex<self::blackjack::State>>;
+}
+
 command!(setstatus(ctx, _msg, _args) {
     ctx.set_game(serenity::model::gateway::Game::listening("$help"));
 });
@@ -123,6 +129,8 @@ fn main() {
 
     let rules_state = Arc::new(Mutex::new(self::rules::State::load()));
 
+    let blackjack_state = Arc::new(Mutex::new(self::blackjack::State::load()));
+
     {
         let mut data = client.data.lock();
         data.insert::<DatabaseConnection>(conn);
@@ -130,6 +138,7 @@ fn main() {
         data.insert::<Waiter>(waiter);
         data.insert::<ReactionRolesState>(rr_state);
         data.insert::<RulesState>(rules_state);
+        data.insert::<BlackjackState>(blackjack_state);
     }
 
     client.with_framework(
@@ -245,9 +254,9 @@ fn main() {
                 g.prefix("acc")
                 .desc("Befehle im Zusammenhang mit deinem Konto")
                 .default_cmd(commands::account::general::payday)
-                .command("bank", |c| {
+                .command("createaccount", |c| {
                     c.desc("Erstellt eine Bank für dich oder gibt dir deinen Kontostand")
-                        .usage("bank")
+                        .usage("createaccount")
                         .num_args(0)
                         .cmd(commands::account::general::createaccount)
                 })

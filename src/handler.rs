@@ -28,6 +28,7 @@ lazy_static! {
     };
 }
 
+mod blackjack;
 mod fav;
 mod reaction_roles;
 
@@ -119,11 +120,21 @@ impl EventHandler for Handler {
             ReactionType::Unicode(ref s) if s == "📗" => fav::add_fav(ctx, add_reaction),
             ReactionType::Unicode(ref s) if s == "🗑" => fav::remove_fav(ctx, add_reaction),
             ReactionType::Unicode(ref s) if s == "🏷" => fav::add_label(ctx, add_reaction),
+            ReactionType::Unicode(ref s) if s == "👆" => blackjack::hit(ctx, add_reaction),
+            ReactionType::Unicode(ref s) if s == "✋" => blackjack::stay(ctx, add_reaction),
+            ReactionType::Unicode(ref s) if s == "🌀" => blackjack::new_game(ctx, add_reaction),
             _ => reaction_roles::add_role(ctx, add_reaction),
         }
     }
 
     fn reaction_remove(&self, ctx: Context, removed_reaction: Reaction) {
-        reaction_roles::remove_role(ctx, removed_reaction);
+        match removed_reaction.emoji {
+            ReactionType::Unicode(ref s) if s == "👆" => blackjack::hit(ctx, removed_reaction),
+            ReactionType::Unicode(ref s) if s == "✋" => blackjack::stay(ctx, removed_reaction),
+            ReactionType::Unicode(ref s) if s == "🌀" => {
+                blackjack::new_game(ctx, removed_reaction)
+            }
+            _ => reaction_roles::remove_role(ctx, removed_reaction),
+        }
     }
 }

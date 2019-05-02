@@ -9,7 +9,7 @@ command!(lockdown(ctx, msg, _args) {
     let lockdown_state = match data.get::<LockdownState>() {
         Some(v) => v.clone(),
         None => {
-            let _ = msg.reply("Could not retrieve the database connection!");
+            let _ = msg.reply("Could not retrieve the lockdown state!");
             return Ok(());
         }
     };

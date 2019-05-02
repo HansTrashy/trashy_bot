@@ -1,23 +1,51 @@
 use rand::prelude::*;
 use serde_derive::{Deserialize, Serialize};
+use serenity::model::id::ChannelId;
 use std::fmt;
 
 pub struct State(Vec<Game>);
 
 impl State {
     fn save(&self) {
-        // also save those settings
-        let data = serde_json::to_string(&self.0).expect("Could not serialize blackjack state");
-        std::fs::write("blackjack_state.storage", data)
-            .expect("coult not write blackjack state to file");
+        std::fs::write(
+            "blackjack_state.storage",
+            serde_json::to_string(&self.0).expect("Could not serialize blackjack state"),
+        )
+        .expect("coult not write blackjack state to file");
     }
 
-    pub fn new() -> Self {
-        Self(Vec::default())
+    pub fn add_game(&mut self, user: u64, bet: u64, channel_id: u64, message_id: u64) {
+        self.0.retain(|g| g.player != user);
+        self.0.push(Game::new(user, bet, channel_id, message_id));
+        self.save();
+        self.new_game(user);
     }
 
-    pub fn add_game(&mut self, user: u64, bet: u64) {
-        self.0.push(Game::new(user, bet));
+    pub fn hit(&mut self, user: u64) {
+        for g in self.0.iter_mut() {
+            if g.player == user {
+                g.update(PlayerAction::Hit);
+                break;
+            }
+        }
+    }
+
+    pub fn stay(&mut self, user: u64) {
+        for g in self.0.iter_mut() {
+            if g.player == user {
+                g.update(PlayerAction::Stay);
+                break;
+            }
+        }
+    }
+
+    pub fn new_game(&mut self, user: u64) {
+        for g in self.0.iter_mut() {
+            if g.player == user {
+                g.update(PlayerAction::Init);
+                break;
+            }
+        }
     }
 
     pub fn load() -> Self {
@@ -117,6 +145,24 @@ impl Card {
             Suit::Clubs | Suit::Spades => Color::Black,
         }
     }
+
+    fn value(&self) -> usize {
+        match self.rank {
+            Rank::Two => 2,
+            Rank::Three => 3,
+            Rank::Four => 4,
+            Rank::Five => 5,
+            Rank::Six => 6,
+            Rank::Seven => 7,
+            Rank::Eight => 8,
+            Rank::Nine => 9,
+            Rank::Ten => 10,
+            Rank::Jack => 10,
+            Rank::Queen => 10,
+            Rank::King => 10,
+            Rank::Ace => 11,
+        }
+    }
 }
 
 impl fmt::Display for Card {
@@ -198,6 +244,43 @@ impl Stack {
     fn add(&mut self, card: Card) {
         self.0.push(card);
     }
+
+    fn clear_stack(&mut self) -> Vec<Card> {
+        self.0.drain(..).collect()
+    }
+
+    fn value(&self) -> usize {
+        if self.0.iter().all(|c| c.rank != Rank::Ace) {
+            self.0.iter().fold(0, |acc, c| acc + c.value())
+        } else {
+            let ace_count = self.0.iter().filter(|c| c.rank == Rank::Ace).count();
+            let mut possible_values: Vec<usize> = (0..=ace_count)
+                .map(|n| self.0.iter().fold(0, |acc, c| acc + c.value()) - n * 10)
+                .collect();
+            possible_values.sort();
+            possible_values.reverse();
+            for p in &possible_values {
+                if *p <= 21 {
+                    return *p;
+                }
+            }
+            *possible_values.last().unwrap()
+        }
+    }
+
+    fn is_blackjack(&self) -> bool {
+        self.value() == 21 && self.0.len() == 2
+    }
+}
+
+impl fmt::Display for Stack {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let mut stack = String::new();
+        for c in &self.0 {
+            stack.push_str(&c.to_string());
+        }
+        write!(f, "{}", stack)
+    }
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -215,10 +298,12 @@ struct Game {
     bet: u64,
     bank_cards: Stack,
     player_cards: Stack,
+    channel_id: u64,
+    message_id: u64,
 }
 
 impl Game {
-    fn new(player: u64, bet: u64) -> Self {
+    fn new(player: u64, bet: u64, channel_id: u64, message_id: u64) -> Self {
         let mut deck = Deck::new();
         deck.shuffle();
         Self {
@@ -228,6 +313,8 @@ impl Game {
             bet,
             bank_cards: Stack::new(),
             player_cards: Stack::new(),
+            channel_id,
+            message_id,
         }
     }
 
@@ -240,40 +327,127 @@ impl Game {
 
         match action {
             PlayerAction::Init => {
+                // move cards from hand to removed_cards
+                self.removed_cards
+                    .append(&mut self.player_cards.clear_stack());
+                self.removed_cards
+                    .append(&mut self.bank_cards.clear_stack());
+
+                // start with a fresh draw
                 self.bank_cards.add(self.deck.draw().unwrap());
                 self.player_cards.add(self.deck.draw().unwrap());
 
                 // visualize state
+                let mut msg = ChannelId(self.channel_id).message(self.message_id).unwrap();
+                msg.edit(|m| m.content(&self.visualize(GameState::Playing)))
+                    .unwrap();
             }
             PlayerAction::Hit => {
                 self.player_cards.add(self.deck.draw().unwrap());
 
                 // make card checks
-
-                // visualize state
+                if self.player_cards.value() > 21 {
+                    // bust
+                    let mut msg = ChannelId(self.channel_id).message(self.message_id).unwrap();
+                    msg.edit(|m| m.content(&self.visualize(GameState::BankWins)))
+                        .unwrap();
+                } else if self.player_cards.value() == 21 {
+                    // blackjack or triple
+                    if self.player_cards.0.iter().all(|c| c.rank == Rank::Seven) {
+                        let mut msg = ChannelId(self.channel_id).message(self.message_id).unwrap();
+                        msg.edit(|m| m.content(&self.visualize(GameState::PlayerWins)))
+                            .unwrap();
+                    } else {
+                        self.update(PlayerAction::Stay);
+                    }
+                } else {
+                    // allow more draws
+                    let mut msg = ChannelId(self.channel_id).message(self.message_id).unwrap();
+                    msg.edit(|m| m.content(&self.visualize(GameState::Playing)))
+                        .unwrap();
+                }
             }
             PlayerAction::Stay => {
                 // make remaining draws for the bank
+                let mut bank_value = self.bank_cards.value();
+                while bank_value <= 17 {
+                    self.bank_cards.add(self.deck.draw().unwrap());
+                    bank_value = self.bank_cards.value();
+                }
 
                 // check winner
-
-                // visualize result
+                // Both have Blackjack
+                if self.bank_cards.is_blackjack() && self.player_cards.is_blackjack() {
+                    let mut msg = ChannelId(self.channel_id).message(self.message_id).unwrap();
+                    msg.edit(|m| m.content(&self.visualize(GameState::Draw)))
+                        .unwrap();
+                // Bank has Blackjack, player doesnt
+                } else if self.bank_cards.is_blackjack() && !self.player_cards.is_blackjack() {
+                    let mut msg = ChannelId(self.channel_id).message(self.message_id).unwrap();
+                    msg.edit(|m| m.content(&self.visualize(GameState::BankWins)))
+                        .unwrap();
+                // Bank has no blackjack, player does
+                } else if !self.bank_cards.is_blackjack() && self.player_cards.is_blackjack() {
+                    let mut msg = ChannelId(self.channel_id).message(self.message_id).unwrap();
+                    msg.edit(|m| m.content(&self.visualize(GameState::PlayerWins)))
+                        .unwrap();
+                // Bank loses because of bust
+                } else if self.bank_cards.value() > 21 {
+                    let mut msg = ChannelId(self.channel_id).message(self.message_id).unwrap();
+                    msg.edit(|m| m.content(&self.visualize(GameState::PlayerWins)))
+                        .unwrap();
+                // Both have some value
+                } else if self.bank_cards.value() > self.player_cards.value() {
+                    // bank wins
+                    let mut msg = ChannelId(self.channel_id).message(self.message_id).unwrap();
+                    msg.edit(|m| m.content(&self.visualize(GameState::BankWins)))
+                        .unwrap();
+                } else if self.bank_cards.value() < self.player_cards.value() {
+                    // player wins
+                    let mut msg = ChannelId(self.channel_id).message(self.message_id).unwrap();
+                    msg.edit(|m| m.content(&self.visualize(GameState::PlayerWins)))
+                        .unwrap();
+                } else {
+                    // draw
+                    let mut msg = ChannelId(self.channel_id).message(self.message_id).unwrap();
+                    msg.edit(|m| m.content(&self.visualize(GameState::Draw)))
+                        .unwrap();
+                }
             }
         }
     }
+
+    fn visualize(&self, state: GameState) -> String {
+        match state {
+            GameState::Playing => {
+                format!("Bank: {}\nYou: {}\n", self.bank_cards, self.player_cards)
+            }
+            GameState::BankWins => format!(
+                "Bank: {}\nYou: {}\nBank won! Play again?",
+                self.bank_cards, self.player_cards
+            ),
+            GameState::PlayerWins => format!(
+                "Bank: {}\nYou: {}\nYou won! Play again?",
+                self.bank_cards, self.player_cards
+            ),
+            GameState::Draw => format!(
+                "Bank: {}\nYou: {}\nYou Tied! Play again?",
+                self.bank_cards, self.player_cards
+            ),
+        }
+    }
+}
+
+enum GameState {
+    Playing,
+    BankWins,
+    PlayerWins,
+    Draw,
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn test_game() {
-        let mut game = Game::new(0, 1000);
-        game.update(PlayerAction::Init);
-
-        dbg!(&game);
-    }
 
     #[test]
     fn test_deck_creation() {
