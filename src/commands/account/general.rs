@@ -45,7 +45,7 @@ command!(payday(ctx, msg, _args) {
     let results = banks.filter(user_id.eq(*msg.author.id.as_u64() as i64)).load::<Bank>(&*conn.lock()).expect("could not retrieve banks");
 
     if results.is_empty() {
-        let _ = msg.reply("You do not own a bank, please create one using the bank command");
+        let _ = msg.reply("You do not own a bank, please create one using the createaccount command");
     } else {
         let hours_diff = Utc::now().naive_utc().signed_duration_since(results[0].last_payday).num_hours();
         if  hours_diff > 23 {

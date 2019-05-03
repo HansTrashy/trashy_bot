@@ -184,7 +184,7 @@ impl Card {
 
 impl fmt::Display for Card {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}{}", self.suit, self.rank,)
+        write!(f, "|{}{}|", self.suit, self.rank,)
     }
 }
 
@@ -295,6 +295,7 @@ impl fmt::Display for Stack {
         let mut stack = String::new();
         for c in &self.0 {
             stack.push_str(&c.to_string());
+            stack.push_str(" ");
         }
         write!(f, "{}", stack)
     }
