@@ -1,7 +1,11 @@
+use diesel::pg::PgConnection;
+use log::*;
 use rand::prelude::*;
 use serde_derive::{Deserialize, Serialize};
 use serenity::model::id::ChannelId;
+use serenity::prelude::Mutex;
 use std::fmt;
+use std::sync::Arc;
 
 pub struct State(Vec<Game>);
 
@@ -14,44 +18,57 @@ impl State {
         .expect("coult not write blackjack state to file");
     }
 
-    pub fn add_game(&mut self, user: u64, bet: u64, channel_id: u64, message_id: u64) {
+    pub fn add_game(
+        &mut self,
+        conn: Arc<Mutex<PgConnection>>,
+        user: u64,
+        bet: i64,
+        channel_id: u64,
+        message_id: u64,
+    ) {
         self.0.retain(|g| g.player != user);
-        self.0.push(Game::new(user, bet, channel_id, message_id));
+        self.0
+            .push(Game::new(conn, user, bet, channel_id, message_id));
         self.save();
-        self.new_game(user);
+        self.new_game(user, message_id);
     }
 
-    pub fn hit(&mut self, user: u64) {
+    pub fn hit(&mut self, user: u64, message_id: u64) {
         for g in self.0.iter_mut() {
-            if g.player == user {
+            if g.player == user && g.message_id == message_id {
                 g.update(PlayerAction::Hit);
                 break;
             }
         }
     }
 
-    pub fn stay(&mut self, user: u64) {
+    pub fn stay(&mut self, user: u64, message_id: u64) {
         for g in self.0.iter_mut() {
-            if g.player == user {
+            if g.player == user && g.message_id == message_id {
                 g.update(PlayerAction::Stay);
                 break;
             }
         }
     }
 
-    pub fn new_game(&mut self, user: u64) {
+    pub fn new_game(&mut self, user: u64, message_id: u64) {
         for g in self.0.iter_mut() {
-            if g.player == user {
+            if g.player == user && g.message_id == message_id {
                 g.update(PlayerAction::Init);
                 break;
             }
         }
     }
 
-    pub fn load() -> Self {
+    pub fn load(conn: Arc<Mutex<PgConnection>>) -> Self {
         match std::fs::read_to_string("blackjack_state.storage") {
             Ok(data) => {
-                Self(serde_json::from_str(&data).expect("could not deserialize blackjack state"))
+                let mut games: Vec<Game> =
+                    serde_json::from_str(&data).expect("could not deserialize blackjack state");
+                for g in games.iter_mut() {
+                    g.conn = Some(conn.clone());
+                }
+                Self(games)
             }
             Err(_e) => Self(Vec::default()),
         }
@@ -290,20 +307,29 @@ enum PlayerAction {
     Stay,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Serialize, Deserialize)]
 struct Game {
     deck: Deck,
     removed_cards: Vec<Card>,
     player: u64,
-    bet: u64,
+    bet: i64,
     bank_cards: Stack,
     player_cards: Stack,
     channel_id: u64,
     message_id: u64,
+    state: GameState,
+    #[serde(skip)]
+    conn: Option<Arc<Mutex<PgConnection>>>,
 }
 
 impl Game {
-    fn new(player: u64, bet: u64, channel_id: u64, message_id: u64) -> Self {
+    fn new(
+        conn: Arc<Mutex<PgConnection>>,
+        player: u64,
+        bet: i64,
+        channel_id: u64,
+        message_id: u64,
+    ) -> Self {
         let mut deck = Deck::new();
         deck.shuffle();
         Self {
@@ -315,6 +341,8 @@ impl Game {
             player_cards: Stack::new(),
             channel_id,
             message_id,
+            state: GameState::Draw,
+            conn: Some(conn),
         }
     }
 
@@ -325,24 +353,41 @@ impl Game {
             self.deck.shuffle();
         }
 
+        let player_account = PlayerAccount(self.conn.clone().unwrap(), self.player);
+        let mut msg = ChannelId(self.channel_id).message(self.message_id).unwrap();
+
         match action {
-            PlayerAction::Init => {
-                // move cards from hand to removed_cards
-                self.removed_cards
-                    .append(&mut self.player_cards.clear_stack());
-                self.removed_cards
-                    .append(&mut self.bank_cards.clear_stack());
+            PlayerAction::Init
+                if self.state == GameState::BankWins
+                    || self.state == GameState::Draw
+                    || self.state == GameState::PlayerWins
+                    || self.state == GameState::PlayerWinsThreeToTwo =>
+            {
+                if player_account.can_pay(self.bet) {
+                    player_account.change_amount(-self.bet);
 
-                // start with a fresh draw
-                self.bank_cards.add(self.deck.draw().unwrap());
-                self.player_cards.add(self.deck.draw().unwrap());
+                    // move cards from hand to removed_cards
+                    self.removed_cards
+                        .append(&mut self.player_cards.clear_stack());
+                    self.removed_cards
+                        .append(&mut self.bank_cards.clear_stack());
 
-                // visualize state
-                let mut msg = ChannelId(self.channel_id).message(self.message_id).unwrap();
-                msg.edit(|m| m.content(&self.visualize(GameState::Playing)))
-                    .unwrap();
+                    // start with a fresh draw
+                    self.bank_cards.add(self.deck.draw().unwrap());
+                    self.player_cards.add(self.deck.draw().unwrap());
+
+                    // visualize state
+                    msg.edit(|m| m.content(&self.visualize(GameState::Playing)))
+                        .unwrap();
+
+                    self.state = GameState::Playing;
+                } else {
+                    msg.edit(|m| m.content(&self.visualize(GameState::NotEnoughMoney)))
+                        .unwrap();
+                    self.state = GameState::NotEnoughMoney;
+                }
             }
-            PlayerAction::Hit => {
+            PlayerAction::Hit if self.state == GameState::Playing => {
                 self.player_cards.add(self.deck.draw().unwrap());
 
                 // make card checks
@@ -351,12 +396,18 @@ impl Game {
                     let mut msg = ChannelId(self.channel_id).message(self.message_id).unwrap();
                     msg.edit(|m| m.content(&self.visualize(GameState::BankWins)))
                         .unwrap();
+
+                    player_account.change_amount(-self.bet);
+                    self.state = GameState::BankWins;
                 } else if self.player_cards.value() == 21 {
                     // blackjack or triple
                     if self.player_cards.0.iter().all(|c| c.rank == Rank::Seven) {
                         let mut msg = ChannelId(self.channel_id).message(self.message_id).unwrap();
-                        msg.edit(|m| m.content(&self.visualize(GameState::PlayerWins)))
+                        msg.edit(|m| m.content(&self.visualize(GameState::PlayerWinsThreeToTwo)))
                             .unwrap();
+
+                        player_account.change_amount(3 * self.bet);
+                        self.state = GameState::PlayerWinsThreeToTwo;
                     } else {
                         self.update(PlayerAction::Stay);
                     }
@@ -367,7 +418,7 @@ impl Game {
                         .unwrap();
                 }
             }
-            PlayerAction::Stay => {
+            PlayerAction::Stay if self.state == GameState::Playing => {
                 // make remaining draws for the bank
                 let mut bank_value = self.bank_cards.value();
                 while bank_value <= 17 {
@@ -381,39 +432,58 @@ impl Game {
                     let mut msg = ChannelId(self.channel_id).message(self.message_id).unwrap();
                     msg.edit(|m| m.content(&self.visualize(GameState::Draw)))
                         .unwrap();
+
+                    player_account.change_amount(self.bet);
+                    self.state = GameState::Draw;
                 // Bank has Blackjack, player doesnt
                 } else if self.bank_cards.is_blackjack() && !self.player_cards.is_blackjack() {
                     let mut msg = ChannelId(self.channel_id).message(self.message_id).unwrap();
                     msg.edit(|m| m.content(&self.visualize(GameState::BankWins)))
                         .unwrap();
+                    self.state = GameState::BankWins;
                 // Bank has no blackjack, player does
                 } else if !self.bank_cards.is_blackjack() && self.player_cards.is_blackjack() {
                     let mut msg = ChannelId(self.channel_id).message(self.message_id).unwrap();
-                    msg.edit(|m| m.content(&self.visualize(GameState::PlayerWins)))
+                    msg.edit(|m| m.content(&self.visualize(GameState::PlayerWinsThreeToTwo)))
                         .unwrap();
+
+                    player_account.change_amount(3 * self.bet);
+                    self.state = GameState::PlayerWinsThreeToTwo;
                 // Bank loses because of bust
                 } else if self.bank_cards.value() > 21 {
                     let mut msg = ChannelId(self.channel_id).message(self.message_id).unwrap();
                     msg.edit(|m| m.content(&self.visualize(GameState::PlayerWins)))
                         .unwrap();
+
+                    player_account.change_amount(2 * self.bet);
+                    self.state = GameState::PlayerWins;
                 // Both have some value
                 } else if self.bank_cards.value() > self.player_cards.value() {
                     // bank wins
                     let mut msg = ChannelId(self.channel_id).message(self.message_id).unwrap();
                     msg.edit(|m| m.content(&self.visualize(GameState::BankWins)))
                         .unwrap();
+                    self.state = GameState::BankWins;
                 } else if self.bank_cards.value() < self.player_cards.value() {
                     // player wins
                     let mut msg = ChannelId(self.channel_id).message(self.message_id).unwrap();
                     msg.edit(|m| m.content(&self.visualize(GameState::PlayerWins)))
                         .unwrap();
+
+                    player_account.change_amount(2 * self.bet);
+                    self.state = GameState::PlayerWins;
                 } else {
                     // draw
                     let mut msg = ChannelId(self.channel_id).message(self.message_id).unwrap();
                     msg.edit(|m| m.content(&self.visualize(GameState::Draw)))
                         .unwrap();
+
+                    player_account.change_amount(self.bet);
+                    self.state = GameState::Draw;
                 }
             }
+            // ignore invalid player updates
+            _ => (),
         }
     }
 
@@ -423,26 +493,81 @@ impl Game {
                 format!("Bank: {}\nYou: {}\n", self.bank_cards, self.player_cards)
             }
             GameState::BankWins => format!(
-                "Bank: {}\nYou: {}\nBank won! Play again?",
+                "Bank: {}\nYou: {}\nYou lost! Play again?",
                 self.bank_cards, self.player_cards
             ),
             GameState::PlayerWins => format!(
-                "Bank: {}\nYou: {}\nYou won! Play again?",
-                self.bank_cards, self.player_cards
+                "Bank: {}\nYou: {}\nYou won {}! Play again?",
+                self.bank_cards,
+                self.player_cards,
+                self.bet * 2
+            ),
+            GameState::PlayerWinsThreeToTwo => format!(
+                "Bank: {}\nYou: {}\nYou won {}! Play again?",
+                self.bank_cards,
+                self.player_cards,
+                self.bet * 3
             ),
             GameState::Draw => format!(
                 "Bank: {}\nYou: {}\nYou Tied! Play again?",
                 self.bank_cards, self.player_cards
             ),
+            GameState::NotEnoughMoney => "You have not enough money left to play!".to_string(),
         }
     }
 }
 
+#[derive(Debug, Serialize, Deserialize, PartialEq)]
 enum GameState {
     Playing,
     BankWins,
     PlayerWins,
+    PlayerWinsThreeToTwo,
     Draw,
+    NotEnoughMoney,
+}
+
+struct PlayerAccount(Arc<Mutex<PgConnection>>, u64);
+
+impl PlayerAccount {
+    fn can_pay(&self, amount: i64) -> bool {
+        use crate::models::bank::Bank;
+        use crate::schema::banks::dsl;
+        use diesel::prelude::*;
+
+        debug!("Check if user {} can pay: {}", &self.1, &amount);
+
+        let results = dsl::banks
+            .filter(dsl::user_id.eq(self.1 as i64))
+            .load::<Bank>(&*self.0.lock())
+            .expect("could not retrieve banks");
+
+        !results.is_empty() && results[0].amount >= amount
+    }
+
+    fn change_amount(&self, amount: i64) {
+        use crate::models::bank::Bank;
+        use crate::schema::banks::dsl;
+        use diesel::prelude::*;
+
+        let results = dsl::banks
+            .filter(dsl::user_id.eq(self.1 as i64))
+            .load::<Bank>(&*self.0.lock())
+            .expect("could not retrieve banks");
+
+        let mut new_amount = results[0].amount;
+        new_amount += amount;
+
+        debug!(
+            "Change {} amount by: {}, new amount: {}",
+            &self.1, &amount, &new_amount
+        );
+
+        diesel::update(dsl::banks.filter(dsl::user_id.eq(self.1 as i64)))
+            .set(dsl::amount.eq(new_amount))
+            .execute(&*self.0.lock())
+            .expect("failed update bank");
+    }
 }
 
 #[cfg(test)]

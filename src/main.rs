@@ -129,7 +129,7 @@ fn main() {
 
     let rules_state = Arc::new(Mutex::new(self::rules::State::load()));
 
-    let blackjack_state = Arc::new(Mutex::new(self::blackjack::State::load()));
+    let blackjack_state = Arc::new(Mutex::new(self::blackjack::State::load(conn.clone())));
 
     {
         let mut data = client.data.lock();

@@ -1,6 +1,6 @@
 use crate::interaction::wait::{Action, WaitEvent};
 use crate::models::bank::Bank;
-use crate::schema::banks::dsl::*;
+use crate::schema::banks::dsl;
 use crate::DatabaseConnection;
 use crate::Waiter;
 use chrono::prelude::*;
@@ -33,7 +33,7 @@ command!(play(ctx, msg, args) {
         }
     };
     // check if user already owns a bank & has enough balance
-    let results = banks.filter(user_id.eq(*msg.author.id.as_u64() as i64)).load::<Bank>(&*conn.lock()).expect("could not retrieve banks");
+    let results = dsl::banks.filter(dsl::user_id.eq(*msg.author.id.as_u64() as i64)).load::<Bank>(&*conn.lock()).expect("could not retrieve banks");
     
     if !results.is_empty() && results[0].amount >= amount_to_bet {
         // roll
@@ -61,7 +61,7 @@ command!(play(ctx, msg, args) {
         let updated_amount =  results[0].amount + delta;
 
         // TODO: investigate why the aschangeset version does not work
-        diesel::update(banks.filter(id.eq(results[0].id))).set(amount.eq(updated_amount)).execute(&*conn.lock()).expect("failed update bank");
+        diesel::update(dsl::banks.filter(dsl::id.eq(results[0].id))).set(dsl::amount.eq(updated_amount)).execute(&*conn.lock()).expect("failed update bank");
 
         let slot_machine_output = display_reels(&full_reels, payout, updated_amount);
         let _ = msg.channel_id.send_message(|m| m.embed(|e| 
@@ -74,16 +74,15 @@ command!(play(ctx, msg, args) {
 });
 
 fn get_payout(full_reels: &Vec<Vec<i64>>, betted_amount: i64) -> i64 {
-    // win condition 1
     if full_reels[0][1] == full_reels[1][1] && full_reels[1][1] == full_reels[2][1] {
         // win 1
-        4 * betted_amount
+        50 * betted_amount
     } else if full_reels[0][0] == full_reels[1][1] && full_reels[1][1] == full_reels[2][2] {
         // win 2
-        3 * betted_amount
+        40 * betted_amount
     } else if full_reels[0][2] == full_reels[1][1] && full_reels[1][1] == full_reels[2][0] {
         // win 3
-        2 * betted_amount
+        20 * betted_amount
     } else {
         0
     }

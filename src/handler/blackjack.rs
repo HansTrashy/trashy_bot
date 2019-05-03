@@ -24,7 +24,9 @@ pub fn hit(ctx: Context, reaction: Reaction) {
         .get::<BlackjackState>()
         .expect("No blackjack state available");
 
-    blackjack_state.lock().hit(*reaction.user_id.as_u64());
+    blackjack_state
+        .lock()
+        .hit(*reaction.user_id.as_u64(), *reaction.message_id.as_u64());
 }
 
 pub fn stay(ctx: Context, reaction: Reaction) {
@@ -33,7 +35,9 @@ pub fn stay(ctx: Context, reaction: Reaction) {
         .get::<BlackjackState>()
         .expect("No blackjack state available");
 
-    blackjack_state.lock().stay(*reaction.user_id.as_u64());
+    blackjack_state
+        .lock()
+        .stay(*reaction.user_id.as_u64(), *reaction.message_id.as_u64());
 }
 
 pub fn new_game(ctx: Context, reaction: Reaction) {
@@ -42,5 +46,7 @@ pub fn new_game(ctx: Context, reaction: Reaction) {
         .get::<BlackjackState>()
         .expect("No blackjack state available");
 
-    blackjack_state.lock().new_game(*reaction.user_id.as_u64());
+    blackjack_state
+        .lock()
+        .new_game(*reaction.user_id.as_u64(), *reaction.message_id.as_u64());
 }
