@@ -3,18 +3,10 @@ use crate::interaction::wait::WaitEvent;
 use crate::DatabaseConnection;
 use crate::Waiter;
 use chrono::prelude::*;
-use diesel::pg::PgConnection;
 use diesel::prelude::*;
 use serenity::{
-    client::bridge::gateway::{ShardId, ShardManager},
-    framework::standard::{
-        help_commands, Args, CommandOptions, DispatchError, HelpBehaviour, StandardFramework,
-    },
-    model::{
-        channel::Message, channel::Reaction, channel::ReactionType, gateway::Ready, Permissions,
-    },
+    model::channel::Reaction,
     prelude::*,
-    utils::{content_safe, ContentSafeOptions},
 };
 
 pub fn add_fav(ctx: Context, add_reaction: Reaction) {

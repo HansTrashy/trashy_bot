@@ -4,29 +4,12 @@ use crate::DatabaseConnection;
 use crate::Waiter;
 use diesel::prelude::*;
 use lazy_static::lazy_static;
-use log::{debug, error, info, warn};
+use log::*;
 use regex::Regex;
 use serenity::{
-    client::bridge::gateway::{ShardId, ShardManager},
-    framework::standard::{
-        help_commands, Args, CommandOptions, DispatchError, HelpBehaviour, StandardFramework,
-    },
-    model::{
-        channel::Message, channel::Reaction, channel::ReactionType, gateway::Ready, id::ChannelId,
-        Permissions,
-    },
+    model::{channel::Message, channel::Reaction, channel::ReactionType, gateway::Ready},
     prelude::*,
-    utils::{content_safe, ContentSafeOptions},
 };
-
-// Regexes for bad words
-lazy_static! {
-    static ref BAD_WORDS: Vec<Regex> = {
-        vec![
-            // es gibt keine bösen wörter
-        ]
-    };
-}
 
 mod blackjack;
 mod fav;
@@ -72,46 +55,6 @@ impl EventHandler for Handler {
                     let _ = msg.reply("added the tags!");
                 }
             }
-        } else if msg.author.id != 399343003233157124 && msg.channel_id != 385838671770943489 {
-            // info!("Bad word found!");
-            // // using wordfilter to check messages on guild for bad words
-            // let mut contains_bad_word = false;
-            // for r in BAD_WORDS.iter() {
-            //     if r.is_match(&msg.content) {
-            //         contains_bad_word = true;
-            //     }
-            // }
-            // let source = if msg.guild_id.is_some() {
-            //     format!(
-            //         "https://discordapp.com/channels/{}/{}/{}",
-            //         msg.guild_id.unwrap(),
-            //         msg.channel_id,
-            //         msg.id,
-            //     )
-            // } else {
-            //     String::new()
-            // };
-            // if contains_bad_word {
-            //     let report_channel_id = ChannelId::from(559317647372713984);
-            //     let _ = report_channel_id.send_message(|m| {
-            //         m.embed(|e| {
-            //             e.author(|a| {
-            //                 a.name(&msg.author.name)
-            //                     .icon_url(&msg.author.static_avatar_url().unwrap_or_default())
-            //             })
-            //             .title(&format!(
-            //                 "Potenzieller Verstoß in {}",
-            //                 msg.channel_id.name().unwrap_or_default()
-            //             ))
-            //             .description(&msg.content)
-            //             .color((0, 120, 220))
-            //             .footer(|f| {
-            //                 f.text(&format!("{}", &msg.timestamp.format("%d.%m.%Y, %H:%M:%S"),))
-            //             })
-            //         })
-            //     });
-            //     let _ = report_channel_id.say(&source);
-            // }
         }
     }
 

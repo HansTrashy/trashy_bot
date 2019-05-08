@@ -1,5 +1,4 @@
 use crate::schema::reaction_roles;
-use chrono::NaiveDateTime;
 use diesel::prelude::*;
 
 #[derive(Identifiable, AsChangeset, Queryable, Debug, Clone)]

@@ -3,13 +3,9 @@ use crate::reaction_roles::State as RRState;
 use crate::schema::reaction_roles::dsl::*;
 use crate::DatabaseConnection;
 use crate::ReactionRolesState;
-use crate::Waiter;
-use chrono::prelude::*;
 use diesel::prelude::*;
-use log::{debug, error, info, warn};
-use rand::prelude::*;
-use serenity::Result as SerenityResult;
-use serenity::model::{channel::Message, channel::ReactionType, id::ChannelId, id::MessageId};
+use log::*;
+use serenity::model::channel::ReactionType;
 use itertools::Itertools;
 
 command!(createrr(ctx, msg, args) {

@@ -5,22 +5,16 @@ extern crate diesel;
 
 use diesel::pg::PgConnection;
 use diesel::prelude::*;
-use log::{debug, error, info, trace, warn};
+use log::*;
 use serenity::{
-    client::bridge::gateway::{ShardId, ShardManager},
+    client::bridge::gateway::ShardManager,
     framework::standard::{
         help_commands, Args, CommandOptions, DispatchError, HelpBehaviour, StandardFramework,
     },
-    model::{
-        channel::Message, channel::Reaction, channel::ReactionType, gateway::Ready, Permissions,
-    },
+    model::{channel::Message, Permissions},
     prelude::*,
-    utils::{content_safe, ContentSafeOptions},
 };
-use std::{collections::HashMap, env, fmt::Write, sync::Arc};
-
-// This imports `typemap`'s `Key` as `TypeMapKey`.
-use serenity::prelude::*;
+use std::{env, sync::Arc};
 
 mod blackjack;
 mod handler;

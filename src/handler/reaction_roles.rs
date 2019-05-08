@@ -1,26 +1,13 @@
-use crate::interaction::wait::Action;
-use crate::interaction::wait::WaitEvent;
 use crate::models::reaction_role::ReactionRole;
 use crate::reaction_roles::State;
 use crate::schema::reaction_roles::dsl::*;
 use crate::DatabaseConnection;
 use crate::ReactionRolesState;
-use crate::Waiter;
-use chrono::prelude::*;
-use diesel::pg::PgConnection;
 use diesel::prelude::*;
 use log::info;
 use serenity::{
-    client::bridge::gateway::{ShardId, ShardManager},
-    framework::standard::{
-        help_commands, Args, CommandOptions, DispatchError, HelpBehaviour, StandardFramework,
-    },
-    model::{
-        channel::Message, channel::Reaction, channel::ReactionType, gateway::Ready, id::GuildId,
-        id::RoleId, Permissions,
-    },
+    model::{channel::Reaction, channel::ReactionType},
     prelude::*,
-    utils::{content_safe, ContentSafeOptions},
 };
 
 pub fn add_role(ctx: Context, add_reaction: Reaction) {

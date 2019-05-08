@@ -1,22 +1,5 @@
-use crate::interaction::wait::Action;
-use crate::interaction::wait::WaitEvent;
 use crate::BlackjackState;
-use crate::DatabaseConnection;
-use crate::Waiter;
-use chrono::prelude::*;
-use diesel::pg::PgConnection;
-use diesel::prelude::*;
-use serenity::{
-    client::bridge::gateway::{ShardId, ShardManager},
-    framework::standard::{
-        help_commands, Args, CommandOptions, DispatchError, HelpBehaviour, StandardFramework,
-    },
-    model::{
-        channel::Message, channel::Reaction, channel::ReactionType, gateway::Ready, Permissions,
-    },
-    prelude::*,
-    utils::{content_safe, ContentSafeOptions},
-};
+use serenity::{model::channel::Reaction, prelude::*};
 
 pub fn hit(ctx: Context, reaction: Reaction) {
     let data = ctx.data.lock();

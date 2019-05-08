@@ -1,5 +1,4 @@
 use lazy_static::lazy_static;
-use log::error;
 use log::*;
 use regex::Regex;
 use serenity::model::channel::Attachment;
@@ -35,6 +34,7 @@ command!(quote(_ctx, msg, args) {
             }
         } else {
             let _ = msg.reply("Tut mir leid, ich kann diese Nachricht nicht finden.");
+            trace!("Could not find quote message");
         }
     }
     let _ = msg.delete();

@@ -7,7 +7,7 @@ use crate::Waiter;
 use chrono::prelude::*;
 use diesel::prelude::*;
 use rand::prelude::*;
-use serenity::model::{channel::Message, channel::Attachment, channel::ReactionType, id::ChannelId, id::MessageId};
+use serenity::model::{channel::Attachment, channel::ReactionType, id::ChannelId};
 use log::*;
 use lazy_static::lazy_static;
 use regex::Regex;
@@ -167,7 +167,7 @@ command!(add(ctx, msg, args) {
             );
 
             if let Err(why) = msg.author.dm(|m| m.content("Fav saved!")) {
-                println!("Error sending message: {:?}", why);
+                debug!("Error sending message: {:?}", why);
             }
         }
     }
@@ -177,7 +177,6 @@ command!(add(ctx, msg, args) {
 mod tests {
     use crate::models::fav::Fav;
     use crate::models::tag::Tag;
-    use crate::schema::favs::dsl::*;
 
     #[test]
     fn test_filter() {

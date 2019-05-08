@@ -1,4 +1,4 @@
-command!(kick(_ctx, msg, args) {
+command!(kick(_ctx, msg, _args) {
     let users_to_kick = &msg.mentions;
 
     let guild = msg.guild_id.ok_or("Failed to get guild_id")?.to_guild_cached();

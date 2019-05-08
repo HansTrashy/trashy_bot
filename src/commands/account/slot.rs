@@ -1,13 +1,8 @@
-use crate::interaction::wait::{Action, WaitEvent};
 use crate::models::bank::Bank;
 use crate::schema::banks::dsl;
 use crate::DatabaseConnection;
-use crate::Waiter;
-use chrono::prelude::*;
 use diesel::prelude::*;
 use rand::prelude::*;
-use serenity::model::{channel::Message, channel::ReactionType, id::ChannelId, id::MessageId};
-use serenity::utils::{content_safe, ContentSafeOptions};
 
 command!(play(ctx, msg, args) {
     let mut rng = rand::thread_rng();
@@ -26,7 +21,7 @@ command!(play(ctx, msg, args) {
             let _ = msg.channel_id.say("Ungültiger Wetteinsatz!");
             return Ok(());
         }
-        Err(e) => {
+        Err(_e) => {
             // log
             let _ = msg.channel_id.say("Ungültiger Wetteinsatz!");
             return Ok(());
@@ -73,7 +68,7 @@ command!(play(ctx, msg, args) {
     
 });
 
-fn get_payout(full_reels: &Vec<Vec<i64>>, betted_amount: i64) -> i64 {
+fn get_payout(full_reels: &[Vec<i64>], betted_amount: i64) -> i64 {
     if full_reels[0][1] == full_reels[1][1] && full_reels[1][1] == full_reels[2][1] {
         // win 1
         50 * betted_amount
@@ -88,7 +83,7 @@ fn get_payout(full_reels: &Vec<Vec<i64>>, betted_amount: i64) -> i64 {
     }
 }
 
-fn display_reels(full_reels: &Vec<Vec<i64>>, payout: i64, updated_amount: i64) -> String {
+fn display_reels(full_reels: &[Vec<i64>], payout: i64, updated_amount: i64) -> String {
     format!(
         "{} | {} | {} \n{} | {} | {}\n {} | {} | {}\n\n Gewonnen: {}\nBank: {}",
         number_to_emoji(full_reels[0][0]),
@@ -150,8 +145,6 @@ mod tests {
 
     #[test]
     fn test_payout() {
-        let mut rng = rand::thread_rng();
-
         let full_reels_1 = vec![vec![0, 1, 2], vec![0, 1, 2], vec![0, 1, 2]];
         let full_reels_2 = vec![vec![0, 1, 2], vec![6, 0, 1], vec![5, 6, 0]];
         let full_reels_3 = vec![vec![0, 1, 2], vec![1, 2, 3], vec![2, 3, 4]];
