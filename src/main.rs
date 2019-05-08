@@ -224,12 +224,27 @@ fn main() {
                     .guild_only(true)
                     .usage("quote message_link")
                     .cmd(commands::quote::quote))
-            .command("twitch", |c| {
+            /*
+            * Twitch Command group 
+            * Ping - Basic Ping/Pong Command for testing
+            * add - Add Twitch user, argument: twitch user name
+            */
+            .group("Twitch", |g| {
+                g.prefix("twitch")
+                .desc("Befehle für Twitch NunLive Integration")
+                .default_cmd(commands::twitch::ping)
+                .command("add", |c| {
+                    c.desc("Fügt dem NunLive Checker deinen Ström hinzu")
+                    .num_args(2)
+                    .cmd(commands::twitch::add_user)
+                })
+            .command("ping", |c| {
                     c.desc("Macht Dinge mit Twitch Streams")
-                    .num_args(1)
-                    .example("1425")
-                    .cmd(commands::twitch::twitch)
+                    .num_args(0)
+                    .cmd(commands::twitch::ping)
             })
+            })
+
             // .command("untagged", |c| {
             //     c.desc("Direkt an den Bot schreiben um untagged favs zu löschen/labeln. (Dazu dann auf 🗑 oder 🏷 klicken)")
             //         .usage("untagged")
