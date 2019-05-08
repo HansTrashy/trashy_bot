@@ -59,6 +59,7 @@ mod commands {
     pub mod roll;
     pub mod rules;
     pub mod xkcd;
+    pub mod twitch;
 }
 
 struct ShardManagerContainer;
@@ -229,6 +230,12 @@ fn main() {
                     .guild_only(true)
                     .usage("quote message_link")
                     .cmd(commands::quote::quote))
+            .command("twitch", |c| {
+                    c.desc("Macht Dinge mit Twitch Streams")
+                    .num_args(1)
+                    .example("1425")
+                    .cmd(commands::twitch::twitch)
+            })
             // .command("untagged", |c| {
             //     c.desc("Direkt an den Bot schreiben um untagged favs zu löschen/labeln. (Dazu dann auf 🗑 oder 🏷 klicken)")
             //         .usage("untagged")
