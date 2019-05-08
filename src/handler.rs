@@ -3,9 +3,7 @@ use crate::models::tag::NewTag;
 use crate::DatabaseConnection;
 use crate::Waiter;
 use diesel::prelude::*;
-use lazy_static::lazy_static;
 use log::*;
-use regex::Regex;
 use serenity::{
     model::{channel::Message, channel::Reaction, channel::ReactionType, gateway::Ready},
     prelude::*,
