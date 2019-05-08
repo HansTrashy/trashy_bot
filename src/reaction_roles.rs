@@ -21,10 +21,6 @@ impl State {
         }
     }
 
-    pub fn unset() -> State {
-        State::NotSet
-    }
-
     pub fn load_set() -> State {
         match std::fs::read_to_string("rr_state.storage") {
             Ok(data) => {

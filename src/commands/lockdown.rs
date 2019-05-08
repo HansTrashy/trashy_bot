@@ -1,7 +1,7 @@
 use log::*;
 use serenity::model::channel::{Channel, PermissionOverwrite, PermissionOverwriteType};
 use serenity::model::id::RoleId;
-use serenity::model::{ModelError, Permissions};
+use serenity::model::Permissions;
 use crate::LockdownState;
 
 command!(lockdown(ctx, msg, _args) {

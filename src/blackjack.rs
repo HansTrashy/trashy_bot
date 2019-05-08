@@ -227,7 +227,7 @@ impl Deck {
 
     fn draw_multiple(&mut self, n: usize) -> Vec<Card> {
         let mut stack = Vec::new();
-        for i in 0..n {
+        for _ in 0..n {
             if let Some(c) = self.draw() {
                 stack.push(c);
             } else {
