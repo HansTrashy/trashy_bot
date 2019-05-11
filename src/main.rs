@@ -53,6 +53,7 @@ mod commands {
     pub mod roll;
     pub mod rules;
     pub mod xkcd;
+    pub mod twitch;
 }
 
 struct ShardManagerContainer;
@@ -223,6 +224,24 @@ fn main() {
                     .guild_only(true)
                     .usage("quote message_link")
                     .cmd(commands::quote::quote))
+            /*
+            * Twitch Command group 
+            * Ping - Basic Ping/Pong Command for testing
+            * add - Add Twitch user, argument: twitch user name
+            */
+            .group("Twitch", |g| {
+                g.prefix("twitch")
+                .desc("Befehle für Twitch NunLive Integration")
+                //This should probably be a help command or something 
+                .default_cmd(commands::twitch::add_user)
+                // arg 1: Discord User Ping, for referencing & permissions arg 2: Twitch User
+                .command("add", |c| {
+                    c.desc("Fügt dem NunLive Checker deinen Ström hinzu")
+                    .num_args(2)
+                    .cmd(commands::twitch::add_user)
+                })
+            })
+
             // .command("untagged", |c| {
             //     c.desc("Direkt an den Bot schreiben um untagged favs zu löschen/labeln. (Dazu dann auf 🗑 oder 🏷 klicken)")
             //         .usage("untagged")
