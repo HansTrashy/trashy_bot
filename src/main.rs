@@ -232,7 +232,8 @@ fn main() {
             .group("Twitch", |g| {
                 g.prefix("twitch")
                 .desc("Befehle für Twitch NunLive Integration")
-                .default_cmd(commands::twitch::ping)
+                //This should probably be a help command or something 
+                .default_cmd(commands::twitch::add_user)
                 // arg 1: Discord User Ping, for referencing & permissions arg 2: Twitch User
                 .command("add", |c| {
                     c.desc("Fügt dem NunLive Checker deinen Ström hinzu")
