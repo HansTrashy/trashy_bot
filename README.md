@@ -12,6 +12,7 @@ Create a `.env` file after the following example in the project root:
 
     DISCORD_TOKEN=****
     DATABASE_URL=postgres://{pguser}:{pgpw}:{host}
+    TWITCH_TOKEN=****
 
 
 ## Getting the Database up & running
