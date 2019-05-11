@@ -43,6 +43,8 @@ table! {
         id -> Int8,
         guild_id -> Int8,
         channel_ids -> Array<Int8>,
+        delete_offline -> Bool,
+        allow_everyone -> Bool,
     }
 }
 
