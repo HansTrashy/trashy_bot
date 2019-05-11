@@ -233,16 +233,12 @@ fn main() {
                 g.prefix("twitch")
                 .desc("Befehle für Twitch NunLive Integration")
                 .default_cmd(commands::twitch::ping)
+                // arg 1: Discord User Ping, for referencing & permissions arg 2: Twitch User
                 .command("add", |c| {
                     c.desc("Fügt dem NunLive Checker deinen Ström hinzu")
                     .num_args(2)
                     .cmd(commands::twitch::add_user)
                 })
-            .command("ping", |c| {
-                    c.desc("Macht Dinge mit Twitch Streams")
-                    .num_args(0)
-                    .cmd(commands::twitch::ping)
-            })
             })
 
             // .command("untagged", |c| {
