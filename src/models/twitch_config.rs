@@ -20,8 +20,6 @@ pub fn create_twitch_config(
     guild_id: i64,
     channel_ids: Vec<i64>,
 ) -> TwitchConfig {
-    use crate::schema::twitch_configs;
-
     let new_twitch_config = NewTwitchConfig {
         guild_id,
         channel_ids,

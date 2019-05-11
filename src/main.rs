@@ -35,6 +35,7 @@ mod models {
     pub mod reaction_role;
     pub mod tag;
     pub mod twitch_config;
+    pub mod twitch_stream;
 }
 
 mod commands {

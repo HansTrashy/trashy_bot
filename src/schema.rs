@@ -46,10 +46,19 @@ table! {
     }
 }
 
+table! {
+    twitch_streams (id) {
+        id -> Int8,
+        twitch_user_id -> Text,
+        profile_image_url -> Text,
+    }
+}
+
 allow_tables_to_appear_in_same_query!(
     banks,
     favs,
     reaction_roles,
     tags,
     twitch_configs,
+    twitch_streams,
 );
