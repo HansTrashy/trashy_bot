@@ -1,4 +1,3 @@
--- Your SQL goes here
 CREATE TABLE favs (
     id SERIAL8 PRIMARY KEY,
     server_id INT8 NOT NULL,

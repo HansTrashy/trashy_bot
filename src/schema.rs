@@ -38,9 +38,18 @@ table! {
     }
 }
 
+table! {
+    twitch_configs (id) {
+        id -> Int8,
+        guild_id -> Int8,
+        channel_ids -> Array<Int8>,
+    }
+}
+
 allow_tables_to_appear_in_same_query!(
     banks,
     favs,
     reaction_roles,
     tags,
+    twitch_configs,
 );

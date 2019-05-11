@@ -34,6 +34,7 @@ mod models {
     pub mod fav;
     pub mod reaction_role;
     pub mod tag;
+    pub mod twitch_config;
 }
 
 mod commands {
@@ -52,8 +53,8 @@ mod commands {
     pub mod reaction_roles;
     pub mod roll;
     pub mod rules;
-    pub mod xkcd;
     pub mod twitch;
+    pub mod xkcd;
 }
 
 struct ShardManagerContainer;
