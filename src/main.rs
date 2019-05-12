@@ -5,6 +5,7 @@ extern crate diesel;
 
 use diesel::pg::PgConnection;
 use diesel::prelude::*;
+use diesel::r2d2::{ConnectionManager, Pool};
 use log::*;
 use serenity::{
     client::bridge::gateway::ShardManager,
@@ -24,6 +25,7 @@ mod reaction_roles;
 mod rules;
 mod schema;
 mod util;
+mod web;
 
 mod interaction {
     pub mod wait;
@@ -67,7 +69,7 @@ impl TypeMapKey for ShardManagerContainer {
 struct DatabaseConnection;
 
 impl TypeMapKey for DatabaseConnection {
-    type Value = Arc<Mutex<PgConnection>>;
+    type Value = Pool<ConnectionManager<PgConnection>>;
 }
 
 struct Waiter;
@@ -113,12 +115,12 @@ fn main() {
     let token = env::var("DISCORD_TOKEN").expect("Expected a token in the environment");
     let mut client = Client::new(&token, handler::Handler).expect("Err creating client");
 
-    let conn = Arc::new(Mutex::new(
-        PgConnection::establish(
-            &env::var("DATABASE_URL").expect("Expected a database in the environment"),
-        )
-        .expect("Error connecting to database"),
-    ));
+    let db_manager = ConnectionManager::<PgConnection>::new(
+        env::var("DATABASE_URL").expect("Expected a database in the environment"),
+    );
+    let db_pool = Pool::builder()
+        .build(db_manager)
+        .expect("Failed to create db pool.");
 
     let waiter = Arc::new(Mutex::new(self::interaction::wait::Wait::new()));
 
@@ -126,17 +128,20 @@ fn main() {
 
     let rules_state = Arc::new(Mutex::new(self::rules::State::load()));
 
-    let blackjack_state = Arc::new(Mutex::new(self::blackjack::State::load(conn.clone())));
+    let blackjack_state = Arc::new(Mutex::new(self::blackjack::State::load(db_pool.clone())));
 
     {
         let mut data = client.data.lock();
-        data.insert::<DatabaseConnection>(conn);
+        data.insert::<DatabaseConnection>(db_pool.clone());
         data.insert::<ShardManagerContainer>(Arc::clone(&client.shard_manager));
         data.insert::<Waiter>(waiter);
         data.insert::<ReactionRolesState>(rr_state);
         data.insert::<RulesState>(rules_state);
         data.insert::<BlackjackState>(blackjack_state);
     }
+
+    // start the webhook receiver
+    web::start(db_pool.clone());
 
     client.with_framework(
         StandardFramework::new()

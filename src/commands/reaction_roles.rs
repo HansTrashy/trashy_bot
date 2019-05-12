@@ -11,7 +11,7 @@ use itertools::Itertools;
 command!(createrr(ctx, msg, args) {
     let data = ctx.data.lock();
     let conn = match data.get::<DatabaseConnection>() {
-        Some(v) => v.clone(),
+        Some(v) => v.get().unwrap(),
         None => {
             let _ = msg.reply("Could not retrieve the database connection!");
             return Ok(());
@@ -24,7 +24,7 @@ command!(createrr(ctx, msg, args) {
     if let Some(guild) =  msg.guild() {
         if let Some(role) = guild.read().role_by_name(&role_arg) {
             reaction_role::create_reaction_role(
-                &*conn.lock(),
+                &conn,
                 *msg
                     .channel()
                     .unwrap()
@@ -46,7 +46,7 @@ command!(createrr(ctx, msg, args) {
 command!(removerr(ctx, msg, args) {
     let data = ctx.data.lock();
     let conn = match data.get::<DatabaseConnection>() {
-        Some(v) => v.clone(),
+        Some(v) => v.get().unwrap(),
         None => {
             let _ = msg.reply("Could not retrieve the database connection!");
             return Ok(());
@@ -61,7 +61,7 @@ command!(removerr(ctx, msg, args) {
         debug!("Some guild found");
         if let Some(role) = guild.read().role_by_name(&role_arg) {
             debug!("Role found: {:?}", &role);
-            diesel::delete(reaction_roles.filter(emoji.eq(emoji_arg)).filter(role_id.eq(*role.id.as_u64() as i64))).execute(&*conn.lock()).expect("could not delete reaction role");
+            diesel::delete(reaction_roles.filter(emoji.eq(emoji_arg)).filter(role_id.eq(*role.id.as_u64() as i64))).execute(&conn).expect("could not delete reaction role");
             let _ = msg.reply("deleted rr!");
         }
     }
@@ -70,7 +70,7 @@ command!(removerr(ctx, msg, args) {
 command!(listrr(ctx, msg, _args) {
     let data = ctx.data.lock();
     let conn = match data.get::<DatabaseConnection>() {
-        Some(v) => v.clone(),
+        Some(v) => v.get().unwrap(),
         None => {
             let _ = msg.reply("Could not retrieve the database connection!");
             return Ok(());
@@ -79,7 +79,7 @@ command!(listrr(ctx, msg, _args) {
     use crate::schema::reaction_roles::dsl::*;
     use diesel::prelude::*;
 
-    let results = reaction_roles.load::<ReactionRole>(&*conn.lock()).expect("could not retrieve reaction roles");
+    let results = reaction_roles.load::<ReactionRole>(&conn).expect("could not retrieve reaction roles");
 
     let mut output = String::new();
     for r in results {
@@ -94,7 +94,7 @@ command!(listrr(ctx, msg, _args) {
 command!(postrrgroups(ctx, msg, _args) {
     let data = ctx.data.lock();
     let conn = match data.get::<DatabaseConnection>() {
-        Some(v) => v.clone(),
+        Some(v) => v.get().unwrap(),
         None => {
             let _ = msg.reply("Could not retrieve the database connection!");
             return Ok(());
@@ -104,7 +104,7 @@ command!(postrrgroups(ctx, msg, _args) {
     use crate::schema::reaction_roles::dsl::*;
     use diesel::prelude::*;
 
-    let mut results = reaction_roles.load::<ReactionRole>(&*conn.lock()).expect("Could not retrieve rr");
+    let mut results = reaction_roles.load::<ReactionRole>(&conn).expect("Could not retrieve rr");
     results.sort_by_key(|r| r.role_group.to_owned());
     // post a message for each group and react under them with the respective emojis
 

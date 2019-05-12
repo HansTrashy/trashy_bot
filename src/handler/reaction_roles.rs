@@ -13,7 +13,7 @@ use serenity::{
 pub fn add_role(ctx: Context, add_reaction: Reaction) {
     let data = ctx.data.lock();
     let conn = match data.get::<DatabaseConnection>() {
-        Some(v) => v.clone(),
+        Some(v) => v.get().unwrap(),
         None => return,
     };
     let (rr_channel_id, rr_message_ids) = match data.get::<ReactionRolesState>() {
@@ -35,7 +35,7 @@ pub fn add_role(ctx: Context, add_reaction: Reaction) {
             // check if rr registered for this emoji
             let results = reaction_roles
                 .filter(emoji.eq(s))
-                .load::<ReactionRole>(&*conn.lock())
+                .load::<ReactionRole>(&conn)
                 .expect("could not load reaction roles");
 
             if !results.is_empty() {
@@ -58,7 +58,7 @@ pub fn add_role(ctx: Context, add_reaction: Reaction) {
 pub fn remove_role(ctx: Context, remove_reaction: Reaction) {
     let data = ctx.data.lock();
     let conn = match data.get::<DatabaseConnection>() {
-        Some(v) => v.clone(),
+        Some(v) => v.get().unwrap(),
         None => return,
     };
     let (rr_channel_id, rr_message_ids) = match data.get::<ReactionRolesState>() {
@@ -80,7 +80,7 @@ pub fn remove_role(ctx: Context, remove_reaction: Reaction) {
             // check if rr registered for this emoji
             let results = reaction_roles
                 .filter(emoji.eq(s))
-                .load::<ReactionRole>(&*conn.lock())
+                .load::<ReactionRole>(&conn)
                 .expect("could not load reaction roles");
 
             if !results.is_empty() {

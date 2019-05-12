@@ -7,7 +7,7 @@ edition = "2018"
 [dependencies]
 kankyo = "0.2.0"
 rand = "0.6"
-diesel = { version = "1.0.0", features = ["postgres", "chrono"] }
+diesel = { version = "1.0.0", features = ["postgres", "chrono", "r2d2"] }
 chrono = "*"
 log = { version = "0.4", features = ["max_level_debug", "release_max_level_info"] }
 fern = "0.5"
@@ -18,6 +18,8 @@ serde = "1"
 serde_derive = "1"
 serde_json = "1"
 reqwest = "0.9"
+actix-web = "1.0.0-beta.3"
+futures = "0.1.27"
 
 [dependencies.serenity]
 version = "0.5.12"

@@ -16,7 +16,7 @@ command!(fav(ctx, msg, args) {
     let mut rng = rand::thread_rng();
     let data = ctx.data.lock();
     let conn = match data.get::<DatabaseConnection>() {
-        Some(v) => v.clone(),
+        Some(v) => v.get().unwrap(),
         None => {
             let _ = msg.reply("Could not retrieve the database connection!");
             return Ok(());
@@ -25,9 +25,9 @@ command!(fav(ctx, msg, args) {
 
     let labels: Vec<String> = args.iter::<String>().filter_map(Result::ok).collect();
 
-    let results = favs.filter(user_id.eq(*msg.author.id.as_u64() as i64)).load::<Fav>(&*conn.lock()).expect("could not retrieve favs");
+    let results = favs.filter(user_id.eq(*msg.author.id.as_u64() as i64)).load::<Fav>(&conn).expect("could not retrieve favs");
 
-    let fav_tags = Tag::belonging_to(&results).load::<Tag>(&*conn.lock()).expect("could not retrieve tags").grouped_by(&results);
+    let fav_tags = Tag::belonging_to(&results).load::<Tag>(&conn).expect("could not retrieve tags").grouped_by(&results);
     let zipped = results.into_iter().zip(fav_tags).collect::<Vec<_>>();
 
     let possible_favs: Vec<(Fav, Vec<Tag>)> = zipped
@@ -81,66 +81,65 @@ command!(fav(ctx, msg, args) {
 });
 
 command!(untagged(ctx, msg, _args) {
+    let data = ctx.data.lock();
+    let conn = match data.get::<DatabaseConnection>() {
+        Some(v) => v.get().unwrap(),
+        None => {
+            let _ = msg.reply("Could not retrieve the database connection!");
+            return Ok(());
+        }
+    };
 
-        let data = ctx.data.lock();
-        let conn = match data.get::<DatabaseConnection>() {
-            Some(v) => v.clone(),
-            None => {
-                let _ = msg.reply("Could not retrieve the database connection!");
-                return Ok(());
+    let results = favs.filter(user_id.eq(*msg.author.id.as_u64() as i64)).load::<Fav>(&conn).expect("could not retrieve favs");
+
+    let fav_tags = Tag::belonging_to(&results).load::<Tag>(&conn).expect("could not retrieve tags").grouped_by(&results);
+    let zipped = results.into_iter().zip(fav_tags).collect::<Vec<_>>();
+
+    let possible_favs: Vec<(Fav, Vec<Tag>)> = zipped
+        .into_iter()
+        .filter_map(|(f, f_tags)| {
+            if f_tags.is_empty() {
+                Some((f, f_tags))
+            } else {
+                None
             }
+        })
+        .collect();
+
+    if !possible_favs.is_empty() {
+        let (fa, _t) = possible_favs.first().unwrap();
+        let fav_msg = ChannelId(fa.channel_id as u64).message(fa.msg_id as u64).unwrap();
+
+        if let Some(waiter) = data.get::<Waiter>() {
+            let mut wait = waiter.lock();
+
+            wait.purge(*msg.author.id.as_u64(), vec![Action::DeleteFav, Action::ReqTags]);
+
+            wait.wait(*msg.author.id.as_u64(), WaitEvent::new(Action::DeleteFav, fa.id, Utc::now()));
+            wait.wait(*msg.author.id.as_u64(), WaitEvent::new(Action::ReqTags, fa.id, Utc::now()));
+        }
+
+        let sent_msg = if let Some(image) = fav_msg.attachments.iter().cloned().filter(|a| a.width.is_some()).collect::<Vec<Attachment>>().first() {
+            msg.channel_id.send_message(|m| m.embed(|e| 
+            e.author(|a| a.name(&fav_msg.author.name).icon_url(&fav_msg.author.static_avatar_url().unwrap_or_default()))
+            .description(&fav_msg.content)
+            .color((0,120,220))
+            .image(&image.url)
+            .footer(|f| f.text(&format!("{} | Zitiert von: {}", &fav_msg.timestamp.format("%d.%m.%Y, %H:%M:%S"), &msg.author.name)))))
+        } else {
+            msg.channel_id.send_message(|m| m.embed(|e| 
+            e.author(|a| a.name(&fav_msg.author.name).icon_url(&fav_msg.author.static_avatar_url().unwrap_or_default()))
+            .description(&fav_msg.content)
+            .color((0,120,220))
+            .footer(|f| f.text(&format!("{} | Zitiert von: {}", &fav_msg.timestamp.format("%d.%m.%Y, %H:%M:%S"), &msg.author.name)))))
         };
 
-        let results = favs.filter(user_id.eq(*msg.author.id.as_u64() as i64)).load::<Fav>(&*conn.lock()).expect("could not retrieve favs");
-
-        let fav_tags = Tag::belonging_to(&results).load::<Tag>(&*conn.lock()).expect("could not retrieve tags").grouped_by(&results);
-        let zipped = results.into_iter().zip(fav_tags).collect::<Vec<_>>();
-
-        let possible_favs: Vec<(Fav, Vec<Tag>)> = zipped
-            .into_iter()
-            .filter_map(|(f, f_tags)| {
-                if f_tags.is_empty() {
-                    Some((f, f_tags))
-                } else {
-                    None
-                }
-            })
-            .collect();
-
-        if !possible_favs.is_empty() {
-            let (fa, _t) = possible_favs.first().unwrap();
-            let fav_msg = ChannelId(fa.channel_id as u64).message(fa.msg_id as u64).unwrap();
-
-            if let Some(waiter) = data.get::<Waiter>() {
-                let mut wait = waiter.lock();
-
-                wait.purge(*msg.author.id.as_u64(), vec![Action::DeleteFav, Action::ReqTags]);
-
-                wait.wait(*msg.author.id.as_u64(), WaitEvent::new(Action::DeleteFav, fa.id, Utc::now()));
-                wait.wait(*msg.author.id.as_u64(), WaitEvent::new(Action::ReqTags, fa.id, Utc::now()));
-            }
-
-            let sent_msg = if let Some(image) = fav_msg.attachments.iter().cloned().filter(|a| a.width.is_some()).collect::<Vec<Attachment>>().first() {
-                msg.channel_id.send_message(|m| m.embed(|e| 
-                e.author(|a| a.name(&fav_msg.author.name).icon_url(&fav_msg.author.static_avatar_url().unwrap_or_default()))
-                .description(&fav_msg.content)
-                .color((0,120,220))
-                .image(&image.url)
-                .footer(|f| f.text(&format!("{} | Zitiert von: {}", &fav_msg.timestamp.format("%d.%m.%Y, %H:%M:%S"), &msg.author.name)))))
-            } else {
-                msg.channel_id.send_message(|m| m.embed(|e| 
-                e.author(|a| a.name(&fav_msg.author.name).icon_url(&fav_msg.author.static_avatar_url().unwrap_or_default()))
-                .description(&fav_msg.content)
-                .color((0,120,220))
-                .footer(|f| f.text(&format!("{} | Zitiert von: {}", &fav_msg.timestamp.format("%d.%m.%Y, %H:%M:%S"), &msg.author.name)))))
-            };
-
-            let sent_msg = sent_msg.unwrap();
-            let _ = sent_msg.react(ReactionType::Unicode("🗑".to_string()));
-            let _ = sent_msg.react(ReactionType::Unicode("🏷".to_string()));
-        } else {
-            let _ = msg.reply("Du hat keine untagged Favs!");
-        }
+        let sent_msg = sent_msg.unwrap();
+        let _ = sent_msg.react(ReactionType::Unicode("🗑".to_string()));
+        let _ = sent_msg.react(ReactionType::Unicode("🏷".to_string()));
+    } else {
+        let _ = msg.reply("Du hat keine untagged Favs!");
+    }
 });
 
 command!(add(ctx, msg, args) {
@@ -156,9 +155,10 @@ command!(add(ctx, msg, args) {
 
         let fav_msg = ChannelId(fav_channel_id).message(fav_msg_id).expect("cannot find this message");
 
-        if let Some(conn) = data.get::<DatabaseConnection>() {
+        if let Some(pool) = data.get::<DatabaseConnection>() {
+            let conn: &PgConnection = &pool.get().unwrap();
             crate::models::fav::create_fav(
-                &*conn.lock(),
+                conn,
                 fav_server_id as i64,
                 fav_channel_id as i64,
                 fav_msg_id as i64,

@@ -8,7 +8,7 @@ command!(play(ctx, msg, args) {
     let mut rng = rand::thread_rng();
     let data = ctx.data.lock();
     let conn = match data.get::<DatabaseConnection>() {
-        Some(v) => v.clone(),
+        Some(v) => v.get().unwrap(),
         None => {
             let _ = msg.channel_id.say("Datenbankfehler, bitte informiere einen Moderator!");
             return Ok(());
@@ -28,7 +28,7 @@ command!(play(ctx, msg, args) {
         }
     };
     // check if user already owns a bank & has enough balance
-    let results = dsl::banks.filter(dsl::user_id.eq(*msg.author.id.as_u64() as i64)).load::<Bank>(&*conn.lock()).expect("could not retrieve banks");
+    let results = dsl::banks.filter(dsl::user_id.eq(*msg.author.id.as_u64() as i64)).load::<Bank>(&conn).expect("could not retrieve banks");
     
     if !results.is_empty() && results[0].amount >= amount_to_bet {
         // roll
@@ -56,7 +56,7 @@ command!(play(ctx, msg, args) {
         let updated_amount =  results[0].amount + delta;
 
         // TODO: investigate why the aschangeset version does not work
-        diesel::update(dsl::banks.filter(dsl::id.eq(results[0].id))).set(dsl::amount.eq(updated_amount)).execute(&*conn.lock()).expect("failed update bank");
+        diesel::update(dsl::banks.filter(dsl::id.eq(results[0].id))).set(dsl::amount.eq(updated_amount)).execute(&conn).expect("failed update bank");
 
         let slot_machine_output = display_reels(&full_reels, payout, updated_amount);
         let _ = msg.channel_id.send_message(|m| m.embed(|e| 

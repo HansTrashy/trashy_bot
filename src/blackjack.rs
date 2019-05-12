@@ -1,4 +1,5 @@
 use diesel::pg::PgConnection;
+use diesel::r2d2::{self, ConnectionManager};
 use log::*;
 use rand::prelude::*;
 use serde_derive::{Deserialize, Serialize};
@@ -6,6 +7,8 @@ use serenity::model::id::ChannelId;
 use serenity::prelude::Mutex;
 use std::fmt;
 use std::sync::Arc;
+
+type Pool = r2d2::Pool<ConnectionManager<PgConnection>>;
 
 pub struct State(Vec<Game>);
 
@@ -18,17 +21,10 @@ impl State {
         .expect("coult not write blackjack state to file");
     }
 
-    pub fn add_game(
-        &mut self,
-        conn: Arc<Mutex<PgConnection>>,
-        user: u64,
-        bet: i64,
-        channel_id: u64,
-        message_id: u64,
-    ) {
+    pub fn add_game(&mut self, pool: Pool, user: u64, bet: i64, channel_id: u64, message_id: u64) {
         self.0.retain(|g| g.player != user);
         self.0
-            .push(Game::new(conn, user, bet, channel_id, message_id));
+            .push(Game::new(pool, user, bet, channel_id, message_id));
         self.save();
         self.new_game(user, message_id);
     }
@@ -60,13 +56,13 @@ impl State {
         }
     }
 
-    pub fn load(conn: Arc<Mutex<PgConnection>>) -> Self {
+    pub fn load(pool: Pool) -> Self {
         match std::fs::read_to_string("blackjack_state.storage") {
             Ok(data) => {
                 let mut games: Vec<Game> =
                     serde_json::from_str(&data).expect("could not deserialize blackjack state");
                 for g in games.iter_mut() {
-                    g.conn = Some(conn.clone());
+                    g.pool = Some(pool.clone());
                 }
                 Self(games)
             }
@@ -320,17 +316,11 @@ struct Game {
     message_id: u64,
     state: GameState,
     #[serde(skip)]
-    conn: Option<Arc<Mutex<PgConnection>>>,
+    pool: Option<Pool>,
 }
 
 impl Game {
-    fn new(
-        conn: Arc<Mutex<PgConnection>>,
-        player: u64,
-        bet: i64,
-        channel_id: u64,
-        message_id: u64,
-    ) -> Self {
+    fn new(pool: Pool, player: u64, bet: i64, channel_id: u64, message_id: u64) -> Self {
         let mut deck = Deck::new();
         deck.shuffle();
         Self {
@@ -343,7 +333,7 @@ impl Game {
             channel_id,
             message_id,
             state: GameState::Draw,
-            conn: Some(conn),
+            pool: Some(pool),
         }
     }
 
@@ -354,7 +344,7 @@ impl Game {
             self.deck.shuffle();
         }
 
-        let player_account = PlayerAccount(self.conn.clone().unwrap(), self.player);
+        let player_account = PlayerAccount(self.pool.clone().unwrap(), self.player);
         let mut msg = ChannelId(self.channel_id).message(self.message_id).unwrap();
 
         match action {
@@ -528,7 +518,7 @@ enum GameState {
     NotEnoughMoney,
 }
 
-struct PlayerAccount(Arc<Mutex<PgConnection>>, u64);
+struct PlayerAccount(Pool, u64);
 
 impl PlayerAccount {
     fn can_pay(&self, amount: i64) -> bool {
@@ -536,11 +526,13 @@ impl PlayerAccount {
         use crate::schema::banks::dsl;
         use diesel::prelude::*;
 
+        let conn: &PgConnection = &self.0.get().unwrap();
+
         debug!("Check if user {} can pay: {}", &self.1, &amount);
 
         let results = dsl::banks
             .filter(dsl::user_id.eq(self.1 as i64))
-            .load::<Bank>(&*self.0.lock())
+            .load::<Bank>(conn)
             .expect("could not retrieve banks");
 
         !results.is_empty() && results[0].amount >= amount
@@ -551,9 +543,11 @@ impl PlayerAccount {
         use crate::schema::banks::dsl;
         use diesel::prelude::*;
 
+        let conn: &PgConnection = &self.0.get().unwrap();
+
         let results = dsl::banks
             .filter(dsl::user_id.eq(self.1 as i64))
-            .load::<Bank>(&*self.0.lock())
+            .load::<Bank>(conn)
             .expect("could not retrieve banks");
 
         let mut new_amount = results[0].amount;
@@ -566,7 +560,7 @@ impl PlayerAccount {
 
         diesel::update(dsl::banks.filter(dsl::user_id.eq(self.1 as i64)))
             .set(dsl::amount.eq(new_amount))
-            .execute(&*self.0.lock())
+            .execute(conn)
             .expect("failed update bank");
     }
 }

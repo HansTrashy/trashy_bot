@@ -4,17 +4,15 @@ use crate::DatabaseConnection;
 use crate::Waiter;
 use chrono::prelude::*;
 use diesel::prelude::*;
-use serenity::{
-    model::channel::Reaction,
-    prelude::*,
-};
+use serenity::{model::channel::Reaction, prelude::*};
 
 pub fn add_fav(ctx: Context, add_reaction: Reaction) {
     let data = ctx.data.lock();
 
-    if let Some(conn) = data.get::<DatabaseConnection>() {
+    if let Some(pool) = data.get::<DatabaseConnection>() {
+        let conn: &PgConnection = &pool.get().unwrap();
         crate::models::fav::create_fav(
-            &*conn.lock(),
+            conn,
             *add_reaction
                 .channel()
                 .unwrap()
@@ -63,9 +61,10 @@ pub fn remove_fav(ctx: Context, add_reaction: Reaction) {
     if let Some(waiter) = data.get::<Waiter>() {
         let mut wait = waiter.lock();
         if let Some(fav_id) = wait.waiting(*add_reaction.user_id.as_u64(), Action::DeleteFav) {
-            if let Some(conn) = data.get::<DatabaseConnection>() {
+            if let Some(pool) = data.get::<DatabaseConnection>() {
+                let conn: &PgConnection = &pool.get().unwrap();
                 diesel::delete(favs.filter(id.eq(fav_id)))
-                    .execute(&*conn.lock())
+                    .execute(conn)
                     .expect("could not delete fav");
             }
         }

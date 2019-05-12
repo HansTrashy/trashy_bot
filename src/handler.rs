@@ -31,7 +31,7 @@ impl EventHandler for Handler {
                 if let Some(waited_fav_id) = wait.waiting(*msg.author.id.as_u64(), Action::AddTags)
                 {
                     let conn = match data.get::<DatabaseConnection>() {
-                        Some(v) => v.clone(),
+                        Some(v) => v.get().unwrap(),
                         None => {
                             let _ = msg.reply("Could not retrieve the database connection!");
                             return;
@@ -40,7 +40,7 @@ impl EventHandler for Handler {
 
                     // clear old tags for this fav
                     diesel::delete(tags.filter(fav_id.eq(waited_fav_id)))
-                        .execute(&*conn.lock())
+                        .execute(&conn)
                         .expect("could not delete tags");
 
                     let received_tags: Vec<NewTag> = msg
@@ -48,7 +48,7 @@ impl EventHandler for Handler {
                         .split(' ')
                         .map(|t| NewTag::new(waited_fav_id, t.to_string()))
                         .collect();
-                    crate::models::tag::create_tags(&*conn.lock(), received_tags);
+                    crate::models::tag::create_tags(&conn, received_tags);
 
                     let _ = msg.reply("added the tags!");
                 }
