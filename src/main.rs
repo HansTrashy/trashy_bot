@@ -38,6 +38,7 @@ mod models {
     pub mod tag;
     pub mod twitch_config;
     pub mod twitch_stream;
+    pub mod twitch_sub;
 }
 
 mod commands {
@@ -240,12 +241,12 @@ fn main() {
                 g.prefix("twitch")
                 .desc("Befehle für Twitch NunLive Integration")
                 //This should probably be a help command or something 
-                .default_cmd(commands::twitch::add_user)
+                .default_cmd(commands::twitch::add_stream)
                 // arg 1: Discord User Ping, for referencing & permissions arg 2: Twitch User
                 .command("add", |c| {
                     c.desc("Fügt dem NunLive Checker deinen Ström hinzu")
                     .num_args(2)
-                    .cmd(commands::twitch::add_user)
+                    .cmd(commands::twitch::add_stream)
                 })
             })
 

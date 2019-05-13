@@ -56,6 +56,18 @@ table! {
     }
 }
 
+table! {
+    twitch_subs (id) {
+        id -> Int8,
+        twitch_stream_id -> Int8,
+        channel_id -> Int8,
+        user_id -> Int8,
+        message_id -> Nullable<Int8>,
+    }
+}
+
+joinable!(twitch_subs -> twitch_streams (twitch_stream_id));
+
 allow_tables_to_appear_in_same_query!(
     banks,
     favs,
@@ -63,4 +75,5 @@ allow_tables_to_appear_in_same_query!(
     tags,
     twitch_configs,
     twitch_streams,
+    twitch_subs,
 );

@@ -1,10 +1,7 @@
 use log::*;
-
 use serde_derive::*;
-extern crate reqwest;
-
-use reqwest::Error;
-use std::{env};
+use crate::DatabaseConnection;
+use std::env;
 
 #[derive(Deserialize)]
 struct TwitchResult {
@@ -27,11 +24,26 @@ struct User {
     view_count: u64,
 }
 
-command!(add_user(_ctx, msg, args) {
-    let discord_user = args.single::<String>().unwrap();
+command!(add_stream(ctx, msg, args) {
+    let data = ctx.data.lock();
+    let conn = match data.get::<DatabaseConnection>() {
+        Some(v) => v.get().unwrap(),
+        None => {
+            let _ = msg.reply("Could not retrieve the database connection!");
+            return Ok(());
+        }
+    };
+
     let twitch_user_name = args.single::<String>().unwrap();
     let twitch_result = get_twitch_user_by_name(&twitch_user_name);
 
+    // Step 1: Check if the guild config allows a stream
+
+    // Step 2: Check if the stream already exits, if not create it
+
+    // Step 3: Check if a sub already exists, if not create it
+
+    // use this stuff in the appropiate places above ^
     let twitch_result = match twitch_result {
         Ok(result) => result,
         Err(e) => {
@@ -43,7 +55,7 @@ command!(add_user(_ctx, msg, args) {
 
     let channel_link = format!("https://www.twitch.tv/{}", &twitch_result.data[0].display_name);
 
-    //Placeholder message could be made more pretty
+    // Placeholder message could be made more pretty
     let _ = msg.channel_id.send_message(|m| m.embed(|e| 
         e.author(|a| a.name("Twitch User Info"))
         .title(&twitch_user_name)
@@ -53,10 +65,8 @@ command!(add_user(_ctx, msg, args) {
         .url(channel_link)));
 });
 
-/**
-    Calls the Twitch API and returns a TwitchResult JSON containing the User data
-*/
-fn get_twitch_user_by_name(twitch_user_name: &str) -> Result<TwitchResult, Error> {
+/// Calls the Twitch API and returns a TwitchResult JSON containing the User data
+fn get_twitch_user_by_name(twitch_user_name: &str) -> Result<TwitchResult, reqwest::Error> {
     let token = env::var("TWITCH_TOKEN").expect("Expected a token in the environment");
 
     let request_url = format!("https://api.twitch.tv/helix/users?login={}", &twitch_user_name);
