@@ -277,6 +277,7 @@ fn main() {
                 .default_cmd(commands::account::general::payday)
                 .command("createaccount", |c| {
                     c.desc("Erstellt eine Bank für dich oder gibt dir deinen Kontostand")
+                        .known_as("balance")
                         .usage("createaccount")
                         .num_args(0)
                         .cmd(commands::account::general::createaccount)
