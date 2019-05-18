@@ -103,6 +103,12 @@ impl TypeMapKey for BlackjackState {
     type Value = Arc<Mutex<self::blackjack::State>>;
 }
 
+struct WebState;
+
+impl TypeMapKey for WebState {
+    type Value = Arc<self::web::State>;
+}
+
 command!(setstatus(ctx, _msg, _args) {
     ctx.set_game(serenity::model::gateway::Game::listening("$help"));
 });
@@ -131,6 +137,9 @@ fn main() {
 
     let blackjack_state = Arc::new(Mutex::new(self::blackjack::State::load(db_pool.clone())));
 
+    // start the webhook receiver
+    let web_state = web::start(db_pool.clone());
+
     {
         let mut data = client.data.lock();
         data.insert::<DatabaseConnection>(db_pool.clone());
@@ -139,10 +148,8 @@ fn main() {
         data.insert::<ReactionRolesState>(rr_state);
         data.insert::<RulesState>(rules_state);
         data.insert::<BlackjackState>(blackjack_state);
+        data.insert::<WebState>(web_state);
     }
-
-    // start the webhook receiver
-    web::start(db_pool.clone());
 
     client.with_framework(
         StandardFramework::new()

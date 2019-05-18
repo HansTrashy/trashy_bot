@@ -98,3 +98,41 @@ struct User {
     offline_image_url: String,
     view_count: u64,
 }
+
+fn setup_webhook_with_twitch_id(twitch_user_id: String) -> Result<PayloadWebhookSetup, reqwest::Error> {
+    let token = env::var("TWITCH_TOKEN").expect("Expected a TWITCH_TOKEN in the ENV vars");
+
+    let topic_url = format!("https://api.twitch.tv/helix/streams?user_id={}", &twitch_user_id);
+    let request_url = format!("https://api.twitch.tv/helix/webhooks/hub");
+    let client = reqwest::Client::new();
+    Ok(client.post(&request_url).json(&SubscribeRequest::default()).header("Accept-Charset", "utf-8")
+        .header("Accept", "application/vnd.twitchtv.v5+json")
+        .header("Client-ID", token)
+        .send()?
+        .json::<PayloadWebhookSetup>()?)
+}
+
+
+#[derive(Serialize, Default)]
+pub struct SubscribeRequest {
+    #[serde(rename = "hub.callback")]
+    hub_callback: String,
+    #[serde(rename = "hub.mode")]
+    hub_mode: String,
+    #[serde(rename = "hub.topic")] 
+    hub_topic: String, // https://api.twitch.tv/helix/streams
+    #[serde(rename = "hub.lease_seconds")]
+    hub_lease_seconds: u64, // use 0 to test subscription workflow
+    #[serde(rename = "hub.secret")]
+    hub_secret: String, // used to verify that this subscription was done by the bot itself
+}
+
+#[derive(Deserialize)]
+pub struct PayloadWebhookSetup {
+    data: Vec<WebhookResponse>,
+}
+
+#[derive(Deserialize)]
+pub struct WebhookResponse {
+    // ??
+}
