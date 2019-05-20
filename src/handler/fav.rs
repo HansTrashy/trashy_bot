@@ -4,10 +4,7 @@ use crate::DatabaseConnection;
 use crate::Waiter;
 use chrono::prelude::*;
 use diesel::prelude::*;
-use serenity::{
-    model::channel::Reaction,
-    prelude::*,
-};
+use serenity::{model::channel::Reaction, prelude::*};
 
 pub fn add_fav(ctx: Context, add_reaction: Reaction) {
     let data = ctx.data.lock();
@@ -46,13 +43,13 @@ pub fn add_label(ctx: Context, add_reaction: Reaction) {
                 WaitEvent::new(Action::AddTags, fav_id, Utc::now()),
             );
         }
-    }
 
-    // send message for labels
-    let _ = add_reaction
-        .user()
-        .unwrap()
-        .dm(|m| m.content("Please send me your tags."));
+        // send message for labels
+        let _ = add_reaction
+            .user()
+            .unwrap()
+            .dm(|m| m.content("Please send me your tags."));
+    }
 }
 
 pub fn remove_fav(ctx: Context, add_reaction: Reaction) {
