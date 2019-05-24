@@ -50,6 +50,10 @@ impl EventHandler for Handler {
                         .collect();
                     crate::models::tag::create_tags(&*conn.lock(), received_tags);
 
+                    wait.purge(
+                        *msg.author.id.as_u64(),
+                        vec![Action::DeleteFav, Action::ReqTags, Action::AddTags],
+                    );
                     let _ = msg.reply("added the tags!");
                 }
             }

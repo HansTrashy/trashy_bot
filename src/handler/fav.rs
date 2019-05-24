@@ -10,7 +10,7 @@ pub fn add_fav(ctx: Context, add_reaction: Reaction) {
     let data = ctx.data.lock();
 
     if let Some(conn) = data.get::<DatabaseConnection>() {
-        crate::models::fav::create_fav(
+        let created_fav = crate::models::fav::create_fav(
             &*conn.lock(),
             *add_reaction
                 .channel()
@@ -26,7 +26,19 @@ pub fn add_fav(ctx: Context, add_reaction: Reaction) {
             *add_reaction.message().unwrap().author.id.as_u64() as i64,
         );
 
-        if let Err(why) = add_reaction.user().unwrap().dm(|m| m.content("Fav saved!")) {
+        if let Some(waiter) = data.get::<Waiter>() {
+            let mut wait = waiter.lock();
+            wait.wait(
+                *add_reaction.user_id.as_u64(),
+                WaitEvent::new(Action::AddTags, created_fav.id, Utc::now()),
+            );
+        }
+
+        if let Err(why) = add_reaction
+            .user()
+            .unwrap()
+            .dm(|m| m.content("Send me your labels!"))
+        {
             println!("Error sending message: {:?}", why);
         }
     }

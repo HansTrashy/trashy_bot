@@ -295,9 +295,15 @@ fn main() {
                 .desc("Befehle für Grünbuch")
                 .default_cmd(commands::fav::fav)
                 .command("post", |c| {
-                    c.desc("Postet einen zufälligen fav unter berücksichtigung der label.")
+                    c.desc("Postet einen zufälligen fav unter Berücksichtigung der label.")
                     .example("taishi wichsen")
                     .cmd(commands::fav::fav)
+                })
+                .command("tags", |c| {
+                    c.desc("Listet deine Verwendeten Tags auf.")
+                    .num_args(0)
+                    .dm_only(true)
+                    .cmd(commands::fav::tags)
                 })
                 .command("untagged", |c| {
                     c.desc("Direkt an den Bot schreiben um untagged favs zu löschen/labeln. (Dazu dann auf 🗑 oder 🏷 klicken)")

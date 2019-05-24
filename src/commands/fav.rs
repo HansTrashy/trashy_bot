@@ -11,6 +11,7 @@ use serenity::model::{channel::Attachment, channel::ReactionType, id::ChannelId}
 use log::*;
 use lazy_static::lazy_static;
 use regex::Regex;
+use itertools::Itertools;
 
 command!(fav(ctx, msg, args) {
     let mut rng = rand::thread_rng();
@@ -171,6 +172,29 @@ command!(add(ctx, msg, args) {
             }
         }
     }
+});
+
+command!(tags(ctx, msg, _args) {
+    let data = ctx.data.lock();
+    let conn = match data.get::<DatabaseConnection>() {
+        Some(v) => v.clone(),
+        None => {
+            let _ = msg.reply("Could not retrieve the database connection!");
+            return Ok(());
+        }
+    };
+
+    let user_favs = favs.filter(user_id.eq(*msg.author.id.as_u64() as i64)).load::<Fav>(&*conn.lock()).expect("could not retrieve favs");
+    let mut fav_tags = Tag::belonging_to(&user_favs).load::<Tag>(&*conn.lock()).expect("could not retrieve tags");
+
+    fav_tags.sort_unstable_by(|a, b| a.label.partial_cmp(&b.label).unwrap());
+
+    let mut message_content = String::new();
+    for (key, group) in &fav_tags.into_iter().group_by(|e| e.label.to_owned()) {
+        message_content.push_str(&format!("{} ({})\n", key, group.count()));
+    }
+
+    let _ = msg.channel_id.send_message(|m| m.embed(|e| e.description(&message_content)));
 });
 
 #[cfg(test)]
