@@ -11,7 +11,7 @@ pub fn add_fav(ctx: Context, add_reaction: Reaction) {
 
     if let Some(pool) = data.get::<DatabaseConnection>() {
         let conn: &PgConnection = &pool.get().unwrap();
-        crate::models::fav::create_fav(
+        let created_fav = crate::models::fav::create_fav(
             conn,
             *add_reaction
                 .channel()
@@ -27,7 +27,19 @@ pub fn add_fav(ctx: Context, add_reaction: Reaction) {
             *add_reaction.message().unwrap().author.id.as_u64() as i64,
         );
 
-        if let Err(why) = add_reaction.user().unwrap().dm(|m| m.content("Fav saved!")) {
+        if let Some(waiter) = data.get::<Waiter>() {
+            let mut wait = waiter.lock();
+            wait.wait(
+                *add_reaction.user_id.as_u64(),
+                WaitEvent::new(Action::AddTags, created_fav.id, Utc::now()),
+            );
+        }
+
+        if let Err(why) = add_reaction
+            .user()
+            .unwrap()
+            .dm(|m| m.content("Send me your labels!"))
+        {
             println!("Error sending message: {:?}", why);
         }
     }
@@ -44,13 +56,13 @@ pub fn add_label(ctx: Context, add_reaction: Reaction) {
                 WaitEvent::new(Action::AddTags, fav_id, Utc::now()),
             );
         }
-    }
 
-    // send message for labels
-    let _ = add_reaction
-        .user()
-        .unwrap()
-        .dm(|m| m.content("Please send me your tags."));
+        // send message for labels
+        let _ = add_reaction
+            .user()
+            .unwrap()
+            .dm(|m| m.content("Please send me your tags."));
+    }
 }
 
 pub fn remove_fav(ctx: Context, add_reaction: Reaction) {

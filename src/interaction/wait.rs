@@ -53,9 +53,9 @@ impl Wait {
         was_waiting
     }
 
-    pub fn purge(&mut self, user_id: u64, actions: Vec<Action>) {
+    pub fn purge(&mut self, user_id: u64, to_purge_actions: Vec<Action>) {
         let wait_events = self.0.entry(user_id).or_insert_with(Vec::new);
 
-        wait_events.retain(|w| !actions.contains(&w.action))
+        wait_events.retain(|w| !to_purge_actions.contains(&w.action))
     }
 }
