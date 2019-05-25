@@ -1,14 +1,27 @@
+use serenity::{
+    framework::standard::{
+        Args, CommandResult,
+        macros::command,
+    },
+    model::channel::Message,
+};
+use serenity::prelude::*;
+use log::*;
 use rand::prelude::*;
 
-command!(roll(_ctx, msg, args) {
-    let amount_of_dice = args.single::<u64>().unwrap();
-    let number_of_eyes = args.single::<u64>().unwrap();
+#[command]
+fn roll(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
+    let amount_of_dice = args.single::<u64>()?;
+    let number_of_eyes = args.single::<u64>()?;
 
     if amount_of_dice > 50 {
-        if let Err(why) = msg.channel_id.say("Only < 50 dice allowed") {
-            println!("Error sending message: {:?}", why);
-        }
-        return Ok(());
+        return match msg.channel_id.say(&ctx.http, "Only < 50 dice allowed") {
+            Ok(_msg) => Ok(()),
+            Err(e) => {
+                error!("Failure sending message: {:?}", e);
+                Err(e.into())
+            }
+        };
     }
 
     let mut rng = rand::thread_rng();
@@ -17,7 +30,11 @@ command!(roll(_ctx, msg, args) {
         dice_rolls.push(rng.gen_range(0, number_of_eyes));
     }
 
-    if let Err(why) = msg.channel_id.say(&format!("Your roll: {:?}", dice_rolls)) {
-        println!("Error sending message: {:?}", why);
+    match msg.channel_id.say(&ctx.http, &format!("Your roll: {:?}", dice_rolls)) {
+        Ok(_msg) => Ok(()),
+        Err(e) => {
+            error!("Failure sending message: {:?}", e);
+            Err(e.into())
+        }
     }
-});
+}

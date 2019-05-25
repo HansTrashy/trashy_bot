@@ -18,11 +18,11 @@ serde = "1"
 serde_derive = "1"
 serde_json = "1"
 reqwest = "0.9"
-actix-web = "1.0.0-beta.3"
+actix-web = "1.0.0-rc"
 futures = "0.1.27"
 
 [dependencies.serenity]
-version = "0.5.12"
+version = "0.6.0-rc.1"
 default-features = false
 features = [
     "builder",
@@ -34,4 +34,5 @@ features = [
     "model",
     "standard_framework",
     "utils",
+    "rustls_backend",
 ] # unused features [ "voice" ]

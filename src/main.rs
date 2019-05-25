@@ -42,6 +42,7 @@ mod models {
 }
 
 mod commands {
+    pub mod group;
     pub mod about;
     pub mod ban;
     pub mod account {
