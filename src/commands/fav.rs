@@ -12,6 +12,7 @@ use log::*;
 use lazy_static::lazy_static;
 use regex::Regex;
 use itertools::Itertools;
+use std::iter::FromIterator;
 
 command!(fav(ctx, msg, args) {
     let mut rng = rand::thread_rng();
@@ -194,7 +195,9 @@ command!(tags(ctx, msg, _args) {
         message_content.push_str(&format!("{} ({})\n", key, group.count()));
     }
 
-    let _ = msg.channel_id.send_message(|m| m.embed(|e| e.description(&message_content)));
+    message_content.chars().chunks(1_500).into_iter().for_each(|chunk| {
+        let _ = msg.channel_id.send_message(|m| m.embed(|e| e.description(&String::from_iter(chunk))));
+    });
 });
 
 #[cfg(test)]
