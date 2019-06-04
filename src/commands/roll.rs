@@ -10,7 +10,7 @@ use log::*;
 use rand::prelude::*;
 
 #[command]
-fn roll(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
+fn roll(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
     let amount_of_dice = args.single::<u64>()?;
     let number_of_eyes = args.single::<u64>()?;
 
@@ -30,7 +30,10 @@ fn roll(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
         dice_rolls.push(rng.gen_range(0, number_of_eyes));
     }
 
-    match msg.channel_id.say(&ctx.http, &format!("Your roll: {:?}", dice_rolls)) {
+    match msg
+        .channel_id
+        .say(&ctx.http, &format!("Your roll: {:?}", dice_rolls))
+    {
         Ok(_msg) => Ok(()),
         Err(e) => {
             error!("Failure sending message: {:?}", e);

@@ -1,6 +1,6 @@
 [package]
 name = "trashy_bot"
-version = "0.2.0"
+version = "0.3.0"
 authors = ["Denis Richartz <denisrichartz92@gmail.com>"]
 edition = "2018"
 
@@ -18,8 +18,6 @@ serde = "1"
 serde_derive = "1"
 serde_json = "1"
 reqwest = "0.9"
-actix-web = "1.0.0-rc"
-futures = "0.1.27"
 
 [dependencies.serenity]
 version = "0.6.0-rc.1"

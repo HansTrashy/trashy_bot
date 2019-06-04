@@ -7,6 +7,7 @@ use serenity::model::id::ChannelId;
 use serenity::prelude::Mutex;
 use std::fmt;
 use std::sync::Arc;
+use serenity::prelude::Context;
 
 type Pool = r2d2::Pool<ConnectionManager<PgConnection>>;
 
@@ -18,13 +19,13 @@ impl State {
             "blackjack_state.storage",
             serde_json::to_string(&self.0).expect("Could not serialize blackjack state"),
         )
-        .expect("coult not write blackjack state to file");
+        .expect("could not write blackjack state to file");
     }
 
-    pub fn add_game(&mut self, pool: Pool, user: u64, bet: i64, channel_id: u64, message_id: u64) {
+    pub fn add_game(&mut self, pool: Pool, ctx: Context, user: u64, bet: i64, channel_id: u64, message_id: u64) {
         self.0.retain(|g| g.player != user);
         self.0
-            .push(Game::new(pool, user, bet, channel_id, message_id));
+            .push(Game::new(pool, ctx, user, bet, channel_id, message_id));
         self.save();
         self.new_game(user, message_id);
     }
@@ -317,10 +318,12 @@ struct Game {
     state: GameState,
     #[serde(skip)]
     pool: Option<Pool>,
+    #[serde(skip)]
+    ctx: Option<Context>,
 }
 
 impl Game {
-    fn new(pool: Pool, player: u64, bet: i64, channel_id: u64, message_id: u64) -> Self {
+    fn new(pool: Pool, ctx: Context, player: u64, bet: i64, channel_id: u64, message_id: u64) -> Self {
         let mut deck = Deck::new();
         deck.shuffle();
         Self {
@@ -334,6 +337,7 @@ impl Game {
             message_id,
             state: GameState::Draw,
             pool: Some(pool),
+            ctx: Some(ctx),
         }
     }
 
@@ -345,7 +349,7 @@ impl Game {
         }
 
         let player_account = PlayerAccount(self.pool.clone().unwrap(), self.player);
-        let mut msg = ChannelId(self.channel_id).message(self.message_id).unwrap();
+        let mut msg = ChannelId(self.channel_id).message(self.ctx.as_ref().unwrap(), self.message_id).unwrap();
 
         match action {
             PlayerAction::Init
@@ -368,12 +372,12 @@ impl Game {
                     self.player_cards.add(self.deck.draw().unwrap());
 
                     // visualize state
-                    msg.edit(|m| m.content(&self.visualize(GameState::Playing)))
+                    msg.edit(self.ctx.as_ref().unwrap(), |m| m.content(&self.visualize(GameState::Playing)))
                         .unwrap();
 
                     self.state = GameState::Playing;
                 } else {
-                    msg.edit(|m| m.content(&self.visualize(GameState::NotEnoughMoney)))
+                    msg.edit(self.ctx.as_ref().unwrap(), |m| m.content(&self.visualize(GameState::NotEnoughMoney)))
                         .unwrap();
                     self.state = GameState::NotEnoughMoney;
                 }
@@ -384,8 +388,8 @@ impl Game {
                 // make card checks
                 if self.player_cards.value() > 21 {
                     // bust
-                    let mut msg = ChannelId(self.channel_id).message(self.message_id).unwrap();
-                    msg.edit(|m| m.content(&self.visualize(GameState::BankWins)))
+                    let mut msg = ChannelId(self.channel_id).message(self.ctx.as_ref().unwrap(), self.message_id).unwrap();
+                    msg.edit(self.ctx.as_ref().unwrap(), |m| m.content(&self.visualize(GameState::BankWins)))
                         .unwrap();
 
                     player_account.change_amount(-self.bet);
@@ -393,8 +397,8 @@ impl Game {
                 } else if self.player_cards.value() == 21 {
                     // blackjack or triple
                     if self.player_cards.0.iter().all(|c| c.rank == Rank::Seven) {
-                        let mut msg = ChannelId(self.channel_id).message(self.message_id).unwrap();
-                        msg.edit(|m| m.content(&self.visualize(GameState::PlayerWinsThreeToTwo)))
+                        let mut msg = ChannelId(self.channel_id).message(self.ctx.as_ref().unwrap(), self.message_id).unwrap();
+                        msg.edit(self.ctx.as_ref().unwrap(), |m| m.content(&self.visualize(GameState::PlayerWinsThreeToTwo)))
                             .unwrap();
 
                         player_account.change_amount(3 * self.bet);
@@ -404,8 +408,8 @@ impl Game {
                     }
                 } else {
                     // allow more draws
-                    let mut msg = ChannelId(self.channel_id).message(self.message_id).unwrap();
-                    msg.edit(|m| m.content(&self.visualize(GameState::Playing)))
+                    let mut msg = ChannelId(self.channel_id).message(self.ctx.as_ref().unwrap(), self.message_id).unwrap();
+                    msg.edit(self.ctx.as_ref().unwrap(), |m| m.content(&self.visualize(GameState::Playing)))
                         .unwrap();
                 }
             }
@@ -420,30 +424,30 @@ impl Game {
                 // check winner
                 // Both have Blackjack
                 if self.bank_cards.is_blackjack() && self.player_cards.is_blackjack() {
-                    let mut msg = ChannelId(self.channel_id).message(self.message_id).unwrap();
-                    msg.edit(|m| m.content(&self.visualize(GameState::Draw)))
+                    let mut msg = ChannelId(self.channel_id).message(self.ctx.as_ref().unwrap(), self.message_id).unwrap();
+                    msg.edit(self.ctx.as_ref().unwrap(), |m| m.content(&self.visualize(GameState::Draw)))
                         .unwrap();
 
                     player_account.change_amount(self.bet);
                     self.state = GameState::Draw;
                 // Bank has Blackjack, player doesnt
                 } else if self.bank_cards.is_blackjack() && !self.player_cards.is_blackjack() {
-                    let mut msg = ChannelId(self.channel_id).message(self.message_id).unwrap();
-                    msg.edit(|m| m.content(&self.visualize(GameState::BankWins)))
+                    let mut msg = ChannelId(self.channel_id).message(self.ctx.as_ref().unwrap(), self.message_id).unwrap();
+                    msg.edit(self.ctx.as_ref().unwrap(), |m| m.content(&self.visualize(GameState::BankWins)))
                         .unwrap();
                     self.state = GameState::BankWins;
                 // Bank has no blackjack, player does
                 } else if !self.bank_cards.is_blackjack() && self.player_cards.is_blackjack() {
-                    let mut msg = ChannelId(self.channel_id).message(self.message_id).unwrap();
-                    msg.edit(|m| m.content(&self.visualize(GameState::PlayerWinsThreeToTwo)))
+                    let mut msg = ChannelId(self.channel_id).message(self.ctx.as_ref().unwrap(), self.message_id).unwrap();
+                    msg.edit(self.ctx.as_ref().unwrap(), |m| m.content(&self.visualize(GameState::PlayerWinsThreeToTwo)))
                         .unwrap();
 
                     player_account.change_amount(3 * self.bet);
                     self.state = GameState::PlayerWinsThreeToTwo;
                 // Bank loses because of bust
                 } else if self.bank_cards.value() > 21 {
-                    let mut msg = ChannelId(self.channel_id).message(self.message_id).unwrap();
-                    msg.edit(|m| m.content(&self.visualize(GameState::PlayerWins)))
+                    let mut msg = ChannelId(self.channel_id).message(self.ctx.as_ref().unwrap(), self.message_id).unwrap();
+                    msg.edit(self.ctx.as_ref().unwrap(), |m| m.content(&self.visualize(GameState::PlayerWins)))
                         .unwrap();
 
                     player_account.change_amount(2 * self.bet);
@@ -451,22 +455,22 @@ impl Game {
                 // Both have some value
                 } else if self.bank_cards.value() > self.player_cards.value() {
                     // bank wins
-                    let mut msg = ChannelId(self.channel_id).message(self.message_id).unwrap();
-                    msg.edit(|m| m.content(&self.visualize(GameState::BankWins)))
+                    let mut msg = ChannelId(self.channel_id).message(self.ctx.as_ref().unwrap(), self.message_id).unwrap();
+                    msg.edit(self.ctx.as_ref().unwrap(), |m| m.content(&self.visualize(GameState::BankWins)))
                         .unwrap();
                     self.state = GameState::BankWins;
                 } else if self.bank_cards.value() < self.player_cards.value() {
                     // player wins
-                    let mut msg = ChannelId(self.channel_id).message(self.message_id).unwrap();
-                    msg.edit(|m| m.content(&self.visualize(GameState::PlayerWins)))
+                    let mut msg = ChannelId(self.channel_id).message(self.ctx.as_ref().unwrap(), self.message_id).unwrap();
+                    msg.edit(self.ctx.as_ref().unwrap(), |m| m.content(&self.visualize(GameState::PlayerWins)))
                         .unwrap();
 
                     player_account.change_amount(2 * self.bet);
                     self.state = GameState::PlayerWins;
                 } else {
                     // draw
-                    let mut msg = ChannelId(self.channel_id).message(self.message_id).unwrap();
-                    msg.edit(|m| m.content(&self.visualize(GameState::Draw)))
+                    let mut msg = ChannelId(self.channel_id).message(self.ctx.as_ref().unwrap(), self.message_id).unwrap();
+                    msg.edit(self.ctx.as_ref().unwrap(), |m| m.content(&self.visualize(GameState::Draw)))
                         .unwrap();
 
                     player_account.change_amount(self.bet);

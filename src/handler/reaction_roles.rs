@@ -11,7 +11,7 @@ use serenity::{
 };
 
 pub fn add_role(ctx: Context, add_reaction: Reaction) {
-    let data = ctx.data.lock();
+    let data = ctx.data.read();
     let conn = match data.get::<DatabaseConnection>() {
         Some(v) => v.get().unwrap(),
         None => return,
@@ -42,12 +42,13 @@ pub fn add_role(ctx: Context, add_reaction: Reaction) {
                 info!("Found role for this emoji!");
                 if let Some(guild) = add_reaction
                     .channel_id
-                    .to_channel()
+                    .to_channel(&ctx)
                     .ok()
                     .and_then(|c| c.guild())
                 {
-                    if let Ok(mut member) = guild.read().guild_id.member(add_reaction.user_id) {
-                        let _ = member.add_role(results[0].role_id as u64);
+                    if let Ok(mut member) = guild.read().guild_id.member(&ctx, add_reaction.user_id)
+                    {
+                        let _ = member.add_role(&ctx, results[0].role_id as u64);
                     }
                 }
             }
@@ -56,7 +57,7 @@ pub fn add_role(ctx: Context, add_reaction: Reaction) {
 }
 
 pub fn remove_role(ctx: Context, remove_reaction: Reaction) {
-    let data = ctx.data.lock();
+    let data = ctx.data.read();
     let conn = match data.get::<DatabaseConnection>() {
         Some(v) => v.get().unwrap(),
         None => return,
@@ -87,12 +88,14 @@ pub fn remove_role(ctx: Context, remove_reaction: Reaction) {
                 info!("Found role for this emoji!");
                 if let Some(guild) = remove_reaction
                     .channel_id
-                    .to_channel()
+                    .to_channel(&ctx)
                     .ok()
                     .and_then(|c| c.guild())
                 {
-                    if let Ok(mut member) = guild.read().guild_id.member(remove_reaction.user_id) {
-                        let _ = member.remove_role(results[0].role_id as u64);
+                    if let Ok(mut member) =
+                        guild.read().guild_id.member(&ctx, remove_reaction.user_id)
+                    {
+                        let _ = member.remove_role(&ctx, results[0].role_id as u64);
                     }
                 }
             }

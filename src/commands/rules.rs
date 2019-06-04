@@ -3,95 +3,145 @@ use itertools::Itertools;
 use serenity::model::channel::ReactionType;
 use serenity::utils::{content_safe, ContentSafeOptions};
 use std::iter::FromIterator;
+use serenity::{
+    framework::standard::{
+        Args, CommandResult,
+        macros::command,
+    },
+    model::channel::Message,
+};
+use serenity::prelude::*;
+use log::*;
 
-command!(de(ctx, msg, _args) {
-    let rules = match ctx.data.lock().get::<RulesState>() {
+#[command]
+pub fn de(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
+    let rules = match ctx.data.read().get::<RulesState>() {
         Some(v) => v.clone(),
         None => {
-            let _ = msg.reply("Could not retrieve the database connection!");
+            let _ = msg.reply(&ctx, "Could not retrieve the database connection!");
             return Ok(());
         }
     };
     let settings = ContentSafeOptions::default().clean_channel(false);
 
-    rules.lock().de.chars().chunks(1_500).into_iter().for_each(|chunk| {
-        msg.author.dm(|m| m.content(content_safe(&String::from_iter(chunk), &settings))).ok();
-    });
-    let _ = msg.react(ReactionType::Unicode("📬".to_string()));
-});
+    rules
+        .lock()
+        .de
+        .chars()
+        .chunks(1_500)
+        .into_iter()
+        .for_each(|chunk| {
+            msg.author
+                .dm(&ctx, |m| {
+                    m.content(content_safe(
+                        &ctx.cache,
+                        &String::from_iter(chunk),
+                        &settings,
+                    ))
+                })
+                .ok();
+        });
+    let _ = msg.react(&ctx, ReactionType::Unicode("📬".to_string()));
+    Ok(())
+}
 
-command!(en(ctx, msg, _args) {
-    let rules = match ctx.data.lock().get::<RulesState>() {
+#[command]
+pub fn en(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
+    let rules = match ctx.data.read().get::<RulesState>() {
         Some(v) => v.clone(),
         None => {
-            let _ = msg.reply("Could not retrieve the database connection!");
+            let _ = msg.reply(&ctx, "Could not retrieve the database connection!");
             return Ok(());
         }
     };
     let settings = ContentSafeOptions::default().clean_channel(false);
 
-    rules.lock().en.chars().chunks(1_500).into_iter().for_each(|chunk| {
-        msg.author.dm(|m| m.content(content_safe(&String::from_iter(chunk), &settings))).ok();
-    });
-    let _ = msg.react(ReactionType::Unicode("📬".to_string()));
-});
+    rules
+        .lock()
+        .en
+        .chars()
+        .chunks(1_500)
+        .into_iter()
+        .for_each(|chunk| {
+            msg.author
+                .dm(&ctx, |m| {
+                    m.content(content_safe(
+                        &ctx.cache,
+                        &String::from_iter(chunk),
+                        &settings,
+                    ))
+                })
+                .ok();
+        });
+    let _ = msg.react(&ctx, ReactionType::Unicode("📬".to_string()));
+    Ok(())
+}
 
-command!(setde(ctx, msg, args) {
-    let rules = match ctx.data.lock().get::<RulesState>() {
+#[command]
+pub fn setde(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
+    let rules = match ctx.data.read().get::<RulesState>() {
         Some(v) => v.clone(),
         None => {
-            let _ = msg.reply("Could not retrieve the database connection!");
+            let _ = msg.reply(&ctx, "Could not retrieve the database connection!");
             return Ok(());
         }
     };
     rules.lock().set_de(&args.rest());
-    let _ = msg.react(ReactionType::Unicode("👌".to_string()));
-});
+    let _ = msg.react(&ctx, ReactionType::Unicode("👌".to_string()));
+    Ok(())
+}
 
-command!(addde(ctx, msg, args) {
-    let rules = match ctx.data.lock().get::<RulesState>() {
+#[command]
+pub fn addde(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
+    let rules = match ctx.data.read().get::<RulesState>() {
         Some(v) => v.clone(),
         None => {
-            let _ = msg.reply("Could not retrieve the database connection!");
+            let _ = msg.reply(&ctx, "Could not retrieve the database connection!");
             return Ok(());
         }
     };
     let new_rules = format!("{}\n\n{}", rules.lock().de, &args.rest());
     rules.lock().set_de(&new_rules);
-    let _ = msg.react(ReactionType::Unicode("👌".to_string()));
-});
+    let _ = msg.react(&ctx, ReactionType::Unicode("👌".to_string()));
+    Ok(())
+}
 
-command!(seten(ctx, msg, args) {
-    let rules = match ctx.data.lock().get::<RulesState>() {
+#[command]
+pub fn seten(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
+    let rules = match ctx.data.read().get::<RulesState>() {
         Some(v) => v.clone(),
         None => {
-            let _ = msg.reply("Could not retrieve the database connection!");
+            let _ = msg.reply(&ctx, "Could not retrieve the database connection!");
             return Ok(());
         }
     };
     rules.lock().set_en(&args.rest());
-    let _ = msg.react(ReactionType::Unicode("👌".to_string()));
-});
+    let _ = msg.react(&ctx, ReactionType::Unicode("👌".to_string()));
+    Ok(())
+}
 
-command!(adden(ctx, msg, args) {
-    let rules = match ctx.data.lock().get::<RulesState>() {
+#[command]
+pub fn adden(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
+    let rules = match ctx.data.read().get::<RulesState>() {
         Some(v) => v.clone(),
         None => {
-            let _ = msg.reply("Could not retrieve the database connection!");
+            let _ = msg.reply(&ctx, "Could not retrieve the database connection!");
             return Ok(());
         }
     };
     let new_rules = format!("{}\n\n{}", rules.lock().en, &args.rest());
     rules.lock().set_en(&new_rules);
-    let _ = msg.react(ReactionType::Unicode("👌".to_string()));
-});
+    let _ = msg.react(&ctx, ReactionType::Unicode("👌".to_string()));
+    Ok(())
+}
 
-command!(post(ctx, msg, args) {
-    let lang = args.single::<String>().unwrap();
-    let rules = match ctx.data.lock().get::<RulesState>() {
+#[command]
+pub fn post(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
+    let lang = args.single::<String>()?;
+    let rules = match ctx.data.read().get::<RulesState>() {
         Some(v) => v.clone(),
         None => {
-            let _ = msg.reply("Could not retrieve the database connection!");
+            let _ = msg.reply(&ctx, "Could not retrieve the database connection!");
             return Ok(());
         }
     };
@@ -104,7 +154,17 @@ command!(post(ctx, msg, args) {
         _ => &lock.de,
     };
 
-    rules_text.chars().chunks(1_500).into_iter().for_each(|chunk| {
-        msg.channel_id.say(content_safe(&String::from_iter(chunk), &settings)).ok();
-    });
-});
+    rules_text
+        .chars()
+        .chunks(1_500)
+        .into_iter()
+        .for_each(|chunk| {
+            msg.channel_id
+                .say(
+                    &ctx,
+                    content_safe(&ctx.cache, &String::from_iter(chunk), &settings),
+                )
+                .ok();
+        });
+    Ok(())
+}

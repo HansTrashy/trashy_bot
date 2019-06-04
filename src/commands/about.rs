@@ -10,7 +10,10 @@ use log::*;
 
 #[command]
 fn about(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
-    match msg.channel_id.say(&ctx.http, "Der mülligste aller Bots!\nSource: https://github.com/HansTrashy/trashy_bot") {
+    match msg.channel_id.say(
+        &ctx.http,
+        "Der mülligste aller Bots!\nSource: https://github.com/HansTrashy/trashy_bot",
+    ) {
         Ok(_msg) => Ok(()),
         Err(e) => {
             error!("Failure sending about message: {:?}", e);

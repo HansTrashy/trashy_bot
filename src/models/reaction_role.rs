@@ -29,8 +29,6 @@ pub fn create_reaction_role(
     role_group: String,
     emoji: String,
 ) -> ReactionRole {
-    use crate::schema::reaction_roles;
-
     let new_rr = NewReactionRole {
         server_id,
         role_id,

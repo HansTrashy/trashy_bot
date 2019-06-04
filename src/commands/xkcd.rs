@@ -25,24 +25,28 @@ pub struct Comic {
 }
 
 #[command]
-pub fn xkcd(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
+pub fn xkcd(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
     let xkcd_id = args.single::<u64>()?;
 
-    let comic: Comic = reqwest::get(&format!("https://xkcd.com/{}/info.0.json", xkcd_id))?.json()?;
+    let comic: Comic =
+        reqwest::get(&format!("https://xkcd.com/{}/info.0.json", xkcd_id))?.json()?;
     let xkcd_link = format!("https://xkcd.com/{}", xkcd_id);
 
-    match msg.channel_id.send_message(&ctx.http, |m| m.embed(|e| 
-        e.author(|a| a.name("Xkcd"))
-        .title(&comic.title)
-        .description(&comic.alt)
-        .color((0,120,220))
-        .image(&comic.img)
-        .url(&xkcd_link)
-        .footer(|f| f.text(&xkcd_link)))) {
-            Ok(_msg) => Ok(()),
-            Err(e) => {
-                error!("Failure sending message: {:?}", e);
-                Err(e.into())
-            }
+    match msg.channel_id.send_message(&ctx.http, |m| {
+        m.embed(|e| {
+            e.author(|a| a.name("Xkcd"))
+                .title(&comic.title)
+                .description(&comic.alt)
+                .color((0, 120, 220))
+                .image(&comic.img)
+                .url(&xkcd_link)
+                .footer(|f| f.text(&xkcd_link))
+        })
+    }) {
+        Ok(_msg) => Ok(()),
+        Err(e) => {
+            error!("Failure sending message: {:?}", e);
+            Err(e.into())
         }
+    }
 }

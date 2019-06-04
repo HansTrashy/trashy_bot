@@ -25,7 +25,7 @@ impl EventHandler for Handler {
         if msg.is_private() {
             use crate::schema::tags::dsl::*;
             // check if waiting for labels
-            let data = ctx.data.lock();
+            let data = ctx.data.read();
             if let Some(waiter) = data.get::<Waiter>() {
                 let mut wait = waiter.lock();
                 if let Some(waited_fav_id) = wait.waiting(*msg.author.id.as_u64(), Action::AddTags)
@@ -33,7 +33,7 @@ impl EventHandler for Handler {
                     let conn = match data.get::<DatabaseConnection>() {
                         Some(v) => v.get().unwrap(),
                         None => {
-                            let _ = msg.reply("Could not retrieve the database connection!");
+                            let _ = msg.reply(&ctx, "Could not retrieve the database connection!");
                             return;
                         }
                     };
@@ -54,7 +54,7 @@ impl EventHandler for Handler {
                         *msg.author.id.as_u64(),
                         vec![Action::DeleteFav, Action::ReqTags, Action::AddTags],
                     );
-                    let _ = msg.reply("added the tags!");
+                    let _ = msg.reply(&ctx, "added the tags!");
                 }
             }
         }
