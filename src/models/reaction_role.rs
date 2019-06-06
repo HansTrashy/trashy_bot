@@ -2,7 +2,6 @@ use crate::schema::reaction_roles;
 use diesel::prelude::*;
 
 #[derive(Identifiable, AsChangeset, Queryable, Debug, Clone)]
-#[table_name = "reaction_roles"]
 pub struct ReactionRole {
     pub id: i64,
     pub server_id: i64,
@@ -30,8 +29,6 @@ pub fn create_reaction_role(
     role_group: String,
     emoji: String,
 ) -> ReactionRole {
-    use crate::schema::reaction_roles;
-
     let new_rr = NewReactionRole {
         server_id,
         role_id,

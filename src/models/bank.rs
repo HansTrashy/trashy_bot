@@ -3,7 +3,6 @@ use chrono::NaiveDateTime;
 use diesel::prelude::*;
 
 #[derive(Identifiable, AsChangeset, Queryable, Debug, Clone)]
-#[table_name = "banks"]
 pub struct Bank {
     pub id: i64,
     pub user_id: i64,

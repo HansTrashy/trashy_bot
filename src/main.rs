@@ -5,20 +5,28 @@ extern crate diesel;
 
 use diesel::pg::PgConnection;
 use diesel::prelude::*;
+use diesel::r2d2::{ConnectionManager, Pool};
 use log::*;
 use serenity::{
     client::bridge::gateway::ShardManager,
     framework::standard::{
-        help_commands, Args, CommandOptions, DispatchError, HelpBehaviour, StandardFramework,
+        help_commands,
+        macros::{check, command, group, help},
+        Args, CheckResult, CommandGroup, CommandOptions, CommandResult, DispatchError, HelpOptions,
+        StandardFramework,
     },
-    model::{channel::Message, Permissions},
+    model::{
+        channel::{Channel, Message},
+        gateway::Ready,
+        id::UserId,
+    },
     prelude::*,
 };
-use std::{env, sync::Arc};
 
+use std::{collections::HashSet, hash::BuildHasher};
+use std::{env, sync::Arc};
 mod blackjack;
 mod handler;
-mod lockdown;
 mod logger;
 mod reaction_roles;
 mod rules;
@@ -38,7 +46,7 @@ mod models {
 
 mod commands {
     pub mod about;
-    pub mod ban;
+    pub mod groups;
     pub mod account {
         pub mod blackjack;
         pub mod general;
@@ -46,8 +54,7 @@ mod commands {
     }
     pub mod choose;
     pub mod fav;
-    pub mod kick;
-    pub mod lockdown;
+    pub mod config;
     pub mod quote;
     pub mod reaction_roles;
     pub mod roll;
@@ -64,7 +71,7 @@ impl TypeMapKey for ShardManagerContainer {
 struct DatabaseConnection;
 
 impl TypeMapKey for DatabaseConnection {
-    type Value = Arc<Mutex<PgConnection>>;
+    type Value = Pool<ConnectionManager<PgConnection>>;
 }
 
 struct Waiter;
@@ -79,12 +86,6 @@ impl TypeMapKey for ReactionRolesState {
     type Value = Arc<Mutex<self::reaction_roles::State>>;
 }
 
-struct LockdownState;
-
-impl TypeMapKey for LockdownState {
-    type Value = Arc<Mutex<self::lockdown::State>>;
-}
-
 struct RulesState;
 
 impl TypeMapKey for RulesState {
@@ -97,9 +98,46 @@ impl TypeMapKey for BlackjackState {
     type Value = Arc<Mutex<self::blackjack::State>>;
 }
 
-command!(setstatus(ctx, _msg, _args) {
-    ctx.set_game(serenity::model::gateway::Game::listening("$help"));
-});
+#[help]
+// This replaces the information that a user can pass
+// a command-name as argument to gain specific information about it.
+#[individual_command_tip = "If you want more information about a specific command, just pass the command as argument."]
+// Some arguments require a `{}` in order to replace it with contextual information.
+// In this case our `{}` refers to a command's name.
+#[command_not_found_text = "Could not find: `{}`."]
+// Define the maximum Levenshtein-distance between a searched command-name
+// and commands. If the distance is lower than or equal the set distance,
+// it will be displayed as a suggestion.
+// Setting the distance to 0 will disable suggestions.
+#[max_levenshtein_distance(3)]
+// When you use sub-groups, Serenity will use the `indention_prefix` to indicate
+// how deeply an item is indented.
+// The default value is "-", it will be changed to "+".
+#[indention_prefix = "-"]
+// On another note, you can set up the help-menu-filter-behaviour.
+// Here are all possible settings shown on all possible options.
+// First case is if a user lacks permissions for a command, we can hide the command.
+#[lacking_permissions = "Hide"]
+// If the user is nothing but lacking a certain role, we just display it hence our variant is `Nothing`.
+#[lacking_role = "Hide"]
+// The last `enum`-variant is `Strike`, which ~~strikes~~ a command.
+#[wrong_channel = "Strike"]
+// Serenity will automatically analyse and generate a hint/tip explaining the possible
+// cases of ~~strikethrough-commands~~, but only if
+// `strikethrough_commands_tip(Some(""))` keeps `Some()` wrapping an empty `String`, which is the default value.
+// If the `String` is not empty, your given `String` will be used instead.
+// If you pass in a `None`, no hint will be displayed at all.
+fn my_help(
+    context: &mut Context,
+    msg: &Message,
+    args: Args,
+    help_options: &'static HelpOptions,
+    groups: &[&'static CommandGroup],
+    owners: HashSet<UserId, impl BuildHasher>,
+) -> CommandResult {
+    help_commands::with_embeds(context, msg, args, help_options, groups, owners)
+}
+
 
 fn main() {
     // load .env file
@@ -110,12 +148,12 @@ fn main() {
     let token = env::var("DISCORD_TOKEN").expect("Expected a token in the environment");
     let mut client = Client::new(&token, handler::Handler).expect("Err creating client");
 
-    let conn = Arc::new(Mutex::new(
-        PgConnection::establish(
-            &env::var("DATABASE_URL").expect("Expected a database in the environment"),
-        )
-        .expect("Error connecting to database"),
-    ));
+    let db_manager = ConnectionManager::<PgConnection>::new(
+        env::var("DATABASE_URL").expect("Expected a database in the environment"),
+    );
+    let db_pool = Pool::builder()
+        .build(db_manager)
+        .expect("Failed to create db pool.");
 
     let waiter = Arc::new(Mutex::new(self::interaction::wait::Wait::new()));
 
@@ -123,11 +161,11 @@ fn main() {
 
     let rules_state = Arc::new(Mutex::new(self::rules::State::load()));
 
-    let blackjack_state = Arc::new(Mutex::new(self::blackjack::State::load(conn.clone())));
+    let blackjack_state = Arc::new(Mutex::new(self::blackjack::State::load(db_pool.clone())));
 
     {
-        let mut data = client.data.lock();
-        data.insert::<DatabaseConnection>(conn);
+        let mut data = client.data.write();
+        data.insert::<DatabaseConnection>(db_pool.clone());
         data.insert::<ShardManagerContainer>(Arc::clone(&client.shard_manager));
         data.insert::<Waiter>(waiter);
         data.insert::<ReactionRolesState>(rr_state);
@@ -135,14 +173,24 @@ fn main() {
         data.insert::<BlackjackState>(blackjack_state);
     }
 
+    let (owners, bot_id) = match client.cache_and_http.http.get_current_application_info() {
+        Ok(info) => {
+            let mut owners = HashSet::new();
+            owners.insert(info.owner.id);
+
+            (owners, info.id)
+        }
+        Err(why) => panic!("Could not acces application information: {:?}", why),
+    };
+
     client.with_framework(
         StandardFramework::new()
             .configure(|c| {
-                c.allow_whitespace(true)
-                    .on_mention(true)
+                c.with_whitespace(true)
+                    .on_mention(Some(bot_id))
                     .prefix("$")
-                    .prefix_only_cmd(commands::about::about)
                     .delimiter(" ")
+                    .owners(owners)
             })
             .before(|_ctx, msg, command_name| {
                 debug!(
@@ -159,260 +207,48 @@ fn main() {
             .unrecognised_command(|_, _, unknown_command_name| {
                 debug!("Could not find command named '{}'", unknown_command_name);
             })
-            .message_without_command(|_, message| {
-                debug!("Message is not a command '{}'", message.content);
+            .normal_message(|_, message| {
+                trace!("Message is not a command '{}'", message.content);
             })
-            .on_dispatch_error(|_ctx, msg, error| {
-                if let DispatchError::RateLimited(seconds) = error {
-                    let _ = msg
-                        .channel_id
-                        .say(&format!("Versuche es in {} sekunden noch einmal.", seconds));
+            .on_dispatch_error(|ctx, msg, error| {
+                if let DispatchError::Ratelimited(seconds) = error {
+                    let _ = msg.channel_id.say(
+                        &ctx.http,
+                        &format!("Versuche es in {} sekunden noch einmal.", seconds),
+                    );
                 }
             })
-            .simple_bucket("slotmachine", 10)
-            .simple_bucket("blackjack", 600)
-            // commands
-            .command("setstatus", |c| {
-                c.desc("Setzt den Status des Bots")
-                .num_args(0)
-                .required_permissions(Permissions::MANAGE_ROLES | Permissions::MANAGE_CHANNELS)
-                .cmd(setstatus)
-            })
-            .command("about", |c| {
-                c.desc("Gibt eine kurze Info über den Bot")
-                    .usage("about")
-                    .num_args(0)
-                    .cmd(commands::about::about)
-            })
-            .command("roll", |c| {
-                c.desc("Rollt x Würfel mit y Augen.")
-                    .num_args(2)
-                    .example("1 6")
-                    .usage(".roll x y")
-                    .cmd(commands::roll::roll)
-            })
-            .command("choose", |c| {
-                c.desc("Wählt eines der übergebenen Dinge.")
-                    .example(r#"a "b mit spaces""#)
-                    .usage(".choose apfel birne")
-                    .cmd(commands::choose::choose)
-            })
-            .command("xkcd", |c| {
-                c.desc("Postet einen Xkcd comic")
-                .num_args(1)
-                .example("1425")
-                .cmd(commands::xkcd::xkcd)
-            })
-            // .command("kick", |c| {
-            //     c.check(admin_check)
-            //         .desc("Kickt alle mentioned user")
-            //         .guild_only(true)
-            //         .cmd(commands::kick::kick)
-            // })
-            // .command("ban", |c| {
-            //     c.check(admin_check)
-            //         .desc("Bannt alle mentioned user")
-            //         .usage("ban x ...")
-            //         .example("@user")
-            //         .guild_only(true)
-            //         .cmd(commands::ban::ban)
-            // })
-            .command("quote", |c|
-                c.desc("Zitiert eine Nachricht")
-                    .num_args(1)
-                    .guild_only(true)
-                    .usage("quote message_link")
-                    .cmd(commands::quote::quote))
-            // .command("untagged", |c| {
-            //     c.desc("Direkt an den Bot schreiben um untagged favs zu löschen/labeln. (Dazu dann auf 🗑 oder 🏷 klicken)")
-            //         .usage("untagged")
-            //         .num_args(0)
-            //         .dm_only(true)
-            //         .cmd(commands::fav::untagged)
-            // })
-            // .command("lockdown", |c| {
-            //     c.desc("Nimmt allen Schreib & Reaction Rechte außer den mods.")
-            //     .required_permissions(Permissions::MANAGE_ROLES | Permissions::MANAGE_CHANNELS)
-            //     .num_args(0)
-            //     .guild_only(true)
-            //     .cmd(commands::lockdown::lockdown)
-            // })
-            // .command("unlock", |c| {
-            //     c.desc("Setzt Schreib & Reaction Rechte wieder auf den ursprungszustand zurück.")
-            //     .required_permissions(Permissions::MANAGE_ROLES | Permissions::MANAGE_CHANNELS)
-            //     .num_args(0)
-            //     .guild_only(true)
-            //     .cmd(commands::lockdown::unlock)
-            // })
-            .group("Account", |g| {
-                g.prefix("acc")
-                .desc("Befehle im Zusammenhang mit deinem Konto")
-                .default_cmd(commands::account::general::payday)
-                .command("createaccount", |c| {
-                    c.desc("Erstellt eine Bank für dich oder gibt dir deinen Kontostand")
-                        .usage("createaccount")
-                        .num_args(0)
-                        .cmd(commands::account::general::createaccount)
-                })
-                .command("payday", |c| {
-                    c.desc("Erhöht max alle 24std deinen Kontostand um 1000")
-                        .known_as("paydaddy")
-                        .usage("payday")
-                        .num_args(0)
-                        .cmd(commands::account::general::payday)
-                })
-                .command("leaderboard", |c| {
-                    c.desc("Listet die Glücklichen und Süchtigen auf")
-                        .usage("leaderboard")
-                        .num_args(0)
-                        .cmd(commands::account::general::leaderboard)
-                })
-                .command("transfer", |c| {
-                    c.desc("Für den Sunshower-Moment. Beispiel: ")
-                        .usage("transfer 1000 @HansTrashy")
-                        .example("1000 @user1 @user2")
-                        .cmd(commands::account::general::transfer)
-                })
-                .command("slot", |c| {
-                    c.bucket("slotmachine")
-                        .desc("Setzt x von deiner Bank, limitiert auf 1x alle 10 Sekunden")
-                        .usage("slot x")
-                        .example("1000")
-                        .num_args(1)
-                        .cmd(commands::account::slot::play)
-                })
-                .command("blackjack", |c| {
-                    c.bucket("blackjack")
-                        .desc("Spiele eine/mehrere runden Blackjack gegen die Bank")
-                        .usage("blackjack x")
-                        .example("1000")
-                        .num_args(1)
-                        .cmd(commands::account::blackjack::play)
-                })
-            })
-            .group("Grünbuch", |g| {
-                g.prefix("fav")
-                .desc("Befehle für Grünbuch")
-                .default_cmd(commands::fav::fav)
-                .command("post", |c| {
-                    c.desc("Postet einen zufälligen fav unter Berücksichtigung der label.")
-                    .example("taishi wichsen")
-                    .cmd(commands::fav::fav)
-                })
-                .command("tags", |c| {
-                    c.desc("Listet deine Verwendeten Tags auf.")
-                    .num_args(0)
-                    .dm_only(true)
-                    .cmd(commands::fav::tags)
-                })
-                .command("untagged", |c| {
-                    c.desc("Direkt an den Bot schreiben um untagged favs zu löschen/labeln. (Dazu dann auf 🗑 oder 🏷 klicken)")
-                    .usage("untagged")
-                    .num_args(0)
-                    .dm_only(true)
-                    .cmd(commands::fav::untagged)
-                })
-                .command("add", |c| {
-                    c.desc("Manuell einen fav per link hinzufügen")
-                    .num_args(1)
-                    .dm_only(true)
-                    .cmd(commands::fav::add)
-                })
-            })
-            .group("rules", |g| {
-                g.prefix("rules")
-                .desc("Befehle im Zusammenhang mit den Regeln.")
-                .default_cmd(commands::rules::de)
-                .command("de", |c| {
-                    c.desc("Sendet dir die Regeln per DM.")
-                    .num_args(0)
-                    .cmd(commands::rules::de)
-                })
-                .command("en", |c| {
-                    c.desc("Sendet dir die Regeln auf Englisch.")
-                    .num_args(0)
-                    .cmd(commands::rules::en)
-                })
-                .command("seten", |c| {
-                    c.desc("Setzt die en Regeln")
-                    .example("Regeltext")
-                    .required_permissions(Permissions::MANAGE_ROLES)
-                    .cmd(commands::rules::seten)
-                })
-                .command("setde", |c| {
-                    c.desc("Setzt die de Regeln")
-                    .example("Regeltext")
-                    .required_permissions(Permissions::MANAGE_ROLES)
-                    .cmd(commands::rules::setde)
-                })
-                .command("adden", |c| {
-                    c.desc("Fügt Text and die en Regeln an")
-                    .example("Regeltexterweiterung")
-                    .required_permissions(Permissions::MANAGE_ROLES)
-                    .cmd(commands::rules::adden)
-                })
-                .command("addde", |c| {
-                    c.desc("Fügt Text and die de Regeln an")
-                    .example("Regeltexterweiterung")
-                    .required_permissions(Permissions::MANAGE_ROLES)
-                    .cmd(commands::rules::addde)
-                })
-                .command("post", |c| {
-                    c.desc("Lässt den bot die regeln posten")
-                    .num_args(1)
-                    .example("de")
-                    .required_permissions(Permissions::MANAGE_ROLES)
-                    .cmd(commands::rules::post)
-                })
-            })
-            .group("Reaction Roles", |g| {
-                g.prefix("rr")
-                .required_permissions(Permissions::MANAGE_ROLES)
-                .desc("Befehle für Reaction Roles Setup")
-                .default_cmd(commands::reaction_roles::listrr)
-                .command("create", |c| {
-                    c.desc("Fügt eine neue Reaction Role zu einer gruppe hinzu.")
-                    .example("🧀 gruppenname rollenname")
-                    .cmd(commands::reaction_roles::createrr)
-                })
-                .command("remove", |c| { 
-                    c.desc("Entfernt eine Reaction Role")
-                    .example("🧀 rollenname")
-                    .cmd(commands::reaction_roles::removerr)
-                })
-                .command("list", |c| {
-                    c.desc("Auflistung aller ReactionRoles").usage("rr").cmd(commands::reaction_roles::listrr)
-                })
-                .command("postgroups", |c| {
-                    c.desc("Postet die Reaction Nachrichten").cmd(commands::reaction_roles::postrrgroups)
-                })
-            })
-            .customised_help(help_commands::with_embeds, |c| {
-                c.individual_command_tip("Wenn du genaueres über einen Befehl wissen willst übergib ihn einfach als Argument.")
-                .command_not_found_text("Konnte `{}` nicht finden.")
-                .max_levenshtein_distance(3)
-                .lacking_permissions(HelpBehaviour::Hide)
-                .lacking_role(HelpBehaviour::Nothing)
-                .wrong_channel(HelpBehaviour::Strike)
-                .suggestion_text("Meintest du vielleicht `{}`?")
-                .no_help_available_text("Dafür gibt es leider noch keine Hilfe.")
-                .striked_commands_tip_in_guild(Some("Durchgestrichene Befehle können nur auf einem Server mit dem Bot benutzt werden.".to_string()))
-                .striked_commands_tip_in_direct_message(Some("Durchgestrichene Befehle können nur in Direktnachrichten mit dem Bot benutzt werden.".to_string()))
-            }),
+            .help(&MY_HELP_HELP_COMMAND)
+            .bucket("slotmachine", |b| b.delay(10))
+            .bucket("blackjack", |b| b.delay(600))
+            .group(&commands::groups::general::GENERAL_GROUP)
+            .group(&commands::groups::config::CONFIG_GROUP)
+            .group(&commands::groups::greenbook::GREENBOOK_GROUP)
+            .group(&commands::groups::rules::RULES_GROUP)
+            .group(&commands::groups::reaction_roles::REACTION_ROLES_GROUP)
+            .group(&commands::groups::account::ACCOUNT_GROUP),
     );
 
     if let Err(why) = client.start() {
-        println!("Client error: {:?}", why);
+        error!("Client error: {:?}", why);
     }
 }
 
-fn admin_check(_: &mut Context, msg: &Message, _: &mut Args, _: &CommandOptions) -> bool {
-    if let Some(member) = msg.member() {
-        if let Ok(permissions) = member.permissions() {
-            return permissions.administrator();
+#[check]
+#[name = "Owner"]
+fn owner_check(_: &mut Context, msg: &Message, _: &mut Args, _: &CommandOptions) -> CheckResult {
+    (msg.author.id == 179680865805271040).into()
+}
+
+#[check]
+#[name = "Admin"]
+fn admin_check(ctx: &mut Context, msg: &Message, _: &mut Args, _: &CommandOptions) -> CheckResult {
+    if let Some(member) = msg.member(&ctx.cache) {
+        if let Ok(permissions) = member.permissions(&ctx.cache) {
+            return permissions.administrator().into();
         }
     }
-    false
+    false.into()
 }
 
 #[cfg(test)]

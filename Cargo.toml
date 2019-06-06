@@ -1,13 +1,13 @@
 [package]
 name = "trashy_bot"
-version = "0.2.0"
+version = "0.3.0"
 authors = ["Denis Richartz <denisrichartz92@gmail.com>"]
 edition = "2018"
 
 [dependencies]
 kankyo = "0.2.0"
 rand = "0.6"
-diesel = { version = "1.0.0", features = ["postgres", "chrono"] }
+diesel = { version = "1.0.0", features = ["postgres", "chrono", "r2d2"] }
 chrono = "*"
 log = { version = "0.4", features = ["max_level_debug", "release_max_level_info"] }
 fern = "0.5"
@@ -20,7 +20,7 @@ serde_json = "1"
 reqwest = "0.9"
 
 [dependencies.serenity]
-version = "0.5.12"
+version = "0.6.0-rc.1"
 default-features = false
 features = [
     "builder",
@@ -32,4 +32,5 @@ features = [
     "model",
     "standard_framework",
     "utils",
+    "rustls_backend",
 ] # unused features [ "voice" ]

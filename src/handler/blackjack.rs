@@ -2,7 +2,7 @@ use crate::BlackjackState;
 use serenity::{model::channel::Reaction, prelude::*};
 
 pub fn hit(ctx: Context, reaction: Reaction) {
-    let data = ctx.data.lock();
+    let data = ctx.data.read();
     let blackjack_state = data
         .get::<BlackjackState>()
         .expect("No blackjack state available");
@@ -13,7 +13,7 @@ pub fn hit(ctx: Context, reaction: Reaction) {
 }
 
 pub fn stay(ctx: Context, reaction: Reaction) {
-    let data = ctx.data.lock();
+    let data = ctx.data.read();
     let blackjack_state = data
         .get::<BlackjackState>()
         .expect("No blackjack state available");
@@ -24,7 +24,7 @@ pub fn stay(ctx: Context, reaction: Reaction) {
 }
 
 pub fn new_game(ctx: Context, reaction: Reaction) {
-    let data = ctx.data.lock();
+    let data = ctx.data.read();
     let blackjack_state = data
         .get::<BlackjackState>()
         .expect("No blackjack state available");

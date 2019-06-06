@@ -25,22 +25,22 @@ impl EventHandler for Handler {
         if msg.is_private() {
             use crate::schema::tags::dsl::*;
             // check if waiting for labels
-            let data = ctx.data.lock();
+            let data = ctx.data.read();
             if let Some(waiter) = data.get::<Waiter>() {
                 let mut wait = waiter.lock();
                 if let Some(waited_fav_id) = wait.waiting(*msg.author.id.as_u64(), Action::AddTags)
                 {
                     let conn = match data.get::<DatabaseConnection>() {
-                        Some(v) => v.clone(),
+                        Some(v) => v.get().unwrap(),
                         None => {
-                            let _ = msg.reply("Could not retrieve the database connection!");
+                            let _ = msg.reply(&ctx, "Could not retrieve the database connection!");
                             return;
                         }
                     };
 
                     // clear old tags for this fav
                     diesel::delete(tags.filter(fav_id.eq(waited_fav_id)))
-                        .execute(&*conn.lock())
+                        .execute(&conn)
                         .expect("could not delete tags");
 
                     let received_tags: Vec<NewTag> = msg
@@ -48,13 +48,13 @@ impl EventHandler for Handler {
                         .split(' ')
                         .map(|t| NewTag::new(waited_fav_id, t.to_string()))
                         .collect();
-                    crate::models::tag::create_tags(&*conn.lock(), received_tags);
+                    crate::models::tag::create_tags(&conn, received_tags);
 
                     wait.purge(
                         *msg.author.id.as_u64(),
                         vec![Action::DeleteFav, Action::ReqTags, Action::AddTags],
                     );
-                    let _ = msg.reply("added the tags!");
+                    let _ = msg.reply(&ctx, "added the tags!");
                 }
             }
         }

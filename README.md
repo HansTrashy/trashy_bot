@@ -11,7 +11,8 @@ Postgres installation [PostgreSQL](https://www.postgresql.org/download/) with pg
 Create a `.env` file after the following example in the project root:
 
     DISCORD_TOKEN=****
-    DATABASE_URL=postgres://{pguser}:{pgpw}:{host}
+    DATABASE_URL=postgres://{pguser}:{pgpw}@{host}:{port}
+    TWITCH_TOKEN=****
 
 
 ## Getting the Database up & running

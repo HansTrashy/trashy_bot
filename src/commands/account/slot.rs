@@ -3,14 +3,27 @@ use crate::schema::banks::dsl;
 use crate::DatabaseConnection;
 use diesel::prelude::*;
 use rand::prelude::*;
+use serenity::{
+    framework::standard::{
+        Args, CommandResult,
+        macros::command,
+    },
+    model::channel::Message,
+};
+use serenity::prelude::*;
+use log::*;
 
-command!(play(ctx, msg, args) {
+#[command]
+#[description = "Gamble for worthless points"]
+pub fn slot(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
     let mut rng = rand::thread_rng();
-    let data = ctx.data.lock();
+    let data = ctx.data.read();
     let conn = match data.get::<DatabaseConnection>() {
-        Some(v) => v.clone(),
+        Some(v) => v.get().unwrap(),
         None => {
-            let _ = msg.channel_id.say("Datenbankfehler, bitte informiere einen Moderator!");
+            let _ = msg
+                .channel_id
+                .say(&ctx, "Datenbankfehler, bitte informiere einen Moderator!");
             return Ok(());
         }
     };
@@ -18,18 +31,21 @@ command!(play(ctx, msg, args) {
         Ok(v) if v > 0 => v,
         Ok(_) => {
             // log
-            let _ = msg.channel_id.say("Ungültiger Wetteinsatz!");
+            let _ = msg.channel_id.say(&ctx, "Ungültiger Wetteinsatz!");
             return Ok(());
         }
         Err(_e) => {
             // log
-            let _ = msg.channel_id.say("Ungültiger Wetteinsatz!");
+            let _ = msg.channel_id.say(&ctx, "Ungültiger Wetteinsatz!");
             return Ok(());
         }
     };
     // check if user already owns a bank & has enough balance
-    let results = dsl::banks.filter(dsl::user_id.eq(*msg.author.id.as_u64() as i64)).load::<Bank>(&*conn.lock()).expect("could not retrieve banks");
-    
+    let results = dsl::banks
+        .filter(dsl::user_id.eq(*msg.author.id.as_u64() as i64))
+        .load::<Bank>(&conn)
+        .expect("could not retrieve banks");
+
     if !results.is_empty() && results[0].amount >= amount_to_bet {
         // roll
         let full_reels: Vec<Vec<i64>> = (0..3)
@@ -50,23 +66,29 @@ command!(play(ctx, msg, args) {
                 vec![prev, roll, next]
             })
             .collect();
-    
+
         let payout = get_payout(&full_reels, amount_to_bet);
         let delta = payout - amount_to_bet;
-        let updated_amount =  results[0].amount + delta;
+        let updated_amount = results[0].amount + delta;
 
         // TODO: investigate why the aschangeset version does not work
-        diesel::update(dsl::banks.filter(dsl::id.eq(results[0].id))).set(dsl::amount.eq(updated_amount)).execute(&*conn.lock()).expect("failed update bank");
+        diesel::update(dsl::banks.filter(dsl::id.eq(results[0].id)))
+            .set(dsl::amount.eq(updated_amount))
+            .execute(&conn)
+            .expect("failed update bank");
 
         let slot_machine_output = display_reels(&full_reels, payout, updated_amount);
-        let _ = msg.channel_id.send_message(|m| m.embed(|e| 
-                e.description(&slot_machine_output)
-                .color((0,120,220))));
+        let _ = msg.channel_id.send_message(&ctx, |m| {
+            m.embed(|e| e.description(&slot_machine_output).color((0, 120, 220)))
+        });
     } else {
-        let _ = msg.channel_id.say("Du besitzt entweder keine Bank, oder nicht genügend credits!");
+        let _ = msg.channel_id.say(
+            &ctx,
+            "Du besitzt entweder keine Bank, oder nicht genügend credits!",
+        );
     }
-    
-});
+    Ok(())
+}
 
 fn get_payout(full_reels: &[Vec<i64>], betted_amount: i64) -> i64 {
     if full_reels[0][1] == full_reels[1][1] && full_reels[1][1] == full_reels[2][1] {

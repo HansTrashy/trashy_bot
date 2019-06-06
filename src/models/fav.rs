@@ -29,8 +29,6 @@ pub fn create_fav(
     user_id: i64,
     author_id: i64,
 ) -> Fav {
-    use crate::schema::favs;
-
     let new_fav = NewFav {
         server_id,
         channel_id,
