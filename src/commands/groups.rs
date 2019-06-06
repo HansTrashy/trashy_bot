@@ -9,16 +9,18 @@ pub mod general {
     });
 }
 
-pub mod owner {
+pub mod config {
     use serenity::framework::standard::{macros::{command, group, help, check}};
-    use crate::commands::owner::*;
+    use crate::commands::config::*;
 
     group!({
-        name: "owner",
+        name: "config",
         options: {
-            description: "Owner commands only",
+            prefix: "cfg",
+            description: "Config commands",
+            default_command: status,
         },
-        commands: [setstatus,],
+        commands: [status,]
     });
 }
 
@@ -44,9 +46,9 @@ pub mod greenbook {
         options: {
             prefix: "fav",
             description: "Saving your favourite messages.",
-            default_command: fav,
+            default_command: post,
         },
-        commands: [fav, untagged, add, tags],
+        commands: [post, untagged, add, tags],
     });
 }
 

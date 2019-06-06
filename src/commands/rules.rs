@@ -78,6 +78,7 @@ pub fn en(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
 }
 
 #[command]
+#[allowed_roles("Mods")]
 pub fn setde(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
     let rules = match ctx.data.read().get::<RulesState>() {
         Some(v) => v.clone(),
@@ -92,6 +93,7 @@ pub fn setde(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
 }
 
 #[command]
+#[allowed_roles("Mods")]
 pub fn addde(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
     let rules = match ctx.data.read().get::<RulesState>() {
         Some(v) => v.clone(),
@@ -107,6 +109,7 @@ pub fn addde(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
 }
 
 #[command]
+#[allowed_roles("Mods")]
 pub fn seten(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
     let rules = match ctx.data.read().get::<RulesState>() {
         Some(v) => v.clone(),
@@ -121,6 +124,7 @@ pub fn seten(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
 }
 
 #[command]
+#[allowed_roles("Mods")]
 pub fn adden(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
     let rules = match ctx.data.read().get::<RulesState>() {
         Some(v) => v.clone(),
@@ -136,6 +140,7 @@ pub fn adden(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
 }
 
 #[command]
+#[allowed_roles("Mods")]
 pub fn post(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
     let lang = args.single::<String>()?;
     let rules = match ctx.data.read().get::<RulesState>() {

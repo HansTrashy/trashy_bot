@@ -23,7 +23,8 @@ use serenity::prelude::*;
 use log::*;
 
 #[command]
-pub fn fav(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
+#[description = "Post a fav"]
+pub fn post(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
     let mut rng = rand::thread_rng();
     let data = ctx.data.read();
     let conn = match data.get::<DatabaseConnection>() {
@@ -142,6 +143,7 @@ pub fn fav(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
 
 #[command]
 #[only_in("dms")]
+#[description = "Shows untagged favs so you can tag them"]
 pub fn untagged(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
     let data = ctx.data.read();
     let conn = match data.get::<DatabaseConnection>() {
@@ -292,6 +294,7 @@ pub fn add(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
 
 #[command]
 #[only_in("dms")]
+#[description = "Shows your used tags so you do not have to remember them all"]
 pub fn tags(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
     let data = ctx.data.read();
     let conn = match data.get::<DatabaseConnection>() {

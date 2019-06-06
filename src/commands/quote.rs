@@ -14,11 +14,14 @@ use serenity::prelude::*;
 use log::*;
 
 #[command]
+#[description = "Quote a message"]
+#[usage = "command message-link"]
+#[example = "https://discordapp.com/channels/_/_/_"]
 pub fn quote(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
     lazy_static! {
         static ref QUOTE_LINK_REGEX: Regex =
             Regex::new(r#"https://discordapp.com/channels/\d+/(\d+)/(\d+)"#)
-                .expect("couldnt compile quote link regex");
+                .expect("could not compile quote link regex");
     }
     for caps in QUOTE_LINK_REGEX.captures_iter(&args.rest()) {
         let quote_channel_id = caps[1].parse::<u64>()?;

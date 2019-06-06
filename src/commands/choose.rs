@@ -13,6 +13,7 @@ use serenity::prelude::*;
 use log::*;
 
 #[command]
+#[description = "Choose between things"]
 pub fn choose(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
     let mut rng = rand::thread_rng();
 

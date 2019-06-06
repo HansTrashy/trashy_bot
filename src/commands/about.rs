@@ -9,6 +9,7 @@ use serenity::prelude::*;
 use log::*;
 
 #[command]
+#[description = "Info about the bot"]
 fn about(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
     match msg.channel_id.say(
         &ctx.http,

@@ -25,6 +25,8 @@ pub struct Comic {
 }
 
 #[command]
+#[description = "Post the xkcd comic specified"]
+#[example = "547"]
 pub fn xkcd(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
     let xkcd_id = args.single::<u64>()?;
 

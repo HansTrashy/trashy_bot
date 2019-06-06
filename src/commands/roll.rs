@@ -10,6 +10,7 @@ use log::*;
 use rand::prelude::*;
 
 #[command]
+#[description = "Roll x dice with y sides"]
 fn roll(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
     let amount_of_dice = args.single::<u64>()?;
     let number_of_eyes = args.single::<u64>()?;

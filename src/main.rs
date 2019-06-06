@@ -54,7 +54,7 @@ mod commands {
     }
     pub mod choose;
     pub mod fav;
-    pub mod owner;
+    pub mod config;
     pub mod quote;
     pub mod reaction_roles;
     pub mod roll;
@@ -222,7 +222,7 @@ fn main() {
             .bucket("slotmachine", |b| b.delay(10))
             .bucket("blackjack", |b| b.delay(600))
             .group(&commands::groups::general::GENERAL_GROUP)
-            .group(&commands::groups::owner::OWNER_GROUP)
+            .group(&commands::groups::config::CONFIG_GROUP)
             .group(&commands::groups::greenbook::GREENBOOK_GROUP)
             .group(&commands::groups::rules::RULES_GROUP)
             .group(&commands::groups::reaction_roles::REACTION_ROLES_GROUP)

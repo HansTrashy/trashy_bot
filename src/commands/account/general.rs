@@ -14,6 +14,7 @@ use serenity::prelude::*;
 use log::*;
 
 #[command]
+#[description = "Create an account if you do not already own one"]
 pub fn createaccount(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
     let data = ctx.data.read();
     let conn = match data.get::<DatabaseConnection>() {

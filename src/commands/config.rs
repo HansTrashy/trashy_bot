@@ -12,7 +12,7 @@ use log::*;
 
 #[command]
 #[allowed_roles("Mods")]
-pub fn setstatus(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
+pub fn status(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
     ctx.set_presence(Some(Activity::listening("$help")), OnlineStatus::Online);
     Ok(())
 }
