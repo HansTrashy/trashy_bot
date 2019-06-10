@@ -1,11 +1,11 @@
 pub mod general {
     use serenity::framework::standard::{macros::{command, group, help, check}};
-    use crate::commands::{about::*, roll::ROLL_COMMAND, choose::*, xkcd::*, quote::*};
+    use crate::commands::{about::*, roll::ROLL_COMMAND, choose::*, xkcd::*, quote::*, userinfo::*};
 
     group!({
         name: "general",
         options: {},
-        commands: [about, roll, choose, xkcd, quote],
+        commands: [about, roll, choose, xkcd, quote, userinfo],
     });
 }
 

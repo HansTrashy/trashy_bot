@@ -17,6 +17,7 @@ use log::*;
 #[description = "Quote a message"]
 #[usage = "command message-link"]
 #[example = "https://discordapp.com/channels/_/_/_"]
+#[only_in("guilds")]
 pub fn quote(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
     lazy_static! {
         static ref QUOTE_LINK_REGEX: Regex =

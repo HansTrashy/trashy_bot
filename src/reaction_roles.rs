@@ -1,4 +1,4 @@
-/// Setting the ChannelId and MessageId's for the reaction messages
+/// Setting the `ChannelId` and `MessageId's` for the reaction messages
 
 pub enum State {
     NotSet,

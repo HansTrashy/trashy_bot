@@ -1,3 +1,4 @@
+#![allow(clippy::module_name_repetitions)]
 use crate::models::fav::Fav;
 use crate::schema::tags;
 use diesel::prelude::*;
@@ -18,7 +19,7 @@ pub struct NewTag {
 }
 
 impl NewTag {
-    pub fn new(fav_id: i64, label: String) -> Self {
+    pub const fn new(fav_id: i64, label: String) -> Self {
         Self { fav_id, label }
     }
 }
@@ -31,9 +32,9 @@ pub fn create_tag(conn: &PgConnection, fav_id: i64, label: String) -> Tag {
         .expect("Error saving tag")
 }
 
-pub fn create_tags(conn: &PgConnection, new_tags: Vec<NewTag>) -> Vec<Tag> {
+pub fn create_tags(conn: &PgConnection, new_tags: &[NewTag]) -> Vec<Tag> {
     diesel::insert_into(tags::table)
-        .values(&new_tags)
+        .values(new_tags)
         .get_results(conn)
         .expect("Error saving tag")
 }

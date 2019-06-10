@@ -1,12 +1,12 @@
 use crate::interaction::wait::Action;
-use crate::interaction::wait::WaitEvent;
+use crate::interaction::wait::Event;
 use crate::DatabaseConnection;
 use crate::Waiter;
 use chrono::prelude::*;
 use diesel::prelude::*;
 use serenity::{model::channel::Reaction, prelude::*};
 
-pub fn add_fav(ctx: Context, add_reaction: Reaction) {
+pub fn add(ctx: Context, add_reaction: Reaction) {
     let data = ctx.data.read();
 
     if let Some(pool) = data.get::<DatabaseConnection>() {
@@ -31,7 +31,7 @@ pub fn add_fav(ctx: Context, add_reaction: Reaction) {
             let mut wait = waiter.lock();
             wait.wait(
                 *add_reaction.user_id.as_u64(),
-                WaitEvent::new(Action::AddTags, created_fav.id, Utc::now()),
+                Event::new(Action::AddTags, created_fav.id, Utc::now()),
             );
         }
 
@@ -53,7 +53,7 @@ pub fn add_label(ctx: Context, add_reaction: Reaction) {
         if let Some(fav_id) = wait.waiting(*add_reaction.user_id.as_u64(), Action::ReqTags) {
             wait.wait(
                 *add_reaction.user_id.as_u64(),
-                WaitEvent::new(Action::AddTags, fav_id, Utc::now()),
+                Event::new(Action::AddTags, fav_id, Utc::now()),
             );
         }
 
@@ -65,7 +65,7 @@ pub fn add_label(ctx: Context, add_reaction: Reaction) {
     }
 }
 
-pub fn remove_fav(ctx: Context, add_reaction: Reaction) {
+pub fn remove(ctx: Context, add_reaction: Reaction) {
     use crate::schema::favs::dsl::*;
     let data = ctx.data.read();
 

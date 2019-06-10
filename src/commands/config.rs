@@ -11,6 +11,7 @@ use serenity::prelude::*;
 use log::*;
 
 #[command]
+#[num_args(0)]
 #[allowed_roles("Mods")]
 pub fn status(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
     ctx.set_presence(Some(Activity::listening("$help")), OnlineStatus::Online);

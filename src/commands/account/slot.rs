@@ -15,6 +15,8 @@ use log::*;
 
 #[command]
 #[description = "Gamble for worthless points"]
+#[num_args(1)]
+#[example = "1000"]
 pub fn slot(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
     let mut rng = rand::thread_rng();
     let data = ctx.data.read();

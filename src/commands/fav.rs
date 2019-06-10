@@ -1,4 +1,4 @@
-use crate::interaction::wait::{Action, WaitEvent};
+use crate::interaction::wait::{Action, Event};
 use crate::models::fav::Fav;
 use crate::models::tag::Tag;
 use crate::schema::favs::dsl::*;
@@ -25,6 +25,7 @@ use log::*;
 
 #[command]
 #[description = "Post a fav"]
+#[example = "taishi wichsen"]
 pub fn post(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
     let mut rng = rand::thread_rng();
     let data = ctx.data.read();
@@ -86,11 +87,11 @@ pub fn post(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
 
         wait.wait(
             *msg.author.id.as_u64(),
-            WaitEvent::new(Action::DeleteFav, chosen_fav.id, Utc::now()),
+            Event::new(Action::DeleteFav, chosen_fav.id, Utc::now()),
         );
         wait.wait(
             *msg.author.id.as_u64(),
-            WaitEvent::new(Action::ReqTags, chosen_fav.id, Utc::now()),
+            Event::new(Action::ReqTags, chosen_fav.id, Utc::now()),
         );
     }
 
@@ -143,8 +144,9 @@ pub fn post(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
 }
 
 #[command]
-#[only_in("dms")]
 #[description = "Shows untagged favs so you can tag them"]
+#[only_in("dms")]
+#[num_args(0)]
 pub fn untagged(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
     let data = ctx.data.read();
     let conn = match data.get::<DatabaseConnection>() {
@@ -177,7 +179,9 @@ pub fn untagged(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
         })
         .collect();
 
-    if !possible_favs.is_empty() {
+    if possible_favs.is_empty() {
+        let _ = msg.reply(&ctx, "Du hat keine untagged Favs!");
+    } else {
         let (fa, _t) = possible_favs.first().unwrap();
         let fav_msg = ChannelId(fa.channel_id as u64)
             .message(&ctx, fa.msg_id as u64)
@@ -193,11 +197,11 @@ pub fn untagged(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
 
             wait.wait(
                 *msg.author.id.as_u64(),
-                WaitEvent::new(Action::DeleteFav, fa.id, Utc::now()),
+                Event::new(Action::DeleteFav, fa.id, Utc::now()),
             );
             wait.wait(
                 *msg.author.id.as_u64(),
-                WaitEvent::new(Action::ReqTags, fa.id, Utc::now()),
+                Event::new(Action::ReqTags, fa.id, Utc::now()),
             );
         }
 
@@ -250,14 +254,14 @@ pub fn untagged(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
         let sent_msg = sent_msg.unwrap();
         let _ = sent_msg.react(&ctx, ReactionType::Unicode("🗑".to_string()));
         let _ = sent_msg.react(&ctx, ReactionType::Unicode("🏷".to_string()));
-    } else {
-        let _ = msg.reply(&ctx, "Du hat keine untagged Favs!");
     }
     Ok(())
 }
 
 #[command]
 #[only_in("dms")]
+#[description = "Add a fav per link to the message"]
+#[num_args(1)]
 pub fn add(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
     let data = ctx.data.read();
     lazy_static! {
@@ -296,6 +300,7 @@ pub fn add(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
 #[command]
 #[only_in("dms")]
 #[description = "Shows your used tags so you do not have to remember them all"]
+#[num_args(0)]
 pub fn tags(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
     let data = ctx.data.read();
     let conn = match data.get::<DatabaseConnection>() {

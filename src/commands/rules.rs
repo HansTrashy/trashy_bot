@@ -14,6 +14,8 @@ use serenity::prelude::*;
 use log::*;
 
 #[command]
+#[description = "Sends you the Rules in German"]
+#[num_args(0)]
 pub fn de(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
     let rules = match ctx.data.read().get::<RulesState>() {
         Some(v) => v.clone(),
@@ -46,6 +48,8 @@ pub fn de(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
 }
 
 #[command]
+#[description = "Sends you the rules in english"]
+#[num_args(0)]
 pub fn en(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
     let rules = match ctx.data.read().get::<RulesState>() {
         Some(v) => v.clone(),
@@ -79,6 +83,7 @@ pub fn en(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
 
 #[command]
 #[allowed_roles("Mods")]
+#[description = "Sets the rules"]
 pub fn setde(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
     let rules = match ctx.data.read().get::<RulesState>() {
         Some(v) => v.clone(),
@@ -93,6 +98,7 @@ pub fn setde(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
 }
 
 #[command]
+#[description = "Adds to the rules"]
 #[allowed_roles("Mods")]
 pub fn addde(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
     let rules = match ctx.data.read().get::<RulesState>() {
@@ -110,6 +116,7 @@ pub fn addde(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
 
 #[command]
 #[allowed_roles("Mods")]
+#[description = "Sets the rules"]
 pub fn seten(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
     let rules = match ctx.data.read().get::<RulesState>() {
         Some(v) => v.clone(),
@@ -125,6 +132,7 @@ pub fn seten(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
 
 #[command]
 #[allowed_roles("Mods")]
+#[description = "Adds to the rules"]
 pub fn adden(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
     let rules = match ctx.data.read().get::<RulesState>() {
         Some(v) => v.clone(),
@@ -141,6 +149,9 @@ pub fn adden(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
 
 #[command]
 #[allowed_roles("Mods")]
+#[description = "The bot will post the rules into the channel"]
+#[num_args(1)]
+#[example = "de"]
 pub fn post(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
     let lang = args.single::<String>()?;
     let rules = match ctx.data.read().get::<RulesState>() {

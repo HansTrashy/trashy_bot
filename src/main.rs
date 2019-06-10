@@ -1,3 +1,9 @@
+#![deny(clippy::all)]
+#![warn(clippy::nursery)]
+#![warn(clippy::pedantic)]
+// #![deny(clippy::cargo)]
+#![allow(clippy::non_ascii_literal)]
+
 #[macro_use]
 extern crate serenity;
 #[macro_use]
@@ -46,19 +52,20 @@ mod models {
 
 mod commands {
     pub mod about;
-    pub mod groups;
     pub mod account {
         pub mod blackjack;
         pub mod general;
         pub mod slot;
     }
     pub mod choose;
-    pub mod fav;
     pub mod config;
+    pub mod fav;
+    pub mod groups;
     pub mod quote;
     pub mod reaction_roles;
     pub mod roll;
     pub mod rules;
+    pub mod userinfo;
     pub mod xkcd;
 }
 
@@ -143,7 +150,7 @@ fn main() {
     // load .env file
     kankyo::load().expect("no env file");
     // setup logging
-    logger::setup_logger().expect("Could not setup logging");
+    logger::setup().expect("Could not setup logging");
     // Configure the client with your Discord bot token in the environment.
     let token = env::var("DISCORD_TOKEN").expect("Expected a token in the environment");
     let mut client = Client::new(&token, handler::Handler).expect("Err creating client");
@@ -237,7 +244,7 @@ fn main() {
 #[check]
 #[name = "Owner"]
 fn owner_check(_: &mut Context, msg: &Message, _: &mut Args, _: &CommandOptions) -> CheckResult {
-    (msg.author.id == 179680865805271040).into()
+    (msg.author.id == 179_680_865_805_271_040).into()
 }
 
 #[check]

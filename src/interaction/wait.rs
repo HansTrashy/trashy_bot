@@ -9,13 +9,13 @@ pub enum Action {
 }
 
 #[derive(Debug)]
-pub struct WaitEvent {
+pub struct Event {
     action: Action,
     action_id: i64,
     timestamp: DateTime<Utc>,
 }
 
-impl WaitEvent {
+impl Event {
     pub fn new(action: Action, action_id: i64, timestamp: DateTime<Utc>) -> Self {
         Self {
             action,
@@ -25,14 +25,14 @@ impl WaitEvent {
     }
 }
 
-pub struct Wait(HashMap<u64, Vec<WaitEvent>>);
+pub struct Wait(HashMap<u64, Vec<Event>>);
 
 impl Wait {
     pub fn new() -> Self {
         Self(HashMap::new())
     }
 
-    pub fn wait(&mut self, user_id: u64, event: WaitEvent) {
+    pub fn wait(&mut self, user_id: u64, event: Event) {
         let wait_events = self.0.entry(user_id).or_insert_with(Vec::new);
         // println!("added wait for: {}, event: {:?}", &user_id, &event);
         wait_events.push(event);

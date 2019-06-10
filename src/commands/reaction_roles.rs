@@ -19,6 +19,8 @@ use log::*;
 
 #[command]
 #[allowed_roles("Mods")]
+#[description = "Creates a new reaction role"]
+#[example = "🧀 group_name role_name"]
 pub fn create(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
     let data = ctx.data.read();
     let conn = match data.get::<DatabaseConnection>() {
@@ -48,7 +50,7 @@ pub fn create(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult
                 role_group_arg,
                 emoji_arg,
             );
-            let _ = msg.reply(&ctx, "Added rr!");
+            let _ = msg.reply(ctx, "Added rr!");
         }
     }
     Ok(())
@@ -56,6 +58,8 @@ pub fn create(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult
 
 #[command]
 #[allowed_roles("Mods")]
+#[description = "Removes a reaction role"]
+#[example = "🧀 role_name"]
 pub fn remove(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
     let data = ctx.data.read();
     let conn = match data.get::<DatabaseConnection>() {
@@ -89,6 +93,7 @@ pub fn remove(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult
 
 #[command]
 #[allowed_roles("Mods")]
+#[description = "Lists all reaction roles"]
 pub fn list(ctx: &mut Context, msg: &Message, _args: Args) -> CommandResult {
     let data = ctx.data.read();
     let conn = match data.get::<DatabaseConnection>() {
@@ -121,6 +126,7 @@ pub fn list(ctx: &mut Context, msg: &Message, _args: Args) -> CommandResult {
 
 #[command]
 #[allowed_roles("Mods")]
+#[description = "Posts the reaction role groups"]
 pub fn postgroups(ctx: &mut Context, msg: &Message, _args: Args) -> CommandResult {
     let data = ctx.data.read();
     let conn = match data.get::<DatabaseConnection>() {

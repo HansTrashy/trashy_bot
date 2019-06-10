@@ -27,6 +27,7 @@ pub struct Comic {
 #[command]
 #[description = "Post the xkcd comic specified"]
 #[example = "547"]
+#[num_args(1)]
 pub fn xkcd(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
     let xkcd_id = args.single::<u64>()?;
 
@@ -45,7 +46,7 @@ pub fn xkcd(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
                 .footer(|f| f.text(&xkcd_link))
         })
     }) {
-        Ok(_msg) => Ok(()),
+        Ok(_) => Ok(()),
         Err(e) => {
             error!("Failure sending message: {:?}", e);
             Err(e.into())

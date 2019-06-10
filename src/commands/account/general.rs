@@ -15,6 +15,7 @@ use log::*;
 
 #[command]
 #[description = "Create an account if you do not already own one"]
+#[num_args(0)]
 pub fn createaccount(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
     let data = ctx.data.read();
     let conn = match data.get::<DatabaseConnection>() {
@@ -24,7 +25,6 @@ pub fn createaccount(ctx: &mut Context, msg: &Message, args: Args) -> CommandRes
             return Ok(());
         }
     };
-    dbg!(*msg.author.id.as_u64());
     // check if user already owns a bank
     let results = banks
         .filter(user_id.eq(*msg.author.id.as_u64() as i64))
@@ -40,15 +40,16 @@ pub fn createaccount(ctx: &mut Context, msg: &Message, args: Args) -> CommandRes
             1000,
             Utc::now().naive_utc(),
         );
-        let _ = msg.reply(&ctx, "Created bank!");
+        let _ = msg.reply(ctx, "Created bank!");
     } else {
-        let _ = msg.reply(&ctx, &format!("Your bank balance: {}", results[0].amount));
+        let _ = msg.reply(ctx, &format!("Your bank balance: {}", results[0].amount));
     }
     Ok(())
 }
 
 #[command]
 #[aliases("paydaddy")]
+#[num_args(0)]
 pub fn payday(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
     // check if user has a bank & last payday was over 24h ago
     let data = ctx.data.read();
@@ -97,6 +98,8 @@ pub fn payday(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
 }
 
 #[command]
+#[description = "Lists the leading players"]
+#[num_args(0)]
 pub fn leaderboard(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
     let data = ctx.data.read();
     let conn = match data.get::<DatabaseConnection>() {
@@ -127,6 +130,8 @@ pub fn leaderboard(ctx: &mut Context, msg: &Message, args: Args) -> CommandResul
 }
 
 #[command]
+#[description = "Transfers amount x to all listed users"]
+#[example = "1000 @user1 @user2"]
 pub fn transfer(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
     let data = ctx.data.read();
     let conn = match data.get::<DatabaseConnection>() {
@@ -161,7 +166,9 @@ pub fn transfer(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResu
         .expect("could not retrieve banks");
 
     // check if user has bank
-    if !results.is_empty() {
+    if results.is_empty() {
+        let _ = msg.reply(&ctx, "Du besitzt noch keine Bank!");
+    } else {
         // check if user has enough balance
         if mentions_count * amount_to_transfer <= results[0].amount {
             let updated_amount = results[0].amount - mentions_count * amount_to_transfer;
@@ -198,8 +205,6 @@ pub fn transfer(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResu
         } else {
             let _ = msg.reply(&ctx, "Du hast nicht genügend credits für den Transfer!");
         }
-    } else {
-        let _ = msg.reply(&ctx, "Du besitzt noch keine Bank!");
     }
     Ok(())
 }

@@ -48,7 +48,7 @@ impl EventHandler for Handler {
                         .split(' ')
                         .map(|t| NewTag::new(waited_fav_id, t.to_string()))
                         .collect();
-                    crate::models::tag::create_tags(&conn, received_tags);
+                    crate::models::tag::create_tags(&conn, &received_tags);
 
                     wait.purge(
                         *msg.author.id.as_u64(),
@@ -62,8 +62,8 @@ impl EventHandler for Handler {
 
     fn reaction_add(&self, ctx: Context, add_reaction: Reaction) {
         match add_reaction.emoji {
-            ReactionType::Unicode(ref s) if s == "📗" => fav::add_fav(ctx, add_reaction),
-            ReactionType::Unicode(ref s) if s == "🗑" => fav::remove_fav(ctx, add_reaction),
+            ReactionType::Unicode(ref s) if s == "📗" => fav::add(ctx, add_reaction),
+            ReactionType::Unicode(ref s) if s == "🗑" => fav::remove(ctx, add_reaction),
             ReactionType::Unicode(ref s) if s == "🏷" => fav::add_label(ctx, add_reaction),
             ReactionType::Unicode(ref s) if s == "👆" => blackjack::hit(ctx, add_reaction),
             ReactionType::Unicode(ref s) if s == "✋" => blackjack::stay(ctx, add_reaction),

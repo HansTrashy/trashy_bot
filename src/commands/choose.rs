@@ -14,6 +14,7 @@ use log::*;
 
 #[command]
 #[description = "Choose between things"]
+#[num_args(1)]
 pub fn choose(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
     let mut rng = rand::thread_rng();
 
@@ -24,7 +25,7 @@ pub fn choose(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult
             .channel_id
             .say(&ctx.http, "You have to give at least 2 options")
         {
-            Ok(_msg) => Ok(()),
+            Ok(_) => Ok(()),
             Err(e) => {
                 error!("Failure sending message: {:?}", e);
                 Err(e.into())
@@ -42,7 +43,7 @@ pub fn choose(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult
             &settings,
         ),
     ) {
-        Ok(_msg) => Ok(()),
+        Ok(_) => Ok(()),
         Err(e) => {
             error!("Failure sending message: {:?}", e);
             Err(e.into())

@@ -17,37 +17,38 @@ use log::*;
 #[command]
 #[bucket = "blackjack"]
 #[description = "Play a round of Blackjack"]
+#[num_args(1)]
+#[example = "1000"]
 pub fn blackjack(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
     let data = ctx.data.read();
-    let pool = match data.get::<DatabaseConnection>() {
-        Some(v) => v.clone(),
-        None => {
-            let _ = msg
-                .channel_id
-                .say(&ctx, "Datenbankfehler, bitte informiere einen Moderator!");
-            return Ok(());
-        }
+    let pool = if let Some(v) = data.get::<DatabaseConnection>() {
+        v.clone()
+    } else {
+        let _ = msg.channel_id.say(
+            &ctx,
+            "Something happened that should not! Please try again later.",
+        );
+        return Ok(());
     };
     let conn: &PgConnection = &pool.get().unwrap();
     let amount_to_bet = match args.single::<i64>() {
         Ok(v) if v > 0 => v,
         Ok(_) => {
             // log
-            let _ = msg.channel_id.say(&ctx, "Ungültiger Wetteinsatz!");
+            let _ = msg.channel_id.say(&ctx, "Invalid bet!");
             return Ok(());
         }
         Err(_e) => {
             // log
-            let _ = msg.channel_id.say(&ctx, "Ungültiger Wetteinsatz!");
+            let _ = msg.channel_id.say(&ctx, "Invalid bet!");
             return Ok(());
         }
     };
-    let blackjack_state = match data.get::<BlackjackState>() {
-        Some(v) => v.clone(),
-        None => {
-            let _ = msg.reply(&ctx, "Could not retrieve the blackjack state!");
-            return Ok(());
-        }
+    let blackjack_state = if let Some(v) = data.get::<BlackjackState>() {
+        v.clone()
+    } else {
+        let _ = msg.reply(&ctx, "Could not retrieve the blackjack state!");
+        return Ok(());
     };
 
     // check if user already owns a bank & has enough balance
@@ -71,7 +72,7 @@ pub fn blackjack(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandRes
             })
             .expect("Failed to create blackjack message");
         blackjack_state.lock().add_game(
-            pool.clone(),
+            pool,
             ctx.clone(),
             *msg.author.id.as_u64(),
             amount_to_bet,
@@ -79,10 +80,9 @@ pub fn blackjack(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandRes
             *blackjack_msg.id.as_u64(),
         );
     } else {
-        let _ = msg.channel_id.say(
-            &ctx,
-            "Du besitzt entweder keine Bank, oder nicht genügend credits!",
-        );
+        let _ = msg
+            .channel_id
+            .say(&ctx, "You have no account or not enough points!");
     }
     Ok(())
 }
