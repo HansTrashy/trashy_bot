@@ -14,7 +14,7 @@ use log::*;
 
 #[command]
 #[description = "Choose between things"]
-#[num_args(1)]
+#[min_args(2)]
 pub fn choose(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
     let mut rng = rand::thread_rng();
 
