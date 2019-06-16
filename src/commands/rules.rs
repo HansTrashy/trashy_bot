@@ -16,6 +16,7 @@ use log::*;
 #[command]
 #[description = "Sends you the Rules in German"]
 #[num_args(0)]
+#[only_in("guilds")]
 pub fn de(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
     let rules = match ctx.data.read().get::<RulesState>() {
         Some(v) => v.clone(),
@@ -50,6 +51,7 @@ pub fn de(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
 #[command]
 #[description = "Sends you the rules in english"]
 #[num_args(0)]
+#[only_in("guilds")]
 pub fn en(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
     let rules = match ctx.data.read().get::<RulesState>() {
         Some(v) => v.clone(),
@@ -84,6 +86,7 @@ pub fn en(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
 #[command]
 #[allowed_roles("Mods")]
 #[description = "Sets the rules"]
+#[only_in("guilds")]
 pub fn setde(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
     let rules = match ctx.data.read().get::<RulesState>() {
         Some(v) => v.clone(),
@@ -92,14 +95,15 @@ pub fn setde(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
             return Ok(());
         }
     };
-    rules.lock().set_de(&args.rest());
+    rules.lock().set_de(args.rest());
     let _ = msg.react(&ctx, ReactionType::Unicode("👌".to_string()));
     Ok(())
 }
 
 #[command]
-#[description = "Adds to the rules"]
 #[allowed_roles("Mods")]
+#[description = "Adds to the rules"]
+#[only_in("guilds")]
 pub fn addde(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
     let rules = match ctx.data.read().get::<RulesState>() {
         Some(v) => v.clone(),
@@ -117,6 +121,7 @@ pub fn addde(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
 #[command]
 #[allowed_roles("Mods")]
 #[description = "Sets the rules"]
+#[only_in("guilds")]
 pub fn seten(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
     let rules = match ctx.data.read().get::<RulesState>() {
         Some(v) => v.clone(),
@@ -133,6 +138,7 @@ pub fn seten(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
 #[command]
 #[allowed_roles("Mods")]
 #[description = "Adds to the rules"]
+#[only_in("guilds")]
 pub fn adden(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
     let rules = match ctx.data.read().get::<RulesState>() {
         Some(v) => v.clone(),
@@ -152,6 +158,7 @@ pub fn adden(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
 #[description = "The bot will post the rules into the channel"]
 #[num_args(1)]
 #[example = "de"]
+#[only_in("guilds")]
 pub fn post(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
     let lang = args.single::<String>()?;
     let rules = match ctx.data.read().get::<RulesState>() {
@@ -166,8 +173,7 @@ pub fn post(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
 
     let rules_text = match lang.as_str() {
         "en" => &lock.en,
-        "de" => &lock.de,
-        _ => &lock.de,
+        "de" | _ => &lock.de,
     };
 
     rules_text

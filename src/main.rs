@@ -29,7 +29,7 @@ use serenity::{
     prelude::*,
 };
 
-use std::{collections::HashSet, hash::BuildHasher};
+use std::collections::HashSet;
 use std::{env, sync::Arc};
 mod blackjack;
 mod handler;
@@ -140,7 +140,7 @@ fn my_help(
     args: Args,
     help_options: &'static HelpOptions,
     groups: &[&'static CommandGroup],
-    owners: HashSet<UserId, impl BuildHasher>,
+    owners: HashSet<UserId>,
 ) -> CommandResult {
     help_commands::with_embeds(context, msg, args, help_options, groups, owners)
 }
@@ -225,7 +225,7 @@ fn main() {
                     );
                 }
             })
-            .help(&MY_HELP_HELP_COMMAND)
+            .help(&MY_HELP)
             .bucket("slotmachine", |b| b.delay(10))
             .bucket("blackjack", |b| b.delay(600))
             .group(&commands::groups::general::GENERAL_GROUP)

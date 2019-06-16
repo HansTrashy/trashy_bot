@@ -50,7 +50,7 @@ pub fn create(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult
                 role_group_arg,
                 emoji_arg,
             );
-            let _ = msg.reply(ctx, "Added rr!");
+            let _ = msg.reply(&ctx, "Added rr!");
         }
     }
     Ok(())

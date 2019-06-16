@@ -60,8 +60,9 @@ pub mod rules {
         options: {
             prefix: "rules",
             description: "Rules to be sent by the bot",
+            default_command: de,
         },
-        commands: [],
+        commands: [de, en, setde, addde, seten, adden, post],
     });
 }
 

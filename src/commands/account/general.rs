@@ -40,9 +40,9 @@ pub fn createaccount(ctx: &mut Context, msg: &Message, args: Args) -> CommandRes
             1000,
             Utc::now().naive_utc(),
         );
-        let _ = msg.reply(ctx, "Created bank!");
+        let _ = msg.reply(&ctx, "Created bank!");
     } else {
-        let _ = msg.reply(ctx, &format!("Your bank balance: {}", results[0].amount));
+        let _ = msg.reply(&ctx, &format!("Your bank balance: {}", results[0].amount));
     }
     Ok(())
 }
