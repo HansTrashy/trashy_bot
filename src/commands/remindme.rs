@@ -14,6 +14,7 @@ use crate::{DispatcherKey, SchedulerKey};
 use crate::dispatch::DispatchEvent;
 use hey_listen::sync::ParallelDispatcherRequest as DispatcherRequest;
 use std::sync::Arc;
+use serenity::utils::{content_safe, ContentSafeOptions};
 
 #[command]
 #[description = "Reminds you after x seconds with the given text"]
@@ -22,7 +23,11 @@ use std::sync::Arc;
 #[min_args(1)]
 fn remindme(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
     let time: u64 = args.single()?;
-    let args = args.rest().to_string();
+    let args = content_safe(
+        &ctx,
+        &args.rest().to_string(),
+        &ContentSafeOptions::default(),
+    );
 
     let scheduler = {
         let mut context = ctx.data.write();
