@@ -28,9 +28,12 @@ use serenity::{
     },
     prelude::*,
 };
-
 use std::collections::HashSet;
 use std::{env, sync::Arc};
+use hey_listen::sync::ParallelDispatcher as Dispatcher;
+use white_rabbit::Scheduler;
+
+mod dispatch;
 mod blackjack;
 mod handler;
 mod logger;
@@ -38,11 +41,9 @@ mod reaction_roles;
 mod rules;
 mod schema;
 mod util;
-
 mod interaction {
     pub mod wait;
 }
-
 mod models {
     pub mod bank;
     pub mod fav;
@@ -62,6 +63,7 @@ mod commands {
     pub mod fav;
     pub mod groups;
     pub mod quote;
+    pub mod remindme;
     pub mod reaction_roles;
     pub mod roll;
     pub mod rules;
@@ -70,37 +72,41 @@ mod commands {
 }
 
 struct ShardManagerContainer;
-
 impl TypeMapKey for ShardManagerContainer {
     type Value = Arc<Mutex<ShardManager>>;
 }
 
 struct DatabaseConnection;
-
 impl TypeMapKey for DatabaseConnection {
     type Value = Pool<ConnectionManager<PgConnection>>;
 }
 
-struct Waiter;
+struct DispatcherKey;
+impl TypeMapKey for DispatcherKey {
+    type Value = Arc<RwLock<Dispatcher<crate::dispatch::DispatchEvent>>>;
+}
 
+struct SchedulerKey;
+impl TypeMapKey for SchedulerKey {
+    type Value = Arc<RwLock<Scheduler>>;
+}
+
+struct Waiter;
 impl TypeMapKey for Waiter {
     type Value = Arc<Mutex<self::interaction::wait::Wait>>;
 }
 
 struct ReactionRolesState;
-
 impl TypeMapKey for ReactionRolesState {
     type Value = Arc<Mutex<self::reaction_roles::State>>;
 }
 
 struct RulesState;
-
 impl TypeMapKey for RulesState {
     type Value = Arc<Mutex<self::rules::State>>;
 }
 
 struct BlackjackState;
-
 impl TypeMapKey for BlackjackState {
     type Value = Arc<Mutex<self::blackjack::State>>;
 }
@@ -163,21 +169,28 @@ fn main() {
         .expect("Failed to create db pool.");
 
     let waiter = Arc::new(Mutex::new(self::interaction::wait::Wait::new()));
-
     let rr_state = Arc::new(Mutex::new(self::reaction_roles::State::load_set()));
-
     let rules_state = Arc::new(Mutex::new(self::rules::State::load()));
-
     let blackjack_state = Arc::new(Mutex::new(self::blackjack::State::load(db_pool.clone())));
+
+    let scheduler = Scheduler::new(2);
+    let scheduler = Arc::new(RwLock::new(scheduler));
+    let mut dispatcher: Dispatcher<crate::dispatch::DispatchEvent> = Dispatcher::default();
+    dispatcher
+        .num_threads(2)
+        .expect("could not construct threadpool for dispatcher");
 
     {
         let mut data = client.data.write();
-        data.insert::<DatabaseConnection>(db_pool.clone());
+
+        data.insert::<DatabaseConnection>(db_pool);
         data.insert::<ShardManagerContainer>(Arc::clone(&client.shard_manager));
         data.insert::<Waiter>(waiter);
         data.insert::<ReactionRolesState>(rr_state);
         data.insert::<RulesState>(rules_state);
         data.insert::<BlackjackState>(blackjack_state);
+        data.insert::<DispatcherKey>(Arc::new(RwLock::new(dispatcher)));
+        data.insert::<SchedulerKey>(scheduler);
     }
 
     let (owners, bot_id) = match client.cache_and_http.http.get_current_application_info() {
