@@ -60,15 +60,30 @@ impl EventHandler for Handler {
         }
     }
 
-    fn reaction_add(&self, ctx: Context, add_reaction: Reaction) {
-        match add_reaction.emoji {
-            ReactionType::Unicode(ref s) if s == "📗" => fav::add(ctx, add_reaction),
-            ReactionType::Unicode(ref s) if s == "🗑" => fav::remove(ctx, add_reaction),
-            ReactionType::Unicode(ref s) if s == "🏷" => fav::add_label(ctx, add_reaction),
-            ReactionType::Unicode(ref s) if s == "👆" => blackjack::hit(ctx, add_reaction),
-            ReactionType::Unicode(ref s) if s == "✋" => blackjack::stay(ctx, add_reaction),
-            ReactionType::Unicode(ref s) if s == "🌀" => blackjack::new_game(ctx, add_reaction),
-            _ => reaction_roles::add_role(ctx, add_reaction),
+    fn reaction_add(&self, ctx: Context, reaction: Reaction) {
+        let dispatcher = {
+            let mut context = ctx.data.write();
+            context
+                .get_mut::<crate::DispatcherKey>()
+                .expect("No Dispatcher")
+                .clone()
+        };
+        dispatcher
+            .write()
+            .dispatch_event(&crate::dispatch::DispatchEvent::ReactEvent(
+                reaction.message_id,
+                reaction.user_id,
+            ));
+
+        //TODO: refactor old dispatch style into new one using the dispatcher
+        match reaction.emoji {
+            ReactionType::Unicode(ref s) if s == "📗" => fav::add(ctx, reaction),
+            ReactionType::Unicode(ref s) if s == "🗑" => fav::remove(ctx, reaction),
+            ReactionType::Unicode(ref s) if s == "🏷" => fav::add_label(ctx, reaction),
+            ReactionType::Unicode(ref s) if s == "👆" => blackjack::hit(ctx, reaction),
+            ReactionType::Unicode(ref s) if s == "✋" => blackjack::stay(ctx, reaction),
+            ReactionType::Unicode(ref s) if s == "🌀" => blackjack::new_game(ctx, reaction),
+            _ => reaction_roles::add_role(ctx, reaction),
         }
     }
 
