@@ -24,69 +24,74 @@ use serenity::utils::{content_safe, ContentSafeOptions};
 fn remindme(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
     let time: u64 = args.single()?;
     let time_unit: String = args.single()?;
-    let duration;
-    match time_unit.as_ref(){
-        "s" => duration = Duration::seconds(time as i64),
-        "m" => duration = Duration::minutes(time as i64),
-        "h" => duration = Duration::hours(time as i64),
-        "d" => duration = Duration::days(time as i64),
-        _ => duration = Duration::seconds(-1),
-    }
 
-    if duration < Duration::zero(){
-        let _ = msg.reply(&ctx, "Unknown time unit. Allowed units are: s,m,h,d");
-        return Ok(());
-    }
-    let args = content_safe(
-        &ctx,
-        &args.rest().to_string(),
-        &ContentSafeOptions::default(),
-    );
-
-    let scheduler = {
-        let mut context = ctx.data.write();
-        context
-            .get_mut::<SchedulerKey>()
-            .expect("expected scheduler")
-            .clone()
+    let duration = match time_unit.as_ref() {
+        "s" => Some(Duration::seconds(time as i64)),
+        "m" => Some(Duration::minutes(time as i64)),
+        "h" => Some(Duration::hours(time as i64)),
+        "d" => Some(Duration::days(time as i64)),
+        _ => None,
     };
 
-    let dispatcher = {
-        let mut context = ctx.data.write();
-        context
-            .get_mut::<DispatcherKey>()
-            .expect("expected dispatcher")
-            .clone()
-    };
+    match duration {
+        None => {
+            let _ = msg.reply(&ctx, "Unknown time unit. Allowed units are: s,m,h,d");
+            Ok(())
+        }
+        Some(duration) => {
+            let args = content_safe(
+                &ctx,
+                &args.rest().to_string(),
+                &ContentSafeOptions::default(),
+            );
 
-    let http = ctx.http.clone();
-    let cache = ctx.cache.clone();
-    let msg = msg.clone();
+            let scheduler = {
+                let mut context = ctx.data.write();
+                context
+                    .get_mut::<SchedulerKey>()
+                    .expect("expected scheduler")
+                    .clone()
+            };
 
-    let mut scheduler = scheduler.write();
+            // let dispatcher = {
+            //     let mut context = ctx.data.write();
+            //     context
+            //         .get_mut::<DispatcherKey>()
+            //         .expect("expected dispatcher")
+            //         .clone()
+            // };
 
-    scheduler.add_task_duration(duration, move |_| {
-        let bot_msg = match msg.reply((&cache, &*http), &args) {
-            Ok(msg) => msg,
-            Err(why) => {
-                error!("Could not send message: {:?}", why);
-                return DateResult::Done;
-            }
-        };
+            let http = ctx.http.clone();
+            let cache = ctx.cache.clone();
+            let msg = msg.clone();
 
-        // let http = http.clone();
-        // dispatcher.write().add_fn(
-        //     DispatchEvent::ReactEvent(bot_msg.id, msg.author.id),
-        //     Box::new(move |_| {
-        //         if let Err(why) = bot_msg.channel_id.say(&http, "Thanks for reacting!") {
-        //             error!("Could not send message: {:?}", why);
-        //         }
-        //         Some(DispatcherRequest::StopListening)
-        //     }),
-        // );
+            let mut scheduler = scheduler.write();
 
-        DateResult::Done
-    });
+            scheduler.add_task_duration(duration, move |_| {
+                let bot_msg = match msg.reply((&cache, &*http), &args) {
+                    Ok(msg) => msg,
+                    Err(why) => {
+                        error!("Could not send message: {:?}", why);
+                        return DateResult::Done;
+                    }
+                };
 
-    Ok(())
+                // let http = http.clone();
+                // dispatcher.write().add_fn(
+                //     DispatchEvent::ReactEvent(bot_msg.id, msg.author.id),
+                //     Box::new(move |_| {
+                //         if let Err(why) = bot_msg.channel_id.say(&http, "Thanks for reacting!") {
+                //             error!("Could not send message: {:?}", why);
+                //         }
+                //         Some(DispatcherRequest::StopListening)
+                //     }),
+                // );
+
+                DateResult::Done
+            });
+
+            Ok(())
+        }
+    }
+
 }
