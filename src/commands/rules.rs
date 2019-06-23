@@ -96,7 +96,7 @@ pub fn setde(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
         }
     };
     rules.lock().set_de(args.rest());
-    let _ = msg.react(&ctx, ReactionType::Unicode("👌".to_string()));
+    let _ = msg.react(&ctx, ReactionType::Unicode("✅".to_string()));
     Ok(())
 }
 
@@ -114,7 +114,7 @@ pub fn addde(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
     };
     let new_rules = format!("{}\n\n{}", rules.lock().de, &args.rest());
     rules.lock().set_de(&new_rules);
-    let _ = msg.react(&ctx, ReactionType::Unicode("👌".to_string()));
+    let _ = msg.react(&ctx, ReactionType::Unicode("✅".to_string()));
     Ok(())
 }
 
@@ -131,7 +131,7 @@ pub fn seten(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
         }
     };
     rules.lock().set_en(&args.rest());
-    let _ = msg.react(&ctx, ReactionType::Unicode("👌".to_string()));
+    let _ = msg.react(&ctx, ReactionType::Unicode("✅".to_string()));
     Ok(())
 }
 
@@ -149,7 +149,7 @@ pub fn adden(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
     };
     let new_rules = format!("{}\n\n{}", rules.lock().en, &args.rest());
     rules.lock().set_en(&new_rules);
-    let _ = msg.react(&ctx, ReactionType::Unicode("👌".to_string()));
+    let _ = msg.react(&ctx, ReactionType::Unicode("✅".to_string()));
     Ok(())
 }
 

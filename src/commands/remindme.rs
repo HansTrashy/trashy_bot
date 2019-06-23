@@ -63,6 +63,7 @@ fn remindme(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
 
             let http = ctx.http.clone();
             let cache = ctx.cache.clone();
+            let _ = msg.react(&ctx, ReactionType::Unicode("✅".to_string()));
             let msg = msg.clone();
 
             let mut scheduler = scheduler.write();
