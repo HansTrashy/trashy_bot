@@ -17,12 +17,26 @@ use std::sync::Arc;
 use serenity::utils::{content_safe, ContentSafeOptions};
 
 #[command]
-#[description = "Reminds you after x seconds with the given text"]
-#[example("60 Pizza ist fertig!")]
-#[usage("*seconds* *message*")]
+#[description = "Reminds you after the given time with the given text. Allowed time units: s,m,h,d."]
+#[example("15 m Pizza ist fertig!")]
+#[usage("*amount* *unit* *message*")]
 #[min_args(1)]
 fn remindme(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
     let time: u64 = args.single()?;
+    let time_unit: String = args.single()?;
+    let duration;
+    match time_unit.as_ref(){
+        "s" => duration = Duration::seconds(time as i64),
+        "m" => duration = Duration::minutes(time as i64),
+        "h" => duration = Duration::hours(time as i64),
+        "d" => duration = Duration::days(time as i64),
+        _ => duration = Duration::seconds(-1),
+    }
+
+    if duration < Duration::zero(){
+        let _ = msg.reply(&ctx, "Unknown time unit. Allowed units are: s,m,h,d");
+        return Ok(());
+    }
     let args = content_safe(
         &ctx,
         &args.rest().to_string(),
@@ -51,7 +65,7 @@ fn remindme(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
 
     let mut scheduler = scheduler.write();
 
-    scheduler.add_task_duration(Duration::seconds(time as i64), move |_| {
+    scheduler.add_task_duration(duration, move |_| {
         let bot_msg = match msg.reply((&cache, &*http), &args) {
             Ok(msg) => msg,
             Err(why) => {
