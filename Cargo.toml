@@ -35,5 +35,5 @@ features = [
     "standard_framework",
     "utils",
     "rustls_backend",
-    "voice",
+    # "voice",
 ]
