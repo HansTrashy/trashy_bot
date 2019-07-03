@@ -35,4 +35,5 @@ features = [
     "standard_framework",
     "utils",
     "rustls_backend",
-] # unused features [ "voice" ]
+    "voice",
+]

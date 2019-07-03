@@ -79,3 +79,16 @@ pub mod reaction_roles {
         commands: [list, create, remove, postgroups],
     });
 }
+
+pub mod voice {
+    use serenity::framework::standard::{macros::{command, group, help, check}};
+    use crate::commands::voice::*;
+    group!({
+        name: "voice",
+        options: {
+            prefix: "v",
+            description: "Let the bot sing for you",
+        },
+        commands: [deafen, join, leave, mute, play, undeafen, unmute]
+    });
+}

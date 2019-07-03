@@ -3,6 +3,9 @@
 ## Requirements
 
 Postgres installation [PostgreSQL](https://www.postgresql.org/download/) with pg/bin in PATH
+Voice depends on:
+    - ffmpeg: https://ffmpeg.zeranoe.com/builds/
+    - youtube-dl https://ytdl-org.github.io/youtube-dl/download.html
 
 *Remember to do a `cargo clean` and check that the env vars are  updated*
 
