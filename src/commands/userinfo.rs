@@ -106,7 +106,7 @@ pub fn userinfo(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResu
         user_info
             .member
             .as_ref()
-            .and_then(|m| Some(m.roles.iter().map(|r| format!("{}, ", r)).collect::<String>()))
+            .and_then(|m| Some(m.roles.join(", ")))
             .unwrap_or_else(|| default.clone()),
     );
 
