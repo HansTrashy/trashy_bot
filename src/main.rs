@@ -72,7 +72,8 @@ mod commands {
     pub mod rules;
     pub mod userinfo;
     pub mod xkcd;
-    // pub mod voice;
+    pub mod voice;
+    pub mod spongebob;
 }
 
 struct ShardManagerContainer;
