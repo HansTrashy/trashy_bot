@@ -27,9 +27,9 @@ use serenity::{
         id::UserId,
     },
     prelude::*,
-// client::bridge::voice::ClientVoiceManager,
-// client::Context,
-// voice,
+    client::bridge::voice::ClientVoiceManager,
+    client::Context,
+    voice,
 };
 use std::collections::HashSet;
 use std::{env, sync::Arc};
@@ -116,10 +116,10 @@ impl TypeMapKey for BlackjackState {
     type Value = Arc<Mutex<self::blackjack::State>>;
 }
 
-// struct VoiceManager;
-// impl TypeMapKey for VoiceManager {
-//     type Value = Arc<Mutex<ClientVoiceManager>>;
-// }
+struct VoiceManager;
+impl TypeMapKey for VoiceManager {
+    type Value = Arc<Mutex<ClientVoiceManager>>;
+}
 
 #[help]
 // This replaces the information that a user can pass
@@ -201,7 +201,7 @@ fn main() {
         data.insert::<BlackjackState>(blackjack_state);
         data.insert::<DispatcherKey>(Arc::new(RwLock::new(dispatcher)));
         data.insert::<SchedulerKey>(scheduler);
-        // data.insert::<VoiceManager>(Arc::clone(&client.voice_manager));
+        data.insert::<VoiceManager>(Arc::clone(&client.voice_manager));
     }
 
     let (owners, bot_id) = match client.cache_and_http.http.get_current_application_info() {
@@ -258,7 +258,7 @@ fn main() {
             .group(&commands::groups::rules::RULES_GROUP)
             .group(&commands::groups::reaction_roles::REACTION_ROLES_GROUP)
             .group(&commands::groups::account::ACCOUNT_GROUP)
-            // .group(&commands::groups::voice::VOICE_GROUP),
+            .group(&commands::groups::voice::VOICE_GROUP),
     );
 
     if let Err(why) = client.start() {

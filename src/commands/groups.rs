@@ -80,15 +80,15 @@ pub mod reaction_roles {
     });
 }
 
-// pub mod voice {
-//     use serenity::framework::standard::{macros::{command, group, help, check}};
-//     use crate::commands::voice::*;
-//     group!({
-//         name: "voice",
-//         options: {
-//             prefix: "v",
-//             description: "Let the bot sing for you",
-//         },
-//         commands: [deafen, join, leave, mute, play, undeafen, unmute]
-//     });
-// }
+pub mod voice {
+    use serenity::framework::standard::{macros::{command, group, help, check}};
+    use crate::commands::voice::*;
+    group!({
+        name: "voice",
+        options: {
+            prefix: "v",
+            description: "Let the bot sing for you",
+        },
+        commands: [deafen, join, leave, mute, play, undeafen, unmute]
+    });
+}
