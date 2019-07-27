@@ -1,7 +1,6 @@
 #![deny(clippy::all)]
 #![warn(clippy::nursery)]
 #![warn(clippy::pedantic)]
-// #![deny(clippy::cargo)]
 #![allow(clippy::non_ascii_literal)]
 
 #[macro_use]
