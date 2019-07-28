@@ -28,8 +28,6 @@ pub fn create_bank(
     amount: i64,
     last_payday: NaiveDateTime,
 ) -> Bank {
-    use crate::schema::banks;
-
     let new_bank = NewBank {
         user_id,
         user_name,

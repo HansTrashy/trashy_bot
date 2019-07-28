@@ -2,6 +2,11 @@
 #![warn(clippy::nursery)]
 #![warn(clippy::pedantic)]
 #![allow(clippy::non_ascii_literal)]
+#![deny(nonstandard_style)]
+#![deny(future_incompatible)]
+#![deny(rust_2018_idioms)]
+#![warn(missing_docs)]
+#![warn(unused)]
 
 #[macro_use]
 extern crate serenity;
@@ -9,7 +14,6 @@ extern crate serenity;
 extern crate diesel;
 
 use diesel::pg::PgConnection;
-use diesel::prelude::*;
 use diesel::r2d2::{ConnectionManager, Pool};
 use log::*;
 use serenity::{
@@ -131,7 +135,6 @@ fn my_help(
 ) -> CommandResult {
     help_commands::with_embeds(context, msg, args, help_options, groups, owners)
 }
-
 
 fn main() {
     // load .env file

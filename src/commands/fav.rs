@@ -14,27 +14,32 @@ use regex::Regex;
 use itertools::Itertools;
 use std::iter::FromIterator;
 use serenity::{
-    framework::standard::{
-        Args, CommandResult,
-        macros::command,
-    },
+    framework::standard::{Args, CommandResult, macros::command},
     model::channel::Message,
 };
 use serenity::prelude::*;
 use log::*;
+use crate::dispatch::DispatchEvent;
+use crate::DispatcherKey;
+use hey_listen::sync::ParallelDispatcherRequest as DispatcherRequest;
 
 #[command]
 #[description = "Post a fav"]
 #[example = "taishi wichsen"]
 pub fn post(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
     let mut rng = rand::thread_rng();
-    let data = ctx.data.read();
+    let mut data = ctx.data.write();
     let conn = match data.get::<DatabaseConnection>() {
         Some(v) => v.get().unwrap(),
         None => {
             let _ = msg.reply(&ctx, "Could not retrieve the database connection!");
             return Ok(());
         }
+    };
+    let dispatcher = {
+        data.get_mut::<DispatcherKey>()
+            .expect("Expected Dispatcher.")
+            .clone()
     };
 
     let labels: Vec<String> = args.iter::<String>().filter_map(Result::ok).collect();
@@ -66,7 +71,7 @@ pub fn post(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
         })
         .collect();
 
-    let (chosen_fav, _tags) = possible_favs.iter().choose(&mut rng).unwrap();
+    let (chosen_fav, _tags) = possible_favs.into_iter().choose(&mut rng).unwrap();
 
     let fav_msg = ChannelId(chosen_fav.channel_id as u64)
         .message(&ctx.http, chosen_fav.msg_id as u64)
@@ -103,7 +108,7 @@ pub fn post(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
         .collect::<Vec<Attachment>>()
         .first()
     {
-        let _ = msg.channel_id.send_message(&ctx.http, |m| {
+        let bot_msg = msg.channel_id.send_message(&ctx.http, |m| {
             m.embed(|e| {
                 e.author(|a| {
                     a.name(&fav_msg.author.name)
@@ -114,15 +119,46 @@ pub fn post(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
                 .image(&image.url)
                 .footer(|f| {
                     f.text(&format!(
-                        "{} | Zitiert von: {}",
+                        "{} | Fav by: {}",
                         &fav_msg.timestamp.format("%d.%m.%Y, %H:%M:%S"),
                         &msg.author.name
                     ))
                 })
             })
         });
+
+        let http = ctx.http.clone();
+        if let Ok(bot_msg) = bot_msg {
+            dispatcher.write().add_fn(
+                DispatchEvent::ReactEvent(
+                    bot_msg.id,
+                    ReactionType::Unicode("ℹ".to_string()),
+                    bot_msg.channel_id,
+                    msg.author.id,
+                ),
+                Box::new(move |event: &DispatchEvent| match &event {
+                    DispatchEvent::ReactEvent(
+                        _msg_id,
+                        _reaction_type,
+                        _channel_id,
+                        react_user_id,
+                    ) => {
+                        if let Ok(dm_channel) = react_user_id.create_dm_channel(&http) {
+                            let _ = dm_channel.say(
+                                &http,
+                                format!(
+                                    "https://discordapp.com/channels/{}/{}/{}",
+                                    chosen_fav.server_id, chosen_fav.channel_id, chosen_fav.msg_id,
+                                ),
+                            );
+                        }
+                        Some(DispatcherRequest::StopListening)
+                    }
+                }),
+            );
+        }
     } else {
-        let _ = msg.channel_id.send_message(&ctx.http, |m| {
+        let bot_msg = msg.channel_id.send_message(&ctx.http, |m| {
             m.embed(|e| {
                 e.author(|a| {
                     a.name(&fav_msg.author.name)
@@ -132,13 +168,44 @@ pub fn post(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
                 .color((0, 120, 220))
                 .footer(|f| {
                     f.text(&format!(
-                        "{} | Zitiert von: {}",
+                        "{} | Fav by: {}",
                         &fav_msg.timestamp.format("%d.%m.%Y, %H:%M:%S"),
                         &msg.author.name
                     ))
                 })
             })
         });
+
+        let http = ctx.http.clone();
+        if let Ok(bot_msg) = bot_msg {
+            dispatcher.write().add_fn(
+                DispatchEvent::ReactEvent(
+                    bot_msg.id,
+                    ReactionType::Unicode("ℹ".to_string()),
+                    bot_msg.channel_id,
+                    msg.author.id,
+                ),
+                Box::new(move |event: &DispatchEvent| match &event {
+                    DispatchEvent::ReactEvent(
+                        _msg_id,
+                        _reaction_type,
+                        _channel_id,
+                        react_user_id,
+                    ) => {
+                        if let Ok(dm_channel) = react_user_id.create_dm_channel(&http) {
+                            let _ = dm_channel.say(
+                                &http,
+                                format!(
+                                    "https://discordapp.com/channels/{}/{}/{}",
+                                    chosen_fav.server_id, chosen_fav.channel_id, chosen_fav.msg_id,
+                                ),
+                            );
+                        }
+                        Some(DispatcherRequest::StopListening)
+                    }
+                }),
+            );
+        }
     }
     Ok(())
 }

@@ -58,7 +58,7 @@ pub fn quote(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
                         .image(&image.url)
                         .footer(|f| {
                             f.text(&format!(
-                                "{} | Zitiert von: {}",
+                                "{} | Quoted by: {}",
                                 &quoted_msg.timestamp.format("%d.%m.%Y, %H:%M:%S"),
                                 &msg.author.name
                             ))
@@ -108,7 +108,7 @@ pub fn quote(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
                         .description(&quoted_msg.content)
                         .footer(|f| {
                             f.text(&format!(
-                                "{} | Zitiert von: {}",
+                                "{} | Quoted by: {}",
                                 &quoted_msg.timestamp.format("%d.%m.%Y, %H:%M:%S"),
                                 &msg.author.name
                             ))
@@ -147,7 +147,7 @@ pub fn quote(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
                 }
             }
         } else {
-            let _ = msg.reply(&ctx, "Tut mir leid, ich kann diese Nachricht nicht finden.");
+            let _ = msg.reply(&ctx, "Sorry, i can not find this message.");
             trace!("Could not find quote message");
         }
     }
