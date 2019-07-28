@@ -43,37 +43,9 @@ mod reaction_roles;
 mod rules;
 mod schema;
 mod util;
-mod interaction {
-    pub mod wait;
-}
-mod models {
-    pub mod bank;
-    pub mod fav;
-    pub mod reaction_role;
-    pub mod tag;
-}
-
-mod commands {
-    pub mod about;
-    pub mod account {
-        pub mod blackjack;
-        pub mod general;
-        pub mod slot;
-    }
-    pub mod choose;
-    pub mod config;
-    pub mod fav;
-    pub mod groups;
-    pub mod quote;
-    pub mod remindme;
-    pub mod reaction_roles;
-    pub mod roll;
-    pub mod rules;
-    pub mod userinfo;
-    pub mod xkcd;
-    pub mod voice;
-    pub mod spongebob;
-}
+mod interaction;
+mod models;
+mod commands;
 
 struct ShardManagerContainer;
 impl TypeMapKey for ShardManagerContainer {
