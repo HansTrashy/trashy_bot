@@ -1,9 +1,6 @@
 use serde_derive::Deserialize;
 use serenity::{
-    framework::standard::{
-        Args, CommandResult,
-        macros::command,
-    },
+    framework::standard::{Args, CommandResult, macros::command},
     model::channel::Message,
 };
 use serenity::prelude::*;
@@ -32,6 +29,7 @@ fn spongebob(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult 
                     .icon_url("https://cdn.discordapp.com/emojis/598837367343808532.png?v=1")
             })
             .description(&spongify_this)
+            .footer(|f| f.text(&format!("Spongified by: {}", &msg.author.name)))
             .color((0, 120, 220))
         })
     });
