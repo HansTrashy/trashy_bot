@@ -72,6 +72,8 @@ impl EventHandler for Handler {
             .write()
             .dispatch_event(&crate::dispatch::DispatchEvent::ReactEvent(
                 reaction.message_id,
+                reaction.emoji.clone(), //TODO: this can be removed after refactoring old dispatch
+                reaction.channel_id,
                 reaction.user_id,
             ));
 
