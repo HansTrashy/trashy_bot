@@ -1,6 +1,10 @@
 pub mod general {
-    use serenity::framework::standard::{macros::{command, group, help, check}};
-    use crate::commands::{about::*, roll::*, choose::*, xkcd::*, quote::*, userinfo::*, remindme::*, spongebob::*};
+    use serenity::framework::standard::{
+        macros::{command, group, help, check},
+    };
+    use crate::commands::{
+        about::*, roll::*, choose::*, xkcd::*, quote::*, userinfo::*, remindme::*, spongebob::*,
+    };
 
     group!({
         name: "general",
@@ -10,7 +14,9 @@ pub mod general {
 }
 
 pub mod config {
-    use serenity::framework::standard::{macros::{command, group, help, check}};
+    use serenity::framework::standard::{
+        macros::{command, group, help, check},
+    };
     use crate::commands::config::*;
 
     group!({
@@ -20,12 +26,33 @@ pub mod config {
             description: "Config commands",
             default_command: status,
         },
-        commands: [status,]
+        commands: [status, show_config, set_modlog, set_muterole]
+    });
+}
+
+pub mod moderation {
+    use serenity::framework::standard::{
+        macros::{command, group, help, check},
+    };
+    use crate::commands::moderation::*;
+
+    group!({
+        name: "moderation",
+        options: {
+            prefix: "mod",
+            description: "Moderation commands",
+            allowed_roles: [
+                "Mods",
+            ]
+        },
+        commands: [mute, unmute, kick, ban]
     });
 }
 
 pub mod account {
-    use serenity::framework::standard::{macros::{command, group, help, check}};
+    use serenity::framework::standard::{
+        macros::{command, group, help, check},
+    };
     use crate::commands::account::{general::*, blackjack::*, slot::*};
     group!({
         name: "account",
@@ -39,7 +66,9 @@ pub mod account {
 }
 
 pub mod greenbook {
-    use serenity::framework::standard::{macros::{command, group, help, check}};
+    use serenity::framework::standard::{
+        macros::{command, group, help, check},
+    };
     use crate::commands::fav::*;
     group!({
         name: "greenbook",
@@ -53,7 +82,9 @@ pub mod greenbook {
 }
 
 pub mod rules {
-    use serenity::framework::standard::{macros::{command, group, help, check}};
+    use serenity::framework::standard::{
+        macros::{command, group, help, check},
+    };
     use crate::commands::rules::*;
     group!({
         name: "rules",
@@ -67,7 +98,9 @@ pub mod rules {
 }
 
 pub mod reaction_roles {
-    use serenity::framework::standard::{macros::{command, group, help, check}};
+    use serenity::framework::standard::{
+        macros::{command, group, help, check},
+    };
     use crate::commands::reaction_roles::*;
     group!({
         name: "reaction_roles",
@@ -81,7 +114,9 @@ pub mod reaction_roles {
 }
 
 pub mod voice {
-    use serenity::framework::standard::{macros::{command, group, help, check}};
+    use serenity::framework::standard::{
+        macros::{command, group, help, check},
+    };
     use crate::commands::voice::*;
     group!({
         name: "voice",

@@ -32,17 +32,9 @@ table! {
 
 table! {
     server_configs (id) {
-        id -> Int4,
-        server_id -> Int4,
-    }
-}
-
-table! {
-    server_settings (id) {
-        id -> Int4,
-        server_config_id -> Int4,
-        key -> Text,
-        value -> Text,
+        id -> Int8,
+        server_id -> Int8,
+        config -> Jsonb,
     }
 }
 
@@ -54,13 +46,10 @@ table! {
     }
 }
 
-joinable!(server_settings -> server_configs (server_config_id));
-
 allow_tables_to_appear_in_same_query!(
     banks,
     favs,
     reaction_roles,
     server_configs,
-    server_settings,
     tags,
 );

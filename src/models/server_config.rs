@@ -1,31 +1,16 @@
 use crate::schema::server_configs;
-use crate::schema::server_settings;
+use std::fmt;
 
-#[derive(Identifiable, Queryable, Debug)]
+#[derive(Identifiable, AsChangeset, Queryable, Debug)]
 pub struct ServerConfig {
-    id: i32,
-    server_id: i32,
+    pub id: i64,
+    pub server_id: i64,
+    pub config: serde_json::Value,
 }
 
 #[derive(Insertable, Debug)]
 #[table_name = "server_configs"]
 pub struct NewServerConfig {
-    server_id: i32,
-}
-
-#[derive(Identifiable, Queryable, Debug, Associations)]
-#[belongs_to(ServerConfig)]
-pub struct ServerSetting {
-    id: i32,
-    server_config_id: i32,
-    key: String,
-    value: String,
-}
-
-#[derive(Insertable, Debug)]
-#[table_name = "server_settings"]
-pub struct NewServerSetting {
-    server_config_id: i32,
-    key: String,
-    value: String,
+    pub server_id: i64,
+    pub config: serde_json::Value,
 }

@@ -7,6 +7,7 @@
 #![deny(rust_2018_idioms)]
 #![warn(missing_docs)]
 #![warn(unused)]
+//! Trashy Bot
 
 #[macro_use]
 extern crate serenity;
@@ -232,6 +233,7 @@ fn main() {
             .group(&commands::groups::rules::RULES_GROUP)
             .group(&commands::groups::reaction_roles::REACTION_ROLES_GROUP)
             .group(&commands::groups::account::ACCOUNT_GROUP)
+            .group(&commands::groups::moderation::MODERATION_GROUP)
             .group(&commands::groups::voice::VOICE_GROUP),
     );
 

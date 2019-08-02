@@ -13,3 +13,4 @@ pub mod userinfo;
 pub mod xkcd;
 pub mod voice;
 pub mod spongebob;
+pub mod moderation;

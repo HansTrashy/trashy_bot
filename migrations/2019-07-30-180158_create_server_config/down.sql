@@ -1,1 +1,1 @@
-DROP TABLE server_config;
+DROP TABLE server_configs;
