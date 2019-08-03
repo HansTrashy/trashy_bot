@@ -1,5 +1,4 @@
 use crate::schema::server_configs;
-use std::fmt;
 
 #[derive(Identifiable, AsChangeset, Queryable, Debug)]
 pub struct ServerConfig {

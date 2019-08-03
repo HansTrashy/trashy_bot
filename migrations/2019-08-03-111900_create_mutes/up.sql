@@ -1,0 +1,6 @@
+CREATE TABLE mutes (
+    id SERIAL8 PRIMARY KEY,
+    server_id INT8 NOT NULL,
+    user_id INT8 NOT NULL,
+    end_time TIMESTAMP WITH TIME ZONE NOT NULL
+);

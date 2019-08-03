@@ -20,6 +20,15 @@ table! {
 }
 
 table! {
+    mutes (id) {
+        id -> Int8,
+        server_id -> Int8,
+        user_id -> Int8,
+        end_time -> Timestamptz,
+    }
+}
+
+table! {
     reaction_roles (id) {
         id -> Int8,
         server_id -> Int8,
@@ -49,6 +58,7 @@ table! {
 allow_tables_to_appear_in_same_query!(
     banks,
     favs,
+    mutes,
     reaction_roles,
     server_configs,
     tags,
