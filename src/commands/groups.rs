@@ -4,12 +4,13 @@ pub mod general {
     };
     use crate::commands::{
         about::*, roll::*, choose::*, xkcd::*, quote::*, userinfo::*, remindme::*, spongebob::*,
+        selfmute::*,
     };
 
     group!({
         name: "general",
         options: {},
-        commands: [about, roll, choose, xkcd, quote, userinfo, remindme, spongebob],
+        commands: [about, roll, choose, xkcd, quote, userinfo, remindme, spongebob, selfmute],
     });
 }
 

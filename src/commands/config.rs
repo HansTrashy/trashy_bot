@@ -11,6 +11,7 @@ use serde::{Deserialize, Serialize};
 use crate::schema::server_configs;
 use crate::DatabaseConnection;
 use diesel::prelude::*;
+use crate::SchedulerKey;
 
 #[command]
 #[num_args(0)]
