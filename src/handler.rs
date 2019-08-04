@@ -5,9 +5,17 @@ use crate::Waiter;
 use diesel::prelude::*;
 use log::*;
 use serenity::{
-    model::{channel::Message, channel::Reaction, channel::ReactionType, gateway::Ready},
+    model::{
+        channel::Message, channel::Reaction, channel::ReactionType, gateway::Ready, id::GuildId,
+        user::User, guild::Member, id::ChannelId,
+    },
     prelude::*,
 };
+use crate::schema::server_configs;
+use crate::schema::mutes;
+use crate::models::server_config::{ServerConfig, NewServerConfig};
+use crate::models::mute::Mute;
+use crate::commands::config::GuildConfig;
 
 mod blackjack;
 mod fav;
@@ -18,6 +26,66 @@ pub struct Handler;
 impl EventHandler for Handler {
     fn ready(&self, _: Context, ready: Ready) {
         println!("{} is connected!", ready.user.name);
+    }
+
+    fn guild_member_addition(&self, ctx: Context, guild_id: GuildId, new_member: Member) {
+        let mut data = ctx.data.write();
+
+        if let Some(pool) = data.get::<DatabaseConnection>() {
+            let conn = pool.get().unwrap();
+
+            if let Some(mut config) = server_configs::table
+                .filter(server_configs::server_id.eq(*guild_id.as_u64() as i64))
+                .first::<ServerConfig>(&*conn)
+                .optional()
+                .unwrap()
+            {
+                let g_cfg: GuildConfig = serde_json::from_value(config.config.take()).unwrap();
+
+                if let Some(userlog_channel) = g_cfg.userlog_channel {
+                    let _ = ChannelId(userlog_channel).send_message(&ctx.http, |m| {
+                        m.embed(|e| {
+                            e.color((0, 120, 220)).description(format!(
+                                "user {} joined!",
+                                new_member.user.read().name
+                            ))
+                        })
+                    });
+                }
+            }
+        }
+    }
+
+    fn guild_member_removal(
+        &self,
+        ctx: Context,
+        guild_id: GuildId,
+        user: User,
+        old_member: Option<Member>,
+    ) {
+        let mut data = ctx.data.write();
+
+        if let Some(pool) = data.get::<DatabaseConnection>() {
+            let conn = pool.get().unwrap();
+
+            if let Some(mut config) = server_configs::table
+                .filter(server_configs::server_id.eq(*guild_id.as_u64() as i64))
+                .first::<ServerConfig>(&*conn)
+                .optional()
+                .unwrap()
+            {
+                let g_cfg: GuildConfig = serde_json::from_value(config.config.take()).unwrap();
+
+                if let Some(userlog_channel) = g_cfg.userlog_channel {
+                    let _ = ChannelId(userlog_channel).send_message(&ctx.http, |m| {
+                        m.embed(|e| {
+                            e.color((0, 120, 220))
+                                .description(format!("user {} left!", user.name))
+                        })
+                    });
+                }
+            }
+        }
     }
 
     fn message(&self, ctx: Context, msg: Message) {

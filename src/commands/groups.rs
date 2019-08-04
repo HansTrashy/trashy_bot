@@ -26,7 +26,7 @@ pub mod config {
             description: "Config commands",
             default_command: status,
         },
-        commands: [status, show_config, set_modlog, set_muterole]
+        commands: [status, show_config, set_modlog, set_muterole, set_userlog]
     });
 }
 
