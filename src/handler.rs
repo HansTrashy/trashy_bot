@@ -7,7 +7,7 @@ use log::*;
 use serenity::{
     model::{
         channel::Message, channel::Reaction, channel::ReactionType, gateway::Ready, id::GuildId,
-        user::User, guild::Member, id::ChannelId,
+        user::User, guild::Member, id::ChannelId, id::RoleId,
     },
     prelude::*,
 };
@@ -28,7 +28,7 @@ impl EventHandler for Handler {
         println!("{} is connected!", ready.user.name);
     }
 
-    fn guild_member_addition(&self, ctx: Context, guild_id: GuildId, new_member: Member) {
+    fn guild_member_addition(&self, ctx: Context, guild_id: GuildId, mut new_member: Member) {
         let mut data = ctx.data.write();
 
         if let Some(pool) = data.get::<DatabaseConnection>() {
@@ -51,6 +51,18 @@ impl EventHandler for Handler {
                             ))
                         })
                     });
+                }
+
+                let mute = mutes::table
+                    .filter(mutes::user_id.eq(*new_member.user.read().id.as_u64() as i64))
+                    .first::<Mute>(&*conn)
+                    .optional()
+                    .unwrap();
+
+                if let Some(mute) = mute {
+                    if let Some(mute_role) = g_cfg.mute_role {
+                        let _ = new_member.add_role(&ctx, RoleId(mute_role));
+                    }
                 }
             }
         }
