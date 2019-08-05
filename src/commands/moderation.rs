@@ -3,7 +3,9 @@ use serenity::{
     model::channel::Message,
     model::id::RoleId,
     model::id::ChannelId,
+    model::user::User,
 };
+use itertools::Itertools;
 use serenity::model::gateway::Activity;
 use serenity::model::user::OnlineStatus;
 use serenity::prelude::*;
@@ -116,9 +118,10 @@ pub fn mute(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
                     if let Some(modlog_channel) = &guild_config.modlog_channel {
                         let _ = ChannelId(*modlog_channel).send_message(&ctx, |m| {
                             m.embed(|e| {
-                                e.description(format!(
-                                    "Muted users: {:?} for {} seconds because: {}",
-                                    &msg.mentions, duration, mute_message,
+                                e.description(create_mute_message(
+                                    &msg.mentions,
+                                    &duration,
+                                    &mute_message,
                                 ))
                                 .color((0, 120, 220))
                             })
@@ -133,6 +136,49 @@ pub fn mute(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
     }
 
     Ok(())
+}
+
+fn create_mute_message(users: &Vec<User>, duration: &Duration, mute_message: &str) -> String {
+    let intro = if users.len() > 1 {
+        "Muted users:"
+    } else {
+        "Muted user:"
+    };
+    let users = users.iter().map(|u| u.name.to_string()).join(", ");
+    format!(
+        "{} **{}** for **{}**\nPlease note: *{}*",
+        intro, users, duration, mute_message
+    )
+}
+
+fn create_ban_message(users: &Vec<User>, ban_message: &str) -> String {
+    let intro = if users.len() > 1 {
+        "Banned users:"
+    } else {
+        "Banned user:"
+    };
+    let users = users.iter().map(|u| u.name.to_string()).join(", ");
+    format!("{} **{}**\nPlease note: *{}*", intro, users, ban_message)
+}
+
+fn create_kick_message(users: &Vec<User>, kick_message: &str) -> String {
+    let intro = if users.len() > 1 {
+        "Kicked users:"
+    } else {
+        "Kicked user:"
+    };
+    let users = users.iter().map(|u| u.name.to_string()).join(", ");
+    format!("{} **{}**\nPlease note: *{}*", intro, users, kick_message)
+}
+
+fn create_unmute_message(users: &Vec<User>) -> String {
+    let intro = if users.len() > 1 {
+        "Unmuted users:"
+    } else {
+        "Unmuted user:"
+    };
+    let users = users.iter().map(|u| u.name.to_string()).join(", ");
+    format!("{} {}", intro, users)
 }
 
 #[command]
@@ -183,7 +229,7 @@ pub fn unmute(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
                 if let Some(modlog_channel) = &guild_config.modlog_channel {
                     let _ = ChannelId(*modlog_channel).send_message(&ctx, |m| {
                         m.embed(|e| {
-                            e.description(format!("Unmuted users: {:?}", &msg.mentions))
+                            e.description(create_unmute_message(&msg.mentions))
                                 .color((0, 120, 220))
                         })
                     });
@@ -231,11 +277,8 @@ pub fn kick(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
                 if let Some(modlog_channel) = &guild_config.modlog_channel {
                     let _ = ChannelId(*modlog_channel).send_message(&ctx, |m| {
                         m.embed(|e| {
-                            e.description(format!(
-                                "Kicked users: {:?} because: {}",
-                                &msg.mentions, kick_message
-                            ))
-                            .color((0, 120, 220))
+                            e.description(create_kick_message(&msg.mentions, &kick_message))
+                                .color((0, 120, 220))
                         })
                     });
                 }
@@ -285,11 +328,8 @@ pub fn ban(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
                 if let Some(modlog_channel) = &guild_config.modlog_channel {
                     let _ = ChannelId(*modlog_channel).send_message(&ctx, |m| {
                         m.embed(|e| {
-                            e.description(format!(
-                                "Banned users: {:?} because: {}",
-                                &msg.mentions, ban_msg
-                            ))
-                            .color((0, 120, 220))
+                            e.description(create_ban_message(&msg.mentions, ban_msg))
+                                .color((0, 120, 220))
                         })
                     });
                 }
