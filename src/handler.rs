@@ -152,7 +152,7 @@ impl EventHandler for Handler {
                 let default = "Unknown".to_string();
 
                 let information_body = format!(
-                    "**Joined discord:** {} ({} days ago)\n\n**Joined this server:** {} ({} days ago)\n\n**Roles:** {}",
+                    "**Left discord:** {} ({} days ago)\n\n**Joined this server:** {} ({} days ago)\n\n**Roles:** {}",
                     user_info.created_at,
                     user_info.created_at_ago,
                     user_info

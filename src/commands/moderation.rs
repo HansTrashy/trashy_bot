@@ -335,26 +335,21 @@ pub fn kick(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
                 let guild_config: GuildConfig =
                     serde_json::from_value(server_config.config).unwrap();
 
-                if let Some(mute_role) = &guild_config.mute_role {
-                    let mut found_members = Vec::new();
-                    for user in &msg.mentions {
-                        let member = guild_id.member(&ctx, user)?;
-                        let _ = member.kick(&ctx);
-                        found_members.push(member);
-                    }
+                let mut found_members = Vec::new();
+                for user in &msg.mentions {
+                    let member = guild_id.member(&ctx, user)?;
+                    let _ = member.kick(&ctx);
+                    found_members.push(member);
+                }
 
-                    if let Some(modlog_channel) = &guild_config.modlog_channel {
-                        if found_members.len() > 0 {
-                            let _ = ChannelId(*modlog_channel).send_message(&ctx, |m| {
-                                m.embed(|e| {
-                                    e.description(create_kick_message(
-                                        &found_members,
-                                        &kick_message,
-                                    ))
+                if let Some(modlog_channel) = &guild_config.modlog_channel {
+                    if found_members.len() > 0 {
+                        let _ = ChannelId(*modlog_channel).send_message(&ctx, |m| {
+                            m.embed(|e| {
+                                e.description(create_kick_message(&found_members, &kick_message))
                                     .color((0, 120, 220))
-                                })
-                            });
-                        }
+                            })
+                        });
                     }
                 }
             }
@@ -393,22 +388,21 @@ pub fn ban(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
                 let guild_config: GuildConfig =
                     serde_json::from_value(server_config.config).unwrap();
 
-                if let Some(mute_role) = &guild_config.mute_role {
-                    let mut found_members = Vec::new();
-                    for user in &msg.mentions {
-                        let member = guild_id.member(&ctx, user)?;
-                        let _ = member.ban(&ctx, &(days, ban_msg));
-                    }
+                let mut found_members = Vec::new();
+                for user in &msg.mentions {
+                    let member = guild_id.member(&ctx, user)?;
+                    let _ = member.ban(&ctx, &(days, ban_msg));
+                    found_members.push(member);
+                }
 
-                    if let Some(modlog_channel) = &guild_config.modlog_channel {
-                        if found_members.len() > 0 {
-                            let _ = ChannelId(*modlog_channel).send_message(&ctx, |m| {
-                                m.embed(|e| {
-                                    e.description(create_ban_message(&found_members, ban_msg))
-                                        .color((0, 120, 220))
-                                })
-                            });
-                        }
+                if let Some(modlog_channel) = &guild_config.modlog_channel {
+                    if found_members.len() > 0 {
+                        let _ = ChannelId(*modlog_channel).send_message(&ctx, |m| {
+                            m.embed(|e| {
+                                e.description(create_ban_message(&found_members, ban_msg))
+                                    .color((0, 120, 220))
+                            })
+                        });
                     }
                 }
             }
