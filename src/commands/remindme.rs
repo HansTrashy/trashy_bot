@@ -1,10 +1,7 @@
 use serde_derive::Deserialize;
 use serenity::{
     prelude::*,
-    framework::standard::{
-        Args, CommandResult,
-        macros::command,
-    },
+    framework::standard::{Args, CommandResult, macros::command},
     http::Http,
     model::prelude::*,
 };
@@ -15,27 +12,19 @@ use crate::dispatch::DispatchEvent;
 use hey_listen::sync::ParallelDispatcherRequest as DispatcherRequest;
 use std::sync::Arc;
 use serenity::utils::{content_safe, ContentSafeOptions};
+use crate::util;
 
 #[command]
 #[description = "Reminds you after the given time with the given text. Allowed time units: s,m,h,d."]
-#[example("15 m Pizza ist fertig!")]
-#[usage("*amount* *unit* *message*")]
+#[example("15m Pizza ist fertig!")]
+#[usage("*duration* *message*")]
 #[min_args(1)]
 fn remindme(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
-    let time: u64 = args.single()?;
-    let time_unit: String = args.single()?;
-
-    let duration = match time_unit.as_ref() {
-        "s" => Some(Duration::seconds(time as i64)),
-        "m" => Some(Duration::minutes(time as i64)),
-        "h" => Some(Duration::hours(time as i64)),
-        "d" => Some(Duration::days(time as i64)),
-        _ => None,
-    };
+    let duration = util::parse_duration(&args.single::<String>()?);
 
     match duration {
         None => {
-            let _ = msg.reply(&ctx, "Unknown time unit. Allowed units are: s,m,h,d");
+            let _ = msg.reply(&ctx, "Unknown time unit. Allowed units are: s,m,h,d,w");
             Ok(())
         }
         Some(duration) => {
@@ -94,5 +83,4 @@ fn remindme(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
             Ok(())
         }
     }
-
 }

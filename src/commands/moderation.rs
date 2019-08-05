@@ -20,6 +20,7 @@ use chrono::{DateTime, Utc};
 use crate::SchedulerKey;
 use time::Duration;
 use white_rabbit::{Scheduler, DateResult};
+use crate::util;
 
 #[command]
 #[only_in("guilds")]
@@ -40,91 +41,93 @@ pub fn mute(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
         .clone();
     let mut scheduler = scheduler.write();
 
-    let seconds = args.single::<i64>()?;
+    let duration = util::parse_duration(&args.single::<String>()?);
     let mute_message = args.single::<String>()?;
 
-    if let Some(guild_id) = msg.guild_id {
-        match server_configs::table
-            .filter(server_configs::server_id.eq(*guild_id.as_u64() as i64))
-            .first::<ServerConfig>(&*conn)
-            .optional()?
-        {
-            Some(server_config) => {
-                let guild_config: GuildConfig =
-                    serde_json::from_value(server_config.config).unwrap();
+    if let Some(duration) = duration {
+        if let Some(guild_id) = msg.guild_id {
+            match server_configs::table
+                .filter(server_configs::server_id.eq(*guild_id.as_u64() as i64))
+                .first::<ServerConfig>(&*conn)
+                .optional()?
+            {
+                Some(server_config) => {
+                    let guild_config: GuildConfig =
+                        serde_json::from_value(server_config.config).unwrap();
 
-                if let Some(mute_role) = &guild_config.mute_role {
-                    for user in &msg.mentions {
-                        match guild_id.member(&ctx, user) {
-                            Ok(mut member) => {
-                                let _ = member.add_role(&ctx, RoleId(*mute_role));
-                            }
-                            Err(e) => error!("could not get member: {:?}", e),
-                        };
-                    }
-                    let end_time = Utc::now() + Duration::seconds(seconds);
-                    let mutes = msg
-                        .mentions
-                        .iter()
-                        .map(|user| NewMute {
-                            server_id: *guild_id.as_u64() as i64,
-                            user_id: *user.id.as_u64() as i64,
-                            end_time: end_time.clone(),
-                        })
-                        .collect::<Vec<NewMute>>();
-                    diesel::insert_into(mutes::table)
-                        .values(&mutes)
-                        .execute(&*conn)?;
-
-                    let http = ctx.http.clone();
-                    let data_clone = ctx.data.clone();
-                    let msg_clone = msg.clone();
-                    let mute_role_clone = mute_role.clone();
-
-                    scheduler.add_task_duration(Duration::seconds(seconds), move |_| {
-                        let conn_clone = match data_clone.write().get::<DatabaseConnection>() {
-                            Some(v) => v.get().unwrap(),
-                            None => panic!("Failed to get database connection"),
-                        };
-                        for user in &msg_clone.mentions {
-                            match guild_id.member(&*http, user) {
+                    if let Some(mute_role) = &guild_config.mute_role {
+                        for user in &msg.mentions {
+                            match guild_id.member(&ctx, user) {
                                 Ok(mut member) => {
-                                    let _ = member.remove_role(&http, RoleId(mute_role_clone));
+                                    let _ = member.add_role(&ctx, RoleId(*mute_role));
                                 }
                                 Err(e) => error!("could not get member: {:?}", e),
                             };
                         }
-                        let user_ids = msg_clone
+                        let end_time = Utc::now() + duration;
+                        let mutes = msg
                             .mentions
                             .iter()
-                            .map(|user| *user.id.as_u64() as i64)
-                            .collect::<Vec<i64>>();
-                        diesel::delete(
-                            mutes::table
-                                .filter(mutes::server_id.eq(*guild_id.as_u64() as i64))
-                                .filter(mutes::user_id.eq_any(user_ids)),
-                        )
-                        .execute(&*conn_clone)
-                        .expect("could not delete mute");
+                            .map(|user| NewMute {
+                                server_id: *guild_id.as_u64() as i64,
+                                user_id: *user.id.as_u64() as i64,
+                                end_time: end_time.clone(),
+                            })
+                            .collect::<Vec<NewMute>>();
+                        diesel::insert_into(mutes::table)
+                            .values(&mutes)
+                            .execute(&*conn)?;
 
-                        DateResult::Done
-                    });
-                }
+                        let http = ctx.http.clone();
+                        let data_clone = ctx.data.clone();
+                        let msg_clone = msg.clone();
+                        let mute_role_clone = mute_role.clone();
 
-                if let Some(modlog_channel) = &guild_config.modlog_channel {
-                    let _ = ChannelId(*modlog_channel).send_message(&ctx, |m| {
-                        m.embed(|e| {
-                            e.description(format!(
-                                "Muted users: {:?} for {} seconds because: {}",
-                                &msg.mentions, seconds, mute_message,
-                            ))
-                            .color((0, 120, 220))
-                        })
-                    });
+                        scheduler.add_task_duration(duration, move |_| {
+                            let conn_clone = match data_clone.write().get::<DatabaseConnection>() {
+                                Some(v) => v.get().unwrap(),
+                                None => panic!("Failed to get database connection"),
+                            };
+                            for user in &msg_clone.mentions {
+                                match guild_id.member(&*http, user) {
+                                    Ok(mut member) => {
+                                        let _ = member.remove_role(&http, RoleId(mute_role_clone));
+                                    }
+                                    Err(e) => error!("could not get member: {:?}", e),
+                                };
+                            }
+                            let user_ids = msg_clone
+                                .mentions
+                                .iter()
+                                .map(|user| *user.id.as_u64() as i64)
+                                .collect::<Vec<i64>>();
+                            diesel::delete(
+                                mutes::table
+                                    .filter(mutes::server_id.eq(*guild_id.as_u64() as i64))
+                                    .filter(mutes::user_id.eq_any(user_ids)),
+                            )
+                            .execute(&*conn_clone)
+                            .expect("could not delete mute");
+
+                            DateResult::Done
+                        });
+                    }
+
+                    if let Some(modlog_channel) = &guild_config.modlog_channel {
+                        let _ = ChannelId(*modlog_channel).send_message(&ctx, |m| {
+                            m.embed(|e| {
+                                e.description(format!(
+                                    "Muted users: {:?} for {} seconds because: {}",
+                                    &msg.mentions, duration, mute_message,
+                                ))
+                                .color((0, 120, 220))
+                            })
+                        });
+                    }
                 }
-            }
-            None => {
-                let _ = msg.reply(&ctx, "server config missing");
+                None => {
+                    let _ = msg.reply(&ctx, "server config missing");
+                }
             }
         }
     }
