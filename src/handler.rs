@@ -16,6 +16,8 @@ use crate::schema::mutes;
 use crate::models::server_config::{ServerConfig, NewServerConfig};
 use crate::models::mute::Mute;
 use crate::commands::config::GuildConfig;
+use chrono::Utc;
+use crate::commands::userinfo::{UserInfo, MemberInfo};
 
 mod blackjack;
 mod fav;
@@ -42,13 +44,64 @@ impl EventHandler for Handler {
             {
                 let g_cfg: GuildConfig = serde_json::from_value(config.config.take()).unwrap();
 
+                let mut user_info = UserInfo {
+                    created_at: new_member
+                        .user
+                        .read()
+                        .created_at()
+                        .format("%d.%m.%Y %H:%M:%S")
+                        .to_string(),
+                    created_at_ago: Utc::now()
+                        .signed_duration_since(new_member.user.read().created_at())
+                        .num_days(),
+                    member: None,
+                };
+
+                let default = "Unknown".to_string();
+
+                let information_body = format!(
+                    "**Joined discord:** {} ({} days ago)\n\n**Joined this server:** {} ({} days ago)\n\n**Roles:** {}",
+                    user_info.created_at,
+                    user_info.created_at_ago,
+                    user_info
+                        .member
+                        .as_ref()
+                        .and_then(|m| Some(&m.joined_at))
+                        .unwrap_or(&default),
+                    user_info
+                        .member
+                        .as_ref()
+                        .and_then(|m| Some(&m.joined_at_ago))
+                        .unwrap_or(&default),
+                    user_info
+                        .member
+                        .as_ref()
+                        .and_then(|m| Some(m.roles.join(", ")))
+                        .unwrap_or_else(|| default.clone()),
+                );
+
                 if let Some(userlog_channel) = g_cfg.userlog_channel {
-                    let _ = ChannelId(userlog_channel).send_message(&ctx.http, |m| {
+                    let _ = ChannelId(userlog_channel).send_message(&ctx, |m| {
                         m.embed(|e| {
-                            e.color((0, 120, 220)).description(format!(
-                                "user {} joined!",
-                                new_member.user.read().name
-                            ))
+                            e.author(|a| {
+                                a.name(&new_member.user.read().name).icon_url(
+                                    &new_member
+                                        .user
+                                        .read()
+                                        .static_avatar_url()
+                                        .unwrap_or_default(),
+                                )
+                            })
+                            .color((0, 120, 220))
+                            .description(&information_body)
+                            .footer(|f| {
+                                f.text(&format!(
+                                    "{}#{} | id: {}",
+                                    new_member.user.read().name,
+                                    new_member.user.read().discriminator,
+                                    &new_member.user.read().id,
+                                ))
+                            })
                         })
                     });
                 }
@@ -88,11 +141,52 @@ impl EventHandler for Handler {
             {
                 let g_cfg: GuildConfig = serde_json::from_value(config.config.take()).unwrap();
 
+                let mut user_info = UserInfo {
+                    created_at: user.created_at().format("%d.%m.%Y %H:%M:%S").to_string(),
+                    created_at_ago: Utc::now()
+                        .signed_duration_since(user.created_at())
+                        .num_days(),
+                    member: None,
+                };
+
+                let default = "Unknown".to_string();
+
+                let information_body = format!(
+                    "**Joined discord:** {} ({} days ago)\n\n**Joined this server:** {} ({} days ago)\n\n**Roles:** {}",
+                    user_info.created_at,
+                    user_info.created_at_ago,
+                    user_info
+                        .member
+                        .as_ref()
+                        .and_then(|m| Some(&m.joined_at))
+                        .unwrap_or(&default),
+                    user_info
+                        .member
+                        .as_ref()
+                        .and_then(|m| Some(&m.joined_at_ago))
+                        .unwrap_or(&default),
+                    user_info
+                        .member
+                        .as_ref()
+                        .and_then(|m| Some(m.roles.join(", ")))
+                        .unwrap_or_else(|| default.clone()),
+                );
+
                 if let Some(userlog_channel) = g_cfg.userlog_channel {
-                    let _ = ChannelId(userlog_channel).send_message(&ctx.http, |m| {
+                    let _ = ChannelId(userlog_channel).send_message(&ctx, |m| {
                         m.embed(|e| {
-                            e.color((0, 120, 220))
-                                .description(format!("user {} left!", user.name))
+                            e.author(|a| {
+                                a.name(&user.name)
+                                    .icon_url(&user.static_avatar_url().unwrap_or_default())
+                            })
+                            .color((0, 120, 220))
+                            .description(&information_body)
+                            .footer(|f| {
+                                f.text(&format!(
+                                    "{}#{} | id: {}",
+                                    user.name, user.discriminator, &user.id,
+                                ))
+                            })
                         })
                     });
                 }

@@ -1,9 +1,6 @@
 use serde_derive::Deserialize;
 use serenity::{
-    framework::standard::{
-        Args, CommandResult,
-        macros::command,
-    },
+    framework::standard::{Args, CommandResult, macros::command},
     model::channel::Message,
 };
 use serenity::prelude::*;
@@ -12,16 +9,16 @@ use chrono::{Utc, DateTime};
 use chrono::prelude::*;
 
 pub struct UserInfo {
-    created_at: String,
-    created_at_ago: i64,
-    member: Option<MemberInfo>,
+    pub created_at: String,
+    pub created_at_ago: i64,
+    pub member: Option<MemberInfo>,
 }
 
 pub struct MemberInfo {
-    nick: String,
-    joined_at: String,
-    joined_at_ago: String,
-    roles: Vec<String>,
+    pub nick: String,
+    pub joined_at: String,
+    pub joined_at_ago: String,
+    pub roles: Vec<String>,
 }
 
 #[command]
