@@ -20,10 +20,13 @@ use chrono::{DateTime, Utc};
 use crate::SchedulerKey;
 use time::Duration;
 use white_rabbit::{Scheduler, DateResult};
+use crate::util;
 
 #[command]
 #[num_args(1)]
-#[description = "Mutes youself for x seconds"]
+#[description = "Mutes youself for the given duration supports (w, d, h, m, s)"]
+#[usage = "*duration*"]
+#[example = "1h"]
 #[only_in("guilds")]
 pub fn selfmute(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
     let mut data = ctx.data.write();
@@ -41,7 +44,7 @@ pub fn selfmute(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResu
         .clone();
     let mut scheduler = scheduler.write();
 
-    let seconds = args.single::<i64>()?;
+    let duration = util::parse_duration(&args.single::<String>()?).unwrap();
 
     if let Some(guild_id) = msg.guild_id {
         match server_configs::table
@@ -61,7 +64,7 @@ pub fn selfmute(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResu
                         Err(e) => error!("could not get member: {:?}", e),
                     };
 
-                    let end_time = Utc::now() + Duration::seconds(seconds);
+                    let end_time = Utc::now() + duration;
                     let mute = NewMute {
                         server_id: *guild_id.as_u64() as i64,
                         user_id: *msg.author.id.as_u64() as i64,
@@ -76,7 +79,7 @@ pub fn selfmute(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResu
                     let msg_clone = msg.clone();
                     let mute_role_clone = mute_role.clone();
 
-                    scheduler.add_task_duration(Duration::seconds(seconds), move |_| {
+                    scheduler.add_task_duration(duration, move |_| {
                         let conn_clone = match data_clone.write().get::<DatabaseConnection>() {
                             Some(v) => v.get().unwrap(),
                             None => panic!("Failed to get database connection"),

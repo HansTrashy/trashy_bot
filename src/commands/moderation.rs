@@ -45,7 +45,7 @@ pub fn mute(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
     let mut scheduler = scheduler.write();
 
     let duration = util::parse_duration(&args.single::<String>()?);
-    let mute_message = args.single::<String>()?;
+    let mute_message = args.rest();
 
     if let Some(duration) = duration {
         if let Some(guild_id) = msg.guild_id {
