@@ -35,3 +35,20 @@ pub fn parse_duration(duration_str: &str) -> Option<Duration> {
         None
     }
 }
+
+pub fn humanize_duration(duration: &Duration) -> String {
+    let days = duration.num_days();
+    let hours = duration.num_hours() - days * 24i64;
+    let minutes = duration.num_minutes() - hours * 60i64;
+
+    match (days, hours, minutes) {
+        (0, 0, 0) => "less than one minute".to_string(),
+        (0, 0, x) => format!("{} minutes", x),
+        (0, x, 0) => format!("{} hours", x),
+        (0, x, y) => format!("{} hours {} minutes", x, y),
+        (x, 0, 0) => format!("{} days", x),
+        (x, y, 0) => format!("{} days {} hours", x, y),
+        (x, 0, y) => format!("{} days {} minutes", x, y),
+        (x, y, z) => format!("{} days {} hours {} minutes", x, y, z),
+    }
+}

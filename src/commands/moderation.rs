@@ -4,6 +4,7 @@ use serenity::{
     model::id::RoleId,
     model::id::ChannelId,
     model::user::User,
+    model::guild::Member,
 };
 use itertools::Itertools;
 use serenity::model::gateway::Activity;
@@ -58,10 +59,12 @@ pub fn mute(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
                         serde_json::from_value(server_config.config).unwrap();
 
                     if let Some(mute_role) = &guild_config.mute_role {
+                        let mut found_members = Vec::new();
                         for user in &msg.mentions {
                             match guild_id.member(&ctx, user) {
                                 Ok(mut member) => {
                                     let _ = member.add_role(&ctx, RoleId(*mute_role));
+                                    found_members.push(member);
                                 }
                                 Err(e) => error!("could not get member: {:?}", e),
                             };
@@ -113,19 +116,21 @@ pub fn mute(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
 
                             DateResult::Done
                         });
-                    }
 
-                    if let Some(modlog_channel) = &guild_config.modlog_channel {
-                        let _ = ChannelId(*modlog_channel).send_message(&ctx, |m| {
-                            m.embed(|e| {
-                                e.description(create_mute_message(
-                                    &msg.mentions,
-                                    &duration,
-                                    &mute_message,
-                                ))
-                                .color((0, 120, 220))
-                            })
-                        });
+                        if let Some(modlog_channel) = &guild_config.modlog_channel {
+                            if found_members.len() > 0 {
+                                let _ = ChannelId(*modlog_channel).send_message(&ctx, |m| {
+                                    m.embed(|e| {
+                                        e.description(create_mute_message(
+                                            &found_members,
+                                            &duration,
+                                            &mute_message,
+                                        ))
+                                        .color((0, 120, 220))
+                                    })
+                                });
+                            }
+                        }
                     }
                 }
                 None => {
@@ -138,46 +143,105 @@ pub fn mute(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
     Ok(())
 }
 
-fn create_mute_message(users: &Vec<User>, duration: &Duration, mute_message: &str) -> String {
+fn create_mute_message(users: &Vec<Member>, duration: &Duration, mute_message: &str) -> String {
     let intro = if users.len() > 1 {
         "Muted users:"
     } else {
         "Muted user:"
     };
-    let users = users.iter().map(|u| u.name.to_string()).join(", ");
+    let users = users
+        .iter()
+        .map(|u| {
+            if let Some(nick) = &u.nick {
+                format!(
+                    "{} ({}#{})",
+                    nick,
+                    u.user.read().name,
+                    u.user.read().discriminator
+                )
+            } else {
+                format!("{}#{}", u.user.read().name, u.user.read().discriminator)
+            }
+        })
+        .join(", ");
     format!(
         "{} **{}** for **{}**\nPlease note: *{}*",
-        intro, users, duration, mute_message
+        intro,
+        users,
+        util::humanize_duration(duration),
+        mute_message
     )
 }
 
-fn create_ban_message(users: &Vec<User>, ban_message: &str) -> String {
+fn create_ban_message(users: &Vec<Member>, ban_message: &str) -> String {
     let intro = if users.len() > 1 {
         "Banned users:"
     } else {
         "Banned user:"
     };
-    let users = users.iter().map(|u| u.name.to_string()).join(", ");
+    let users = users
+        .iter()
+        .map(|u| {
+            if let Some(nick) = &u.nick {
+                format!(
+                    "{} ({}#{})",
+                    nick,
+                    u.user.read().name,
+                    u.user.read().discriminator
+                )
+            } else {
+                format!("{}#{}", u.user.read().name, u.user.read().discriminator)
+            }
+        })
+        .join(", ");
     format!("{} **{}**\nPlease note: *{}*", intro, users, ban_message)
 }
 
-fn create_kick_message(users: &Vec<User>, kick_message: &str) -> String {
+fn create_kick_message(users: &Vec<Member>, kick_message: &str) -> String {
     let intro = if users.len() > 1 {
         "Kicked users:"
     } else {
         "Kicked user:"
     };
-    let users = users.iter().map(|u| u.name.to_string()).join(", ");
+    let users = users
+        .iter()
+        .map(|u| {
+            if let Some(nick) = &u.nick {
+                format!(
+                    "{} ({}#{})",
+                    nick,
+                    u.user.read().name,
+                    u.user.read().discriminator
+                )
+            } else {
+                format!("{}#{}", u.user.read().name, u.user.read().discriminator)
+            }
+        })
+        .join(", ");
     format!("{} **{}**\nPlease note: *{}*", intro, users, kick_message)
 }
 
-fn create_unmute_message(users: &Vec<User>) -> String {
+fn create_unmute_message(users: &Vec<Member>) -> String {
     let intro = if users.len() > 1 {
         "Unmuted users:"
     } else {
         "Unmuted user:"
     };
-    let users = users.iter().map(|u| u.name.to_string()).join(", ");
+    let users = users
+        .iter()
+        .map(|u| {
+            if let Some(nick) = &u.nick {
+                format!(
+                    "{} ({}#{})",
+                    nick,
+                    u.user.read().name,
+                    u.user.read().discriminator
+                )
+            } else {
+                format!("{}#{}", u.user.read().name, u.user.read().discriminator)
+            }
+        })
+        .join(", ");
     format!("{} {}", intro, users)
 }
 
@@ -205,10 +269,12 @@ pub fn unmute(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
                     serde_json::from_value(server_config.config).unwrap();
 
                 if let Some(mute_role) = &guild_config.mute_role {
+                    let mut found_members = Vec::new();
                     for user in &msg.mentions {
                         match guild_id.member(&ctx, user) {
                             Ok(mut member) => {
                                 let _ = member.remove_role(&ctx, RoleId(*mute_role));
+                                found_members.push(member);
                             }
                             Err(e) => error!("could not get member: {:?}", e),
                         };
@@ -224,15 +290,17 @@ pub fn unmute(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
                             .filter(mutes::user_id.eq_any(user_ids)),
                     )
                     .execute(&*conn)?;
-                }
 
-                if let Some(modlog_channel) = &guild_config.modlog_channel {
-                    let _ = ChannelId(*modlog_channel).send_message(&ctx, |m| {
-                        m.embed(|e| {
-                            e.description(create_unmute_message(&msg.mentions))
-                                .color((0, 120, 220))
-                        })
-                    });
+                    if let Some(modlog_channel) = &guild_config.modlog_channel {
+                        if found_members.len() > 0 {
+                            let _ = ChannelId(*modlog_channel).send_message(&ctx, |m| {
+                                m.embed(|e| {
+                                    e.description(create_unmute_message(&found_members))
+                                        .color((0, 120, 220))
+                                })
+                            });
+                        }
+                    }
                 }
             }
             None => {
@@ -268,19 +336,26 @@ pub fn kick(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
                     serde_json::from_value(server_config.config).unwrap();
 
                 if let Some(mute_role) = &guild_config.mute_role {
+                    let mut found_members = Vec::new();
                     for user in &msg.mentions {
                         let member = guild_id.member(&ctx, user)?;
                         let _ = member.kick(&ctx);
+                        found_members.push(member);
                     }
-                }
 
-                if let Some(modlog_channel) = &guild_config.modlog_channel {
-                    let _ = ChannelId(*modlog_channel).send_message(&ctx, |m| {
-                        m.embed(|e| {
-                            e.description(create_kick_message(&msg.mentions, &kick_message))
-                                .color((0, 120, 220))
-                        })
-                    });
+                    if let Some(modlog_channel) = &guild_config.modlog_channel {
+                        if found_members.len() > 0 {
+                            let _ = ChannelId(*modlog_channel).send_message(&ctx, |m| {
+                                m.embed(|e| {
+                                    e.description(create_kick_message(
+                                        &found_members,
+                                        &kick_message,
+                                    ))
+                                    .color((0, 120, 220))
+                                })
+                            });
+                        }
+                    }
                 }
             }
             None => {
@@ -319,19 +394,22 @@ pub fn ban(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
                     serde_json::from_value(server_config.config).unwrap();
 
                 if let Some(mute_role) = &guild_config.mute_role {
+                    let mut found_members = Vec::new();
                     for user in &msg.mentions {
                         let member = guild_id.member(&ctx, user)?;
                         let _ = member.ban(&ctx, &(days, ban_msg));
                     }
-                }
 
-                if let Some(modlog_channel) = &guild_config.modlog_channel {
-                    let _ = ChannelId(*modlog_channel).send_message(&ctx, |m| {
-                        m.embed(|e| {
-                            e.description(create_ban_message(&msg.mentions, ban_msg))
-                                .color((0, 120, 220))
-                        })
-                    });
+                    if let Some(modlog_channel) = &guild_config.modlog_channel {
+                        if found_members.len() > 0 {
+                            let _ = ChannelId(*modlog_channel).send_message(&ctx, |m| {
+                                m.embed(|e| {
+                                    e.description(create_ban_message(&found_members, ban_msg))
+                                        .color((0, 120, 220))
+                                })
+                            });
+                        }
+                    }
                 }
             }
             None => {
