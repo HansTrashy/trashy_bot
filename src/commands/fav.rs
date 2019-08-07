@@ -16,6 +16,8 @@ use std::iter::FromIterator;
 use serenity::{
     framework::standard::{Args, CommandResult, macros::command},
     model::channel::Message,
+    model::channel::Embed,
+    builder::CreateEmbed,
 };
 use serenity::prelude::*;
 use log::*;
@@ -100,67 +102,10 @@ pub fn post(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
         );
     }
 
-    if let Some(image) = fav_msg
-        .attachments
-        .iter()
-        .cloned()
-        .filter(|a| a.width.is_some())
-        .collect::<Vec<Attachment>>()
-        .first()
-    {
-        let bot_msg = msg.channel_id.send_message(&ctx.http, |m| {
-            m.embed(|e| {
-                e.author(|a| {
-                    a.name(&fav_msg.author.name)
-                        .icon_url(&fav_msg.author.static_avatar_url().unwrap_or_default())
-                })
-                .description(&fav_msg.content)
-                .color((0, 120, 220))
-                .image(&image.url)
-                .footer(|f| {
-                    f.text(&format!(
-                        "{} | Fav by: {}",
-                        &fav_msg.timestamp.format("%d.%m.%Y, %H:%M:%S"),
-                        &msg.author.name
-                    ))
-                })
-            })
-        });
-
-        let http = ctx.http.clone();
-        if let Ok(bot_msg) = bot_msg {
-            dispatcher.write().add_fn(
-                DispatchEvent::ReactEvent(
-                    bot_msg.id,
-                    ReactionType::Unicode("ℹ".to_string()),
-                    bot_msg.channel_id,
-                    msg.author.id,
-                ),
-                Box::new(move |event: &DispatchEvent| match &event {
-                    DispatchEvent::ReactEvent(
-                        _msg_id,
-                        _reaction_type,
-                        _channel_id,
-                        react_user_id,
-                    ) => {
-                        if let Ok(dm_channel) = react_user_id.create_dm_channel(&http) {
-                            let _ = dm_channel.say(
-                                &http,
-                                format!(
-                                    "https://discordapp.com/channels/{}/{}/{}",
-                                    chosen_fav.server_id, chosen_fav.channel_id, chosen_fav.msg_id,
-                                ),
-                            );
-                        }
-                        Some(DispatcherRequest::StopListening)
-                    }
-                }),
-            );
-        }
-    } else {
-        let bot_msg = msg.channel_id.send_message(&ctx.http, |m| {
-            m.embed(|e| {
-                e.author(|a| {
+    let bot_msg = msg.channel_id.send_message(&ctx.http, |m| {
+        m.embed(|e| {
+            let mut embed = e
+                .author(|a| {
                     a.name(&fav_msg.author.name)
                         .icon_url(&fav_msg.author.static_avatar_url().unwrap_or_default())
                 })
@@ -172,40 +117,47 @@ pub fn post(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
                         &fav_msg.timestamp.format("%d.%m.%Y, %H:%M:%S"),
                         &msg.author.name
                     ))
-                })
-            })
-        });
+                });
 
-        let http = ctx.http.clone();
-        if let Ok(bot_msg) = bot_msg {
-            dispatcher.write().add_fn(
-                DispatchEvent::ReactEvent(
-                    bot_msg.id,
-                    ReactionType::Unicode("ℹ".to_string()),
-                    bot_msg.channel_id,
-                    msg.author.id,
-                ),
-                Box::new(move |event: &DispatchEvent| match &event {
-                    DispatchEvent::ReactEvent(
-                        _msg_id,
-                        _reaction_type,
-                        _channel_id,
-                        react_user_id,
-                    ) => {
-                        if let Ok(dm_channel) = react_user_id.create_dm_channel(&http) {
-                            let _ = dm_channel.say(
-                                &http,
-                                format!(
-                                    "https://discordapp.com/channels/{}/{}/{}",
-                                    chosen_fav.server_id, chosen_fav.channel_id, chosen_fav.msg_id,
-                                ),
-                            );
-                        }
-                        Some(DispatcherRequest::StopListening)
+            if let Some(image) = fav_msg
+                .attachments
+                .iter()
+                .cloned()
+                .filter(|a| a.width.is_some())
+                .collect::<Vec<Attachment>>()
+                .first()
+            {
+                embed = embed.image(&image.url);
+            }
+
+            embed
+        })
+    });
+
+    let http = ctx.http.clone();
+    if let Ok(bot_msg) = bot_msg {
+        dispatcher.write().add_fn(
+            DispatchEvent::ReactEvent(
+                bot_msg.id,
+                ReactionType::Unicode("ℹ".to_string()),
+                bot_msg.channel_id,
+                msg.author.id,
+            ),
+            Box::new(move |event: &DispatchEvent| match &event {
+                DispatchEvent::ReactEvent(_msg_id, _reaction_type, _channel_id, react_user_id) => {
+                    if let Ok(dm_channel) = react_user_id.create_dm_channel(&http) {
+                        let _ = dm_channel.say(
+                            &http,
+                            format!(
+                                "https://discordapp.com/channels/{}/{}/{}",
+                                chosen_fav.server_id, chosen_fav.channel_id, chosen_fav.msg_id,
+                            ),
+                        );
                     }
-                }),
-            );
-        }
+                    Some(DispatcherRequest::StopListening)
+                }
+            }),
+        );
     }
     Ok(())
 }
@@ -272,36 +224,10 @@ pub fn untagged(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
             );
         }
 
-        let sent_msg = if let Some(image) = fav_msg
-            .attachments
-            .iter()
-            .cloned()
-            .filter(|a| a.width.is_some())
-            .collect::<Vec<Attachment>>()
-            .first()
-        {
-            msg.channel_id.send_message(&ctx, |m| {
-                m.embed(|e| {
-                    e.author(|a| {
-                        a.name(&fav_msg.author.name)
-                            .icon_url(&fav_msg.author.static_avatar_url().unwrap_or_default())
-                    })
-                    .description(&fav_msg.content)
-                    .color((0, 120, 220))
-                    .image(&image.url)
-                    .footer(|f| {
-                        f.text(&format!(
-                            "{} | Zitiert von: {}",
-                            &fav_msg.timestamp.format("%d.%m.%Y, %H:%M:%S"),
-                            &msg.author.name
-                        ))
-                    })
-                })
-            })
-        } else {
-            msg.channel_id.send_message(&ctx, |m| {
-                m.embed(|e| {
-                    e.author(|a| {
+        let sent_msg = msg.channel_id.send_message(&ctx, |m| {
+            m.embed(|e| {
+                let mut embed = e
+                    .author(|a| {
                         a.name(&fav_msg.author.name)
                             .icon_url(&fav_msg.author.static_avatar_url().unwrap_or_default())
                     })
@@ -313,10 +239,22 @@ pub fn untagged(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
                             &fav_msg.timestamp.format("%d.%m.%Y, %H:%M:%S"),
                             &msg.author.name
                         ))
-                    })
-                })
+                    });
+
+                if let Some(image) = fav_msg
+                    .attachments
+                    .iter()
+                    .cloned()
+                    .filter(|a| a.width.is_some())
+                    .collect::<Vec<Attachment>>()
+                    .first()
+                {
+                    embed = embed.image(&image.url);
+                }
+
+                embed
             })
-        };
+        });
 
         let sent_msg = sent_msg.unwrap();
         let _ = sent_msg.react(&ctx, ReactionType::Unicode("🗑".to_string()));
