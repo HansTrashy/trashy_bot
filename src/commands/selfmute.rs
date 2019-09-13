@@ -46,6 +46,11 @@ pub fn selfmute(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResu
 
     let duration = util::parse_duration(&args.single::<String>()?).unwrap();
 
+    if duration.num_hours() > 24 {
+        let _ = msg.reply(&ctx, "You can not mute yourself for more than 24 hours!");
+        return Ok(());
+    }
+
     if let Some(guild_id) = msg.guild_id {
         match server_configs::table
             .filter(server_configs::server_id.eq(*guild_id.as_u64() as i64))
