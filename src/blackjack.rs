@@ -2,7 +2,7 @@ use diesel::pg::PgConnection;
 use diesel::r2d2::{self, ConnectionManager};
 use log::*;
 use rand::prelude::*;
-use serde_derive::{Deserialize, Serialize};
+use serde::{Deserialize, Serialize};
 use serenity::model::id::ChannelId;
 use serenity::prelude::Mutex;
 use std::fmt;

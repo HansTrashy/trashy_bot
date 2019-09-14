@@ -1,9 +1,6 @@
-use serde_derive::Deserialize;
+use serde::Deserialize;
 use serenity::{
-    framework::standard::{
-        Args, CommandResult,
-        macros::command,
-    },
+    framework::standard::{Args, CommandResult, macros::command},
     model::channel::Message,
 };
 use serenity::prelude::*;

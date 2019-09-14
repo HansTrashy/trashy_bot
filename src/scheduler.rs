@@ -9,7 +9,9 @@ use serenity::{
     model::channel::Message,
     model::id::{RoleId, ChannelId, UserId, GuildId},
 };
+use serde::{Serialize, Deserialize};
 
+#[derive(Serialize, Deserialize, Clone)]
 pub enum Task {
     Reply {
         user: u64,
@@ -21,7 +23,7 @@ pub enum Task {
         user: u64,
         mute_role: u64,
     },
-    Dummy(Arc<Mutex<String>>),
+    Dummy(String),
 }
 
 impl Task {
@@ -58,9 +60,8 @@ impl Task {
                     .execute(&*conn)
                     .expect("could not delete mute");
                 },
-                Self::Dummy(v) => {
-                    let mut lock = v.lock().unwrap();
-                    *lock = String::from("finished");
+                Self::Dummy(mut v) => {
+                    v = String::from("finished")
                 }
             }
     }
@@ -73,7 +74,7 @@ impl Task {
         Self::Reply { user, channel, msg }
     }
 
-    pub fn dummy(v: Arc<Mutex<String>>) -> Self {
+    pub fn dummy(v: String) -> Self {
         Self::Dummy(v)
     }
 }
@@ -84,19 +85,25 @@ pub struct Scheduler {
     runtime: tokio::runtime::Runtime,
     cache_and_http: Arc<CacheAndHttp>,
     db_pool: DbPool,
+    task_list: Vec<Task>,
 }
 
 
 impl Scheduler {
     pub fn new(cache_and_http: Arc<CacheAndHttp>, db_pool: DbPool) -> Self {
+        //TODO: load tasks from file/db
         Self {
             runtime: tokio::runtime::Runtime::new().unwrap(),
             cache_and_http,
             db_pool,
+            task_list: Vec::new(),
         }
     }
 
     pub fn add_task(&self, duration: Duration, task: Task) {
+        //TODO: put tasks into file/db
+        self.task_list.push(task.clone());
+
         let cache_and_http = Arc::clone(&self.cache_and_http);
         let db_pool = self.db_pool.clone();
         let f = async move {

@@ -1,4 +1,4 @@
-use serde_derive::Deserialize;
+use serde::Deserialize;
 use serenity::{
     prelude::*,
     framework::standard::{Args, CommandResult, macros::command},
