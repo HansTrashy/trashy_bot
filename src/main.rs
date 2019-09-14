@@ -7,6 +7,7 @@
 #![deny(rust_2018_idioms)]
 #![warn(missing_docs)]
 #![warn(unused)]
+#![feature(async_closure)]
 //! Trashy Bot
 
 #[macro_use]
@@ -38,7 +39,6 @@ use serenity::{
 use std::collections::HashSet;
 use std::{env, sync::Arc};
 use hey_listen::sync::ParallelDispatcher as Dispatcher;
-use white_rabbit::Scheduler;
 
 mod dispatch;
 mod blackjack;
@@ -51,6 +51,7 @@ mod util;
 mod interaction;
 mod models;
 mod commands;
+mod scheduler;
 
 struct ShardManagerContainer;
 impl TypeMapKey for ShardManagerContainer {
@@ -65,11 +66,6 @@ impl TypeMapKey for DatabaseConnection {
 struct DispatcherKey;
 impl TypeMapKey for DispatcherKey {
     type Value = Arc<RwLock<Dispatcher<crate::dispatch::DispatchEvent>>>;
-}
-
-struct SchedulerKey;
-impl TypeMapKey for SchedulerKey {
-    type Value = Arc<RwLock<Scheduler>>;
 }
 
 struct Waiter;
@@ -95,6 +91,11 @@ impl TypeMapKey for BlackjackState {
 struct VoiceManager;
 impl TypeMapKey for VoiceManager {
     type Value = Arc<Mutex<ClientVoiceManager>>;
+}
+
+struct TrashyScheduler;
+impl TypeMapKey for TrashyScheduler {
+    type Value = Arc<scheduler::Scheduler>;
 }
 
 #[help]
@@ -158,12 +159,15 @@ fn main() {
     let rules_state = Arc::new(Mutex::new(self::rules::State::load()));
     let blackjack_state = Arc::new(Mutex::new(self::blackjack::State::load(db_pool.clone())));
 
-    let scheduler = Scheduler::new(2);
-    let scheduler = Arc::new(RwLock::new(scheduler));
     let mut dispatcher: Dispatcher<crate::dispatch::DispatchEvent> = Dispatcher::default();
     dispatcher
         .num_threads(2)
         .expect("could not construct threadpool for dispatcher");
+
+    let trashy_scheduler = Arc::new(scheduler::Scheduler::new(
+        Arc::clone(&client.cache_and_http),
+        db_pool.clone(),
+    ));
 
     {
         let mut data = client.data.write();
@@ -175,8 +179,8 @@ fn main() {
         data.insert::<RulesState>(rules_state);
         data.insert::<BlackjackState>(blackjack_state);
         data.insert::<DispatcherKey>(Arc::new(RwLock::new(dispatcher)));
-        data.insert::<SchedulerKey>(scheduler);
         data.insert::<VoiceManager>(Arc::clone(&client.voice_manager));
+        data.insert::<TrashyScheduler>(Arc::clone(&trashy_scheduler));
     }
 
     let (owners, bot_id) = match client.cache_and_http.http.get_current_application_info() {

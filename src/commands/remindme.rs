@@ -6,13 +6,15 @@ use serenity::{
     model::prelude::*,
 };
 use log::*;
-use white_rabbit::{Utc, Scheduler, DateResult, Duration};
-use crate::{DispatcherKey, SchedulerKey};
+use crate::DispatcherKey;
 use crate::dispatch::DispatchEvent;
 use hey_listen::sync::ParallelDispatcherRequest as DispatcherRequest;
 use std::sync::Arc;
 use serenity::utils::{content_safe, ContentSafeOptions};
 use crate::util;
+use crate::TrashyScheduler;
+use crate::scheduler::Task;
+use time::Duration;
 
 #[command]
 #[description = "Reminds you after the given time with the given text. Allows (w, d, h, m, s)"]
@@ -37,48 +39,18 @@ fn remindme(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
             let scheduler = {
                 let mut context = ctx.data.write();
                 context
-                    .get_mut::<SchedulerKey>()
-                    .expect("expected scheduler")
+                    .get_mut::<TrashyScheduler>()
+                    .expect("could not get scheduler")
                     .clone()
             };
-
-            // let dispatcher = {
-            //     let mut context = ctx.data.write();
-            //     context
-            //         .get_mut::<DispatcherKey>()
-            //         .expect("expected dispatcher")
-            //         .clone()
-            // };
 
             let http = ctx.http.clone();
             let cache = ctx.cache.clone();
             let _ = msg.react(&ctx, ReactionType::Unicode("✅".to_string()));
             let msg = msg.clone();
 
-            let mut scheduler = scheduler.write();
-
-            scheduler.add_task_duration(duration, move |_| {
-                let bot_msg = match msg.reply((&cache, &*http), &args) {
-                    Ok(msg) => msg,
-                    Err(why) => {
-                        error!("Could not send message: {:?}", why);
-                        return DateResult::Done;
-                    }
-                };
-
-                // let http = http.clone();
-                // dispatcher.write().add_fn(
-                //     DispatchEvent::ReactEvent(bot_msg.id, msg.author.id),
-                //     Box::new(move |_| {
-                //         if let Err(why) = bot_msg.channel_id.say(&http, "Thanks for reacting!") {
-                //             error!("Could not send message: {:?}", why);
-                //         }
-                //         Some(DispatcherRequest::StopListening)
-                //     }),
-                // );
-
-                DateResult::Done
-            });
+            let task = Task::reply(*msg.author.id.as_u64(), *msg.channel_id.as_u64(), args);
+            scheduler.add_task(duration, task);
 
             Ok(())
         }

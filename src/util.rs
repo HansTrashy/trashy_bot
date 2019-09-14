@@ -1,4 +1,4 @@
-use white_rabbit::Duration;
+use time::Duration;
 
 static OTHER_MOD_CMD: [char; 3] = ['%', '=', '$'];
 

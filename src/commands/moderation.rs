@@ -5,6 +5,7 @@ use serenity::{
     model::id::ChannelId,
     model::user::User,
     model::guild::Member,
+    model::prelude::*,
 };
 use itertools::Itertools;
 use serenity::model::gateway::Activity;
@@ -20,10 +21,10 @@ use crate::DatabaseConnection;
 use diesel::prelude::*;
 use super::config::GuildConfig;
 use chrono::{DateTime, Utc};
-use crate::SchedulerKey;
 use time::Duration;
-use white_rabbit::{Scheduler, DateResult};
 use crate::util;
+use crate::TrashyScheduler;
+use crate::scheduler::Task;
 
 #[command]
 #[only_in("guilds")]
@@ -39,10 +40,9 @@ pub fn mute(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
     };
 
     let scheduler = data
-        .get_mut::<SchedulerKey>()
+        .get_mut::<TrashyScheduler>()
         .expect("Expected Scheduler.")
         .clone();
-    let mut scheduler = scheduler.write();
 
     let duration = util::parse_duration(&args.single::<String>()?);
     let mute_message = args.rest();
@@ -83,39 +83,14 @@ pub fn mute(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
                             .values(&mutes)
                             .execute(&*conn)?;
 
-                        let http = ctx.http.clone();
-                        let data_clone = ctx.data.clone();
-                        let msg_clone = msg.clone();
-                        let mute_role_clone = mute_role.clone();
-
-                        scheduler.add_task_duration(duration, move |_| {
-                            let conn_clone = match data_clone.write().get::<DatabaseConnection>() {
-                                Some(v) => v.get().unwrap(),
-                                None => panic!("Failed to get database connection"),
-                            };
-                            for user in &msg_clone.mentions {
-                                match guild_id.member(&*http, user) {
-                                    Ok(mut member) => {
-                                        let _ = member.remove_role(&http, RoleId(mute_role_clone));
-                                    }
-                                    Err(e) => error!("could not get member: {:?}", e),
-                                };
-                            }
-                            let user_ids = msg_clone
-                                .mentions
-                                .iter()
-                                .map(|user| *user.id.as_u64() as i64)
-                                .collect::<Vec<i64>>();
-                            diesel::delete(
-                                mutes::table
-                                    .filter(mutes::server_id.eq(*guild_id.as_u64() as i64))
-                                    .filter(mutes::user_id.eq_any(user_ids)),
-                            )
-                            .execute(&*conn_clone)
-                            .expect("could not delete mute");
-
-                            DateResult::Done
-                        });
+                        for user in &msg.mentions {
+                            let task = Task::remove_mute(
+                                *guild_id.as_u64(),
+                                *user.id.as_u64(),
+                                *mute_role,
+                            );
+                            scheduler.add_task(duration, task);
+                        }
 
                         if let Some(modlog_channel) = &guild_config.modlog_channel {
                             if found_members.len() > 0 {
@@ -131,6 +106,8 @@ pub fn mute(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
                                 });
                             }
                         }
+
+                        let _ = msg.react(&ctx, ReactionType::Unicode("✅".to_string()));
                     }
                 }
                 None => {
