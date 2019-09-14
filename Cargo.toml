@@ -23,7 +23,7 @@ white_rabbit = "0.1.1"
 time = "0.1"
 
 [dependencies.serenity]
-version = "0.6.0"
+version = "0.7.0"
 default-features = false
 features = [
     "builder",
