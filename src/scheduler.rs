@@ -23,17 +23,16 @@ pub enum Task {
         user: u64,
         mute_role: u64,
     },
-    Dummy(String),
 }
 
 impl Task {
-    fn execute(&self, cache_and_http: Arc<CacheAndHttp>, db_pool: DbPool) {
-            match &self {
+    fn execute(self, cache_and_http: Arc<CacheAndHttp>, db_pool: DbPool) {
+            match self {
                 Self::Reply { user, channel, msg } => {
-                    let _ = ChannelId(*channel).send_message(&*cache_and_http.http, |m| {
+                    let _ = ChannelId(channel).send_message(&*cache_and_http.http, |m| {
                         m.content(
                             MessageBuilder::new()
-                                .mention(&UserId(*user))
+                                .mention(&UserId(user))
                                 .push(&msg)
                                 .build(),
                         )
@@ -45,24 +44,21 @@ impl Task {
 
                     let conn = db_pool.get().unwrap();
 
-                    match GuildId(*guild_id).member(&*cache_and_http.http, UserId(*user)) {
+                    match GuildId(guild_id).member(&*cache_and_http.http, UserId(user)) {
                         Ok(mut member) => {
-                            let _ = member.remove_role(&*cache_and_http.http, RoleId(*mute_role));
+                            let _ = member.remove_role(&*cache_and_http.http, RoleId(mute_role));
                         }
                         Err(e) => error!("could not get member: {:?}", e),
                     };
 
                     diesel::delete(
                         mutes::table
-                            .filter(mutes::server_id.eq(*guild_id as i64))
-                            .filter(mutes::user_id.eq(*user as i64)),
+                            .filter(mutes::server_id.eq(guild_id as i64))
+                            .filter(mutes::user_id.eq(user as i64)),
                     )
                     .execute(&*conn)
                     .expect("could not delete mute");
                 },
-                Self::Dummy(mut v) => {
-                    v = String::from("finished")
-                }
             }
     }
 
@@ -73,10 +69,6 @@ impl Task {
     pub fn reply(user: u64, channel: u64, msg: String) -> Self {
         Self::Reply { user, channel, msg }
     }
-
-    pub fn dummy(v: String) -> Self {
-        Self::Dummy(v)
-    }
 }
 
 type DbPool = diesel::r2d2::Pool<diesel::r2d2::ConnectionManager<diesel::PgConnection>>;
@@ -85,7 +77,7 @@ pub struct Scheduler {
     runtime: tokio::runtime::Runtime,
     cache_and_http: Arc<CacheAndHttp>,
     db_pool: DbPool,
-    task_list: Vec<Task>,
+    task_list: Mutex<Vec<Task>>,
 }
 
 
@@ -96,13 +88,12 @@ impl Scheduler {
             runtime: tokio::runtime::Runtime::new().unwrap(),
             cache_and_http,
             db_pool,
-            task_list: Vec::new(),
+            task_list: Mutex::new(Vec::new()),
         }
     }
 
     pub fn add_task(&self, duration: Duration, task: Task) {
-        //TODO: put tasks into file/db
-        self.task_list.push(task.clone());
+        self.task_list.lock().unwrap().push(task.clone());
 
         let cache_and_http = Arc::clone(&self.cache_and_http);
         let db_pool = self.db_pool.clone();
@@ -115,38 +106,3 @@ impl Scheduler {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use std::thread;
-    use time::Duration;
-    use super::{Task, Scheduler};
-    use std::sync::{Arc, Mutex};
-    use serenity::CacheAndHttp;
-    use super::DbPool;
-
-    // #[test]
-    // fn test_scheduler() {
-    //     let scheduler = Arc::new(Scheduler::new(Arc::new(CacheAndHttp::default()), DbPool::new()));
-    //     let v = Arc::new(Mutex::new(String::from("init")));
-    //     let v2 = Arc::new(Mutex::new(String::from("init2")));
-
-    //     let task = Task::dummy(Arc::clone(&v));
-    //     let task2 = Task::dummy(Arc::clone(&v2));
-
-    //     scheduler.add_task(Duration::milliseconds(200), task);
-    //     scheduler.add_task(Duration::milliseconds(400), task2);
-
-    //     assert_eq!("init", &*v.lock().unwrap());
-    //     assert_eq!("init2", &*v2.lock().unwrap());
-
-    //     thread::sleep(Duration::milliseconds(300).to_std().unwrap());
-
-    //     assert_eq!("finished", &*v.lock().unwrap());
-    //     assert_eq!("init2", &*v2.lock().unwrap());
-
-    //     thread::sleep(Duration::milliseconds(200).to_std().unwrap());
-
-    //     assert_eq!("finished", &*v.lock().unwrap());
-    //     assert_eq!("finished", &*v2.lock().unwrap());
-    // }
-}
