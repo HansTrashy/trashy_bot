@@ -1,8 +1,5 @@
 use serenity::{
-    framework::standard::{
-        Args, CommandResult,
-        macros::command,
-    },
+    framework::standard::{Args, CommandResult, macros::command},
     model::channel::Message,
     client::bridge::voice::ClientVoiceManager,
     client::Context,
@@ -16,7 +13,7 @@ use crate::VoiceManager;
 fn deafen(ctx: &mut Context, msg: &Message) -> CommandResult {
     let guild_id = match ctx.cache.read().guild_channel(msg.channel_id) {
         Some(channel) => channel.read().guild_id,
-        None => { 
+        None => {
             msg.channel_id.say(&ctx.http, "Works only on guilds")?;
             return Ok(());
         }
@@ -30,7 +27,7 @@ fn deafen(ctx: &mut Context, msg: &Message) -> CommandResult {
         None => {
             msg.reply(&ctx, "Not in a voice channel")?;
             return Ok(());
-        },
+        }
     };
 
     if handler.self_deaf {
@@ -56,7 +53,8 @@ fn join(ctx: &mut Context, msg: &Message) -> CommandResult {
 
     let channel_id = guild
         .read()
-        .voice_states.get(&msg.author.id)
+        .voice_states
+        .get(&msg.author.id)
         .and_then(|voice_state| voice_state.channel_id);
 
     let connect_to = match channel_id {
@@ -67,11 +65,17 @@ fn join(ctx: &mut Context, msg: &Message) -> CommandResult {
         }
     };
 
-    let manager_lock = ctx.data.read().get::<VoiceManager>().cloned().expect("Expected VoiceManager in ShareMap.");
+    let manager_lock = ctx
+        .data
+        .read()
+        .get::<VoiceManager>()
+        .cloned()
+        .expect("Expected VoiceManager in ShareMap.");
     let mut manager = manager_lock.lock();
 
     if manager.join(guild_id, connect_to).is_some() {
-        msg.channel_id.say(&ctx.http, &format!("Joined {}", connect_to.mention()))?;
+        msg.channel_id
+            .say(&ctx.http, &format!("Joined {}", connect_to.mention()))?;
     } else {
         msg.channel_id.say(&ctx.http, "Error joining the channel")?;
     }
@@ -86,10 +90,15 @@ fn leave(ctx: &mut Context, msg: &Message) -> CommandResult {
         None => {
             msg.channel_id.say(&ctx.http, "Works only on guilds")?;
             return Ok(());
-        },
+        }
     };
 
-    let manager_lock = ctx.data.read().get::<VoiceManager>().cloned().expect("Expected VoiceManager in ShareMap.");
+    let manager_lock = ctx
+        .data
+        .read()
+        .get::<VoiceManager>()
+        .cloned()
+        .expect("Expected VoiceManager in ShareMap.");
     let mut manager = manager_lock.lock();
     let has_handler = manager.get(guild_id).is_some();
 
@@ -108,12 +117,18 @@ fn mute(ctx: &mut Context, msg: &Message) -> CommandResult {
     let guild_id = match ctx.cache.read().guild_channel(msg.channel_id) {
         Some(channel) => channel.read().guild_id,
         None => {
-            msg.channel_id.say(&ctx.http, "Groups and DMs not supported")?;
+            msg.channel_id
+                .say(&ctx.http, "Groups and DMs not supported")?;
             return Ok(());
-        },
+        }
     };
 
-    let manager_lock = ctx.data.read().get::<VoiceManager>().cloned().expect("Expected VoiceManager in ShareMap.");
+    let manager_lock = ctx
+        .data
+        .read()
+        .get::<VoiceManager>()
+        .cloned()
+        .expect("Expected VoiceManager in ShareMap.");
     let mut manager = manager_lock.lock();
 
     let handler = match manager.get_mut(guild_id) {
@@ -121,7 +136,7 @@ fn mute(ctx: &mut Context, msg: &Message) -> CommandResult {
         None => {
             msg.reply(&ctx, "Not in a voice channel")?;
             return Ok(());
-        },
+        }
     };
 
     if handler.self_mute {
@@ -139,9 +154,10 @@ fn play(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
     let url = match args.single::<String>() {
         Ok(url) => url,
         Err(_) => {
-            msg.channel_id.say(&ctx.http, "Must provide a URL to a video or audio")?;
+            msg.channel_id
+                .say(&ctx.http, "Must provide a URL to a video or audio")?;
             return Ok(());
-        },
+        }
     };
 
     if !url.starts_with("http") {
@@ -152,12 +168,18 @@ fn play(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
     let guild_id = match ctx.cache.read().guild_channel(msg.channel_id) {
         Some(channel) => channel.read().guild_id,
         None => {
-            msg.channel_id.say(&ctx.http, "Error finding channel info")?;
+            msg.channel_id
+                .say(&ctx.http, "Error finding channel info")?;
             return Ok(());
-        },
+        }
     };
 
-    let manager_lock = ctx.data.read().get::<VoiceManager>().cloned().expect("Expected VoiceManager in ShareMap.");
+    let manager_lock = ctx
+        .data
+        .read()
+        .get::<VoiceManager>()
+        .cloned()
+        .expect("Expected VoiceManager in ShareMap.");
     let mut manager = manager_lock.lock();
 
     if let Some(handler) = manager.get_mut(guild_id) {
@@ -167,14 +189,15 @@ fn play(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
                 error!("Err starting source: {:?}", why);
                 msg.channel_id.say(&ctx.http, "Error sourcing ffmpeg")?;
                 return Ok(());
-            },
+            }
         };
 
-        handler.play(source);
+        handler.play_only(source);
 
         msg.channel_id.say(&ctx.http, "Playing song")?;
     } else {
-        msg.channel_id.say(&ctx.http, "Not in a voice channel to play in")?;
+        msg.channel_id
+            .say(&ctx.http, "Not in a voice channel to play in")?;
     }
 
     Ok(())
@@ -185,12 +208,18 @@ fn undeafen(ctx: &mut Context, msg: &Message) -> CommandResult {
     let guild_id = match ctx.cache.read().guild_channel(msg.channel_id) {
         Some(channel) => channel.read().guild_id,
         None => {
-            msg.channel_id.say(&ctx.http, "Error finding channel info")?;
+            msg.channel_id
+                .say(&ctx.http, "Error finding channel info")?;
             return Ok(());
-        },
+        }
     };
 
-    let manager_lock = ctx.data.read().get::<VoiceManager>().cloned().expect("Expected VoiceManager in ShareMap.");
+    let manager_lock = ctx
+        .data
+        .read()
+        .get::<VoiceManager>()
+        .cloned()
+        .expect("Expected VoiceManager in ShareMap.");
     let mut manager = manager_lock.lock();
 
     if let Some(handler) = manager.get_mut(guild_id) {
@@ -198,7 +227,8 @@ fn undeafen(ctx: &mut Context, msg: &Message) -> CommandResult {
 
         msg.channel_id.say(&ctx.http, "Undeafened")?;
     } else {
-        msg.channel_id.say(&ctx.http, "Not in a voice channel to undeafen in")?;
+        msg.channel_id
+            .say(&ctx.http, "Not in a voice channel to undeafen in")?;
     }
 
     Ok(())
@@ -209,18 +239,25 @@ fn unmute(ctx: &mut Context, msg: &Message) -> CommandResult {
     let guild_id = match ctx.cache.read().guild_channel(msg.channel_id) {
         Some(channel) => channel.read().guild_id,
         None => {
-            msg.channel_id.say(&ctx.http, "Error finding channel info")?;
+            msg.channel_id
+                .say(&ctx.http, "Error finding channel info")?;
             return Ok(());
-        },
+        }
     };
-    let manager_lock = ctx.data.read().get::<VoiceManager>().cloned().expect("Expected VoiceManager in ShareMap.");
+    let manager_lock = ctx
+        .data
+        .read()
+        .get::<VoiceManager>()
+        .cloned()
+        .expect("Expected VoiceManager in ShareMap.");
     let mut manager = manager_lock.lock();
 
     if let Some(handler) = manager.get_mut(guild_id) {
         handler.mute(false);
         msg.channel_id.say(&ctx.http, "Unmuted")?;
     } else {
-        msg.channel_id.say(&ctx.http, "Not in a voice channel to undeafen in")?;
+        msg.channel_id
+            .say(&ctx.http, "Not in a voice channel to undeafen in")?;
     }
 
     Ok(())
