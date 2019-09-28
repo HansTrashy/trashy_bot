@@ -238,6 +238,7 @@ fn main() {
             .group(&commands::groups::reaction_roles::REACTION_ROLES_GROUP)
             .group(&commands::groups::account::ACCOUNT_GROUP)
             .group(&commands::groups::moderation::MODERATION_GROUP)
+            .group(&commands::groups::misc::MISC_GROUP)
             .group(&commands::groups::voice::VOICE_GROUP),
     );
 

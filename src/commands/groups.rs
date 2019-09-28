@@ -10,7 +10,23 @@ pub mod general {
     group!({
         name: "general",
         options: {},
-        commands: [about, roll, choose, xkcd, quote, userinfo, remindme, spongebob, selfmute],
+        commands: [about, roll, choose, xkcd, quote, userinfo, remindme, spongebob, selfmute,],
+    });
+}
+
+pub mod misc {
+    use serenity::framework::standard::{
+        macros::{command, group, help, check},
+    };
+    use crate::commands::shiny::*;
+
+    group!({
+        name: "misc",
+        options: {
+            prefix: "misc",
+            description: "Miscellaneous commands",
+        },
+        commands: [shiny, list]
     });
 }
 

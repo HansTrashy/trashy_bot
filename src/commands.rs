@@ -15,3 +15,4 @@ pub mod voice;
 pub mod spongebob;
 pub mod moderation;
 pub mod selfmute;
+pub mod shiny;

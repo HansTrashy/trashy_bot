@@ -48,6 +48,16 @@ table! {
 }
 
 table! {
+    shinys (id) {
+        id -> Int8,
+        server_id -> Int8,
+        user_id -> Int8,
+        username -> Text,
+        amount -> Int8,
+    }
+}
+
+table! {
     tags (id) {
         id -> Int8,
         fav_id -> Int8,
@@ -61,5 +71,6 @@ allow_tables_to_appear_in_same_query!(
     mutes,
     reaction_roles,
     server_configs,
+    shinys,
     tags,
 );
