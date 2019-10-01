@@ -18,7 +18,7 @@ pub mod misc {
     use serenity::framework::standard::{
         macros::{command, group, help, check},
     };
-    use crate::commands::shiny::*;
+    use crate::commands::{shiny::*, copypasta::*};
 
     group!({
         name: "misc",
@@ -26,7 +26,7 @@ pub mod misc {
             prefix: "misc",
             description: "Miscellaneous commands",
         },
-        commands: [shiny, list]
+        commands: [shiny, list, goldt]
     });
 }
 

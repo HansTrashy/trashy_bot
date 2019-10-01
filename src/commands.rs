@@ -16,3 +16,4 @@ pub mod spongebob;
 pub mod moderation;
 pub mod selfmute;
 pub mod shiny;
+pub mod copypasta;
