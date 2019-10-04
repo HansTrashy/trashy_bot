@@ -1,14 +1,14 @@
-use serde::Deserialize;
-use serenity::{
-    prelude::*,
-    framework::standard::{Args, CommandResult, macros::command},
-    model::prelude::*,
-};
-use serenity::utils::{content_safe, ContentSafeOptions, MessageBuilder};
-use crate::models::shiny::{Shiny, NewShiny};
+use crate::models::shiny::{NewShiny, Shiny};
 use crate::schema::shinys::dsl;
 use crate::DatabaseConnection;
 use diesel::prelude::*;
+use serde::Deserialize;
+use serenity::utils::{content_safe, ContentSafeOptions, MessageBuilder};
+use serenity::{
+    framework::standard::{macros::command, Args, CommandResult},
+    model::prelude::*,
+    prelude::*,
+};
 
 #[command]
 #[description = "Lists Shiny counts"]
@@ -94,6 +94,97 @@ fn shiny(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
             respond(new_shiny);
         }
     }
+
+    Ok(())
+}
+
+#[command]
+#[description = "Set the shiny amount of specific user(s)"]
+#[example("1000 @HansTrashy")]
+#[only_in("guilds")]
+#[allowed_roles("Mods")]
+#[usage("*amount*")]
+fn setshiny(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
+    let amount = args.single::<i64>()?;
+    let data = ctx.data.write();
+    let conn = match data.get::<DatabaseConnection>() {
+        Some(v) => v.get().unwrap(),
+        None => {
+            let _ = msg.reply(&ctx, "Could not retrieve the database connection!");
+            return Ok(());
+        }
+    };
+
+    let mut response = Vec::new();
+
+    for user in &msg.mentions {
+        // check if user has an entry already
+        if let Ok(_user_shiny) = dsl::shinys
+            .filter(dsl::user_id.eq(*user.id.as_u64() as i64))
+            .first::<Shiny>(&conn)
+        {
+            let updated_shiny =
+                diesel::update(dsl::shinys.filter(dsl::user_id.eq(*user.id.as_u64() as i64)))
+                    .set(dsl::amount.eq(amount))
+                    .get_result::<Shiny>(&conn)
+                    .expect("could not update shiny");
+
+            response.push(format!("{}: {}", user.name, updated_shiny.amount));
+        } else {
+            // insert new entry
+
+            if let Some(server_id) = msg.guild_id {
+                let new_shiny = diesel::insert_into(dsl::shinys)
+                    .values(&NewShiny {
+                        user_id: *user.id.as_u64() as i64,
+                        username: user.name.to_string(),
+                        server_id: *server_id.as_u64() as i64,
+                        amount,
+                    })
+                    .get_result::<Shiny>(&conn)
+                    .expect("Could not insert new amount");
+
+                response.push(format!("{}: {}", user.name, new_shiny.amount));
+            }
+        }
+    }
+
+    msg.reply(&ctx, response.join("\n"))
+        .expect("Could not answer");
+
+    Ok(())
+}
+
+#[command]
+#[description = "Removes the shiny amount of specific user(s)"]
+#[example("@HansTrashy")]
+#[only_in("guilds")]
+#[allowed_roles("Mods")]
+#[usage("*user1* *user2*")]
+fn removeshiny(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
+    let data = ctx.data.write();
+    let conn = match data.get::<DatabaseConnection>() {
+        Some(v) => v.get().unwrap(),
+        None => {
+            let _ = msg.reply(&ctx, "Could not retrieve the database connection!");
+            return Ok(());
+        }
+    };
+
+    let mut response = Vec::new();
+
+    for user in &msg.mentions {
+        // check if user has an entry already
+        let updated_shiny =
+            diesel::delete(dsl::shinys.filter(dsl::user_id.eq(*user.id.as_u64() as i64)))
+                .execute(&conn)
+                .expect("could not update shiny");
+
+        response.push(format!("Removed shinys for {}", user.name));
+    }
+
+    msg.reply(&ctx, response.join("\n"))
+        .expect("Could not answer");
 
     Ok(())
 }
