@@ -20,6 +20,15 @@ table! {
 }
 
 table! {
+    lastfms (id) {
+        id -> Int8,
+        server_id -> Int8,
+        user_id -> Int8,
+        username -> Text,
+    }
+}
+
+table! {
     mutes (id) {
         id -> Int8,
         server_id -> Int8,
@@ -68,6 +77,7 @@ table! {
 allow_tables_to_appear_in_same_query!(
     banks,
     favs,
+    lastfms,
     mutes,
     reaction_roles,
     server_configs,

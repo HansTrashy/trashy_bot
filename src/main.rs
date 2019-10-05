@@ -17,9 +17,13 @@ extern crate diesel;
 
 use diesel::pg::PgConnection;
 use diesel::r2d2::{ConnectionManager, Pool};
+use hey_listen::sync::ParallelDispatcher as Dispatcher;
+use lazy_static::lazy_static;
 use log::*;
 use serenity::{
     client::bridge::gateway::ShardManager,
+    client::bridge::voice::ClientVoiceManager,
+    client::Context,
     framework::standard::{
         help_commands,
         macros::{check, command, group, help},
@@ -32,26 +36,23 @@ use serenity::{
         id::UserId,
     },
     prelude::*,
-    client::bridge::voice::ClientVoiceManager,
-    client::Context,
     voice,
 };
 use std::collections::HashSet;
 use std::{env, sync::Arc};
-use hey_listen::sync::ParallelDispatcher as Dispatcher;
 
-mod dispatch;
 mod blackjack;
+mod commands;
+mod dispatch;
 mod handler;
+mod interaction;
 mod logger;
+mod models;
 mod reaction_roles;
 mod rules;
+mod scheduler;
 mod schema;
 mod util;
-mod interaction;
-mod models;
-mod commands;
-mod scheduler;
 
 struct ShardManagerContainer;
 impl TypeMapKey for ShardManagerContainer {
@@ -138,13 +139,18 @@ fn my_help(
     help_commands::with_embeds(context, msg, args, help_options, groups, owners)
 }
 
+lazy_static! {
+    pub static ref LASTFM_API_KEY: String =
+        env::var("LASTFM_API_KEY").expect("Expected a lastfm token in the environment");
+}
+
 fn main() {
     // load .env file
     kankyo::load().expect("no env file");
     // setup logging
     logger::setup().expect("Could not setup logging");
     // Configure the client with your Discord bot token in the environment.
-    let token = env::var("DISCORD_TOKEN").expect("Expected a token in the environment");
+    let token = env::var("DISCORD_TOKEN").expect("Expected a discord token in the environment");
     let mut client = Client::new(&token, handler::Handler).expect("Err creating client");
 
     let db_manager = ConnectionManager::<PgConnection>::new(
@@ -239,6 +245,7 @@ fn main() {
             .group(&commands::groups::account::ACCOUNT_GROUP)
             .group(&commands::groups::moderation::MODERATION_GROUP)
             .group(&commands::groups::misc::MISC_GROUP)
+            .group(&commands::groups::lastfm::LASTFM_GROUP)
             .group(&commands::groups::voice::VOICE_GROUP),
     );
 

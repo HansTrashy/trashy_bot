@@ -12,6 +12,20 @@ pub mod general {
     });
 }
 
+pub mod lastfm {
+    use crate::commands::lastfm::*;
+    use serenity::framework::standard::macros::{check, command, group, help};
+
+    group!({
+        name: "lastfm",
+        options: {
+            prefix: "lastfm",
+            description: "Lastfm commands",
+        },
+        commands: [register, now]
+    });
+}
+
 pub mod misc {
     use crate::commands::{copypasta::*, shiny::*};
     use serenity::framework::standard::macros::{check, command, group, help};

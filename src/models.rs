@@ -5,3 +5,4 @@ pub mod tag;
 pub mod server_config;
 pub mod mute;
 pub mod shiny;
+pub mod lastfm;
