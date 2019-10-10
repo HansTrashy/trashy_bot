@@ -237,6 +237,7 @@ fn main() {
             .help(&MY_HELP)
             .bucket("slotmachine", |b| b.delay(10))
             .bucket("blackjack", |b| b.delay(600))
+            .bucket("lastfm", |b| b.delay(1).time_span(10).limit(5))
             .group(&commands::groups::general::GENERAL_GROUP)
             .group(&commands::groups::config::CONFIG_GROUP)
             .group(&commands::groups::greenbook::GREENBOOK_GROUP)
