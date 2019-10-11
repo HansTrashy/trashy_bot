@@ -26,19 +26,38 @@ pub fn register(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResu
     };
 
     if let Some(server_id) = msg.guild_id {
-        let lastfm = diesel::insert_into(dsl::lastfms)
-            .values(&NewLastfm {
-                user_id: *msg.author.id.as_u64() as i64,
-                server_id: *server_id.as_u64() as i64,
-                username,
-            })
-            .get_result::<Lastfm>(&conn)
-            .expect("Could not insert new amount");
+        if let Some(user) = dsl::lastfms
+            .filter(dsl::user_id.eq(*msg.author.id.as_u64() as i64))
+            .first::<Lastfm>(&*conn)
+            .optional()
+            .expect("could not get lastfm for this user")
+        {
+            let lastfm = diesel::update(
+                dsl::lastfms.filter(dsl::user_id.eq(*msg.author.id.as_u64() as i64)),
+            )
+            .set(dsl::username.eq(username))
+            .get_result::<Lastfm>(&*conn)
+            .expect("could not update user");
 
-        msg.reply(
-            &ctx,
-            format!("added {} as your lastfm username!", lastfm.username),
-        )?;
+            msg.reply(
+                &ctx,
+                format!("Updated your lastfm username to {}", lastfm.username),
+            )?;
+        } else {
+            let lastfm = diesel::insert_into(dsl::lastfms)
+                .values(&NewLastfm {
+                    user_id: *msg.author.id.as_u64() as i64,
+                    server_id: *server_id.as_u64() as i64,
+                    username,
+                })
+                .get_result::<Lastfm>(&conn)
+                .expect("Could not insert new amount");
+
+            msg.reply(
+                &ctx,
+                format!("added {} as your lastfm username!", lastfm.username),
+            )?;
+        }
     }
 
     Ok(())
