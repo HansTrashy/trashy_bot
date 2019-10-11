@@ -3,6 +3,7 @@ pub mod account;
 pub mod choose;
 pub mod config;
 pub mod copypasta;
+pub mod emoji;
 pub mod fav;
 pub mod groups;
 pub mod lastfm;
