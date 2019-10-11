@@ -1,6 +1,6 @@
 pub mod general {
     use crate::commands::{
-        about::*, choose::*, quote::*, remindme::*, roll::*, selfmute::*, spongebob::*,
+        about::*, choose::*, emoji::*, quote::*, remindme::*, roll::*, selfmute::*, spongebob::*,
         userinfo::*, xkcd::*,
     };
     use serenity::framework::standard::macros::{check, command, group, help};
@@ -8,7 +8,7 @@ pub mod general {
     group!({
         name: "general",
         options: {},
-        commands: [about, roll, choose, xkcd, quote, userinfo, remindme, spongebob, selfmute,],
+        commands: [about, roll, choose, xkcd, quote, userinfo, remindme, spongebob, selfmute, katzer],
     });
 }
 

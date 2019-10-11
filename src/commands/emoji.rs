@@ -10,6 +10,15 @@ use serenity::{
 use std::iter::FromIterator;
 
 #[command]
+fn katzer(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
+    let _ = msg.channel_id.send_message(&ctx, |m| {
+        m.embed(|e| e.image("https://cdn.discordapp.com/attachments/217015995385118721/632308780477972480/sinnbild.png"))
+    });
+
+    Ok(())
+}
+
+#[command]
 #[description = "Let the bot post an Emoji"]
 #[num_args(1)]
 #[only_in("guilds")]
