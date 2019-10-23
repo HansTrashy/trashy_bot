@@ -176,9 +176,9 @@ fn create_ban_message(users: &Vec<Member>, ban_message: &str) -> String {
 
 fn create_kick_message(users: &Vec<Member>, kick_message: &str) -> String {
     let intro = if users.len() > 1 {
-        "Kicked users:"
+        "YEEET"
     } else {
-        "Kicked user:"
+        "YEET"
     };
     let users = users
         .iter()
@@ -291,7 +291,7 @@ pub fn unmute(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
 #[command]
 #[only_in("guilds")]
 #[allowed_roles("Mods")]
-pub fn kick(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
+pub fn yeet(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
     let mut data = ctx.data.write();
     let conn = match data.get::<DatabaseConnection>() {
         Some(v) => v.get().unwrap(),
@@ -315,7 +315,7 @@ pub fn kick(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
                 let mut found_members = Vec::new();
                 for user in &msg.mentions {
                     let member = guild_id.member(&ctx, user)?;
-                    let _ = member.kick(&ctx);
+                    let _ = member.yeet(&ctx);
                     found_members.push(member);
                 }
 
