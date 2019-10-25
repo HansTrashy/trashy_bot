@@ -113,7 +113,7 @@ pub fn post(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
                 .color((0, 120, 220))
                 .footer(|f| {
                     f.text(&format!(
-                        "{} (UTC) | {} | Fav by: {}",
+                        "{} (UTC) | #{} | Fav by: {}",
                         &fav_msg.timestamp.format("%d.%m.%Y, %H:%M:%S"),
                         &fav_msg.channel_id.name(&ctx).unwrap_or("-".to_string()),
                         &msg.author.name,

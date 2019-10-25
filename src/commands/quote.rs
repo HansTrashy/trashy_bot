@@ -49,7 +49,7 @@ pub fn quote(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
                         .description(&quoted_msg.content)
                         .footer(|f| {
                             f.text(&format!(
-                                "{} (UTC) | {} | Quoted by: {}",
+                                "{} (UTC) | #{} | Quoted by: {}",
                                 &quoted_msg.timestamp.format("%d.%m.%Y, %H:%M:%S"),
                                 &quoted_msg.channel_id.name(&ctx).unwrap_or("-".to_string()),
                                 &msg.author.name
