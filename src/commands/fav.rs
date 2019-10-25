@@ -1,29 +1,29 @@
+use crate::dispatch::DispatchEvent;
 use crate::interaction::wait::{Action, Event};
 use crate::models::fav::Fav;
 use crate::models::tag::Tag;
 use crate::schema::favs::dsl::*;
 use crate::DatabaseConnection;
+use crate::DispatcherKey;
 use crate::Waiter;
 use chrono::prelude::*;
 use diesel::prelude::*;
-use rand::prelude::*;
-use serenity::model::{channel::Attachment, channel::ReactionType, id::ChannelId};
-use log::*;
-use lazy_static::lazy_static;
-use regex::Regex;
-use itertools::Itertools;
-use std::iter::FromIterator;
-use serenity::{
-    framework::standard::{Args, CommandResult, macros::command},
-    model::channel::Message,
-    model::channel::Embed,
-    builder::CreateEmbed,
-};
-use serenity::prelude::*;
-use log::*;
-use crate::dispatch::DispatchEvent;
-use crate::DispatcherKey;
 use hey_listen::sync::ParallelDispatcherRequest as DispatcherRequest;
+use itertools::Itertools;
+use lazy_static::lazy_static;
+use log::*;
+use log::*;
+use rand::prelude::*;
+use regex::Regex;
+use serenity::model::{channel::Attachment, channel::ReactionType, id::ChannelId};
+use serenity::prelude::*;
+use serenity::{
+    builder::CreateEmbed,
+    framework::standard::{macros::command, Args, CommandResult},
+    model::channel::Embed,
+    model::channel::Message,
+};
+use std::iter::FromIterator;
 
 #[command]
 #[description = "Post a fav"]
@@ -113,9 +113,10 @@ pub fn post(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
                 .color((0, 120, 220))
                 .footer(|f| {
                     f.text(&format!(
-                        "{} | Fav by: {}",
+                        "{} (UTC) | {} | Fav by: {}",
                         &fav_msg.timestamp.format("%d.%m.%Y, %H:%M:%S"),
-                        &msg.author.name
+                        &fav_msg.channel_id.name(&ctx).unwrap_or("-".to_string()),
+                        &msg.author.name,
                     ))
                 });
 

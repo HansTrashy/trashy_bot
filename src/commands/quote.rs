@@ -1,17 +1,16 @@
+use crate::dispatch::DispatchEvent;
+use crate::DispatcherKey;
+use hey_listen::sync::ParallelDispatcherRequest as DispatcherRequest;
 use lazy_static::lazy_static;
 use log::*;
 use regex::Regex;
 use serenity::model::channel::Attachment;
 use serenity::model::id::ChannelId;
+use serenity::prelude::*;
 use serenity::{
-    framework::standard::{Args, CommandResult, macros::command},
+    framework::standard::{macros::command, Args, CommandResult},
     model::channel::{Message, ReactionType},
 };
-use serenity::prelude::*;
-use log::*;
-use crate::DispatcherKey;
-use crate::dispatch::DispatchEvent;
-use hey_listen::sync::ParallelDispatcherRequest as DispatcherRequest;
 
 #[command]
 #[description = "Quote a message"]
@@ -50,8 +49,9 @@ pub fn quote(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
                         .description(&quoted_msg.content)
                         .footer(|f| {
                             f.text(&format!(
-                                "{} | Quoted by: {}",
+                                "{} (UTC) | {} | Quoted by: {}",
                                 &quoted_msg.timestamp.format("%d.%m.%Y, %H:%M:%S"),
+                                &quoted_msg.channel_id.name(&ctx).unwrap_or("-".to_string()),
                                 &msg.author.name
                             ))
                         });
