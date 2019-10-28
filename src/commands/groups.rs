@@ -68,7 +68,7 @@ pub mod moderation {
                 "Mods",
             ]
         },
-        commands: [mute, unmute, kick, ban]
+        commands: [mute, unmute, yeet, ban]
     });
 }
 
