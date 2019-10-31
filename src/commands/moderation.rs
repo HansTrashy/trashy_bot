@@ -1,30 +1,30 @@
-use serenity::{
-    framework::standard::{Args, CommandResult, macros::command},
-    model::channel::Message,
-    model::id::RoleId,
-    model::id::ChannelId,
-    model::user::User,
-    model::guild::Member,
-    model::prelude::*,
-};
+use super::config::GuildConfig;
+use crate::models::mute::{Mute, NewMute};
+use crate::models::server_config::{NewServerConfig, ServerConfig};
+use crate::scheduler::Task;
+use crate::schema::mutes;
+use crate::schema::server_configs;
+use crate::util;
+use crate::DatabaseConnection;
+use crate::TrashyScheduler;
+use chrono::{DateTime, Utc};
+use diesel::prelude::*;
 use itertools::Itertools;
+use log::*;
+use serde::{Deserialize, Serialize};
 use serenity::model::gateway::Activity;
 use serenity::model::user::OnlineStatus;
 use serenity::prelude::*;
-use log::*;
-use crate::models::server_config::{ServerConfig, NewServerConfig};
-use crate::models::mute::{Mute, NewMute};
-use serde::{Deserialize, Serialize};
-use crate::schema::server_configs;
-use crate::schema::mutes;
-use crate::DatabaseConnection;
-use diesel::prelude::*;
-use super::config::GuildConfig;
-use chrono::{DateTime, Utc};
+use serenity::{
+    framework::standard::{macros::command, Args, CommandResult},
+    model::channel::Message,
+    model::guild::Member,
+    model::id::ChannelId,
+    model::id::RoleId,
+    model::prelude::*,
+    model::user::User,
+};
 use time::Duration;
-use crate::util;
-use crate::TrashyScheduler;
-use crate::scheduler::Task;
 
 #[command]
 #[only_in("guilds")]
@@ -290,6 +290,7 @@ pub fn unmute(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
 
 #[command]
 #[only_in("guilds")]
+#[aliases("yeet")]
 #[allowed_roles("Mods")]
 pub fn kick(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
     let mut data = ctx.data.write();
