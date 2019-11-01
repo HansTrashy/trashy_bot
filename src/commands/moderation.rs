@@ -343,8 +343,8 @@ pub fn kick(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
 #[command]
 #[only_in("guilds")]
 #[allowed_roles("Mods")]
-pub fn ban(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
-    let mut data = ctx.data.write();
+pub fn ban(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
+    let data = ctx.data.write();
     let conn = match data.get::<DatabaseConnection>() {
         Some(v) => v.get().unwrap(),
         None => {
@@ -352,9 +352,7 @@ pub fn ban(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
             return Ok(());
         }
     };
-    let days = args.single::<u8>()?;
-    let ban_msg = args.single::<String>()?;
-    let ban_msg: &str = &*ban_msg;
+    let ban_msg = args.rest();
 
     if let Some(guild_id) = msg.guild_id {
         match server_configs::table
@@ -369,7 +367,7 @@ pub fn ban(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
                 let mut found_members = Vec::new();
                 for user in &msg.mentions {
                     let member = guild_id.member(&ctx, user)?;
-                    let _ = member.ban(&ctx, &(days, ban_msg));
+                    let _ = member.ban(&ctx, &(0, ban_msg));
                     found_members.push(member);
                 }
 
