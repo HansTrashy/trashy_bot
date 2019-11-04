@@ -1,23 +1,23 @@
+use crate::commands::config::GuildConfig;
+use crate::commands::userinfo::{MemberInfo, UserInfo};
 use crate::interaction::wait::Action;
+use crate::models::mute::Mute;
+use crate::models::server_config::{NewServerConfig, ServerConfig};
 use crate::models::tag::NewTag;
+use crate::schema::mutes;
+use crate::schema::server_configs;
 use crate::DatabaseConnection;
 use crate::Waiter;
+use chrono::Utc;
 use diesel::prelude::*;
 use log::*;
 use serenity::{
     model::{
-        channel::Message, channel::Reaction, channel::ReactionType, gateway::Ready, id::GuildId,
-        user::User, guild::Member, id::ChannelId, id::RoleId,
+        channel::Message, channel::Reaction, channel::ReactionType, gateway::Ready, guild::Member,
+        id::ChannelId, id::GuildId, id::RoleId, user::User,
     },
     prelude::*,
 };
-use crate::schema::server_configs;
-use crate::schema::mutes;
-use crate::models::server_config::{ServerConfig, NewServerConfig};
-use crate::models::mute::Mute;
-use crate::commands::config::GuildConfig;
-use chrono::Utc;
-use crate::commands::userinfo::{UserInfo, MemberInfo};
 
 mod blackjack;
 mod fav;
@@ -60,7 +60,7 @@ impl EventHandler for Handler {
                 let default = "Unknown".to_string();
 
                 let information_body = format!(
-                    "**Joined discord:** {} ({} days ago)\n\n**Joined this server:** {} ({} days ago)\n\n**Roles:** {}",
+                    "**Joined discord:** {} ({} days ago)\n\n**Joined this server:** {} ({} days ago)",
                     user_info.created_at,
                     user_info.created_at_ago,
                     user_info
@@ -72,12 +72,7 @@ impl EventHandler for Handler {
                         .member
                         .as_ref()
                         .and_then(|m| Some(&m.joined_at_ago))
-                        .unwrap_or(&default),
-                    user_info
-                        .member
-                        .as_ref()
-                        .and_then(|m| Some(m.roles.join(", ")))
-                        .unwrap_or_else(|| default.clone()),
+                        .unwrap_or(&default)
                 );
 
                 if let Some(userlog_channel) = g_cfg.userlog_channel {
@@ -92,7 +87,7 @@ impl EventHandler for Handler {
                                         .unwrap_or_default(),
                                 )
                             })
-                            .color((0, 120, 220))
+                            .color((0, 220, 0))
                             .description(&information_body)
                             .footer(|f| {
                                 f.text(&format!(
@@ -152,24 +147,10 @@ impl EventHandler for Handler {
                 let default = "Unknown".to_string();
 
                 let information_body = format!(
-                    "**Joined discord:** {} ({} days ago)\n\n**Left this server:** {} ({} days ago)\n\n**Roles:** {}",
+                    "**Joined discord:** {} ({} days ago)\n\n**Left this server:** {}",
                     user_info.created_at,
                     user_info.created_at_ago,
-                    user_info
-                        .member
-                        .as_ref()
-                        .and_then(|m| Some(&m.joined_at))
-                        .unwrap_or(&default),
-                    user_info
-                        .member
-                        .as_ref()
-                        .and_then(|m| Some(&m.joined_at_ago))
-                        .unwrap_or(&default),
-                    user_info
-                        .member
-                        .as_ref()
-                        .and_then(|m| Some(m.roles.join(", ")))
-                        .unwrap_or_else(|| default.clone()),
+                    chrono::Utc::now(),
                 );
 
                 if let Some(userlog_channel) = g_cfg.userlog_channel {
@@ -179,7 +160,7 @@ impl EventHandler for Handler {
                                 a.name(&user.name)
                                     .icon_url(&user.static_avatar_url().unwrap_or_default())
                             })
-                            .color((0, 120, 220))
+                            .color((220, 0, 0))
                             .description(&information_body)
                             .footer(|f| {
                                 f.text(&format!(
