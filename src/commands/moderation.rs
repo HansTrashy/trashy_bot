@@ -278,6 +278,8 @@ pub fn unmute(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
                             });
                         }
                     }
+
+                    let _ = msg.react(&ctx, ReactionType::Unicode("✅".to_string()));
                 }
             }
             None => {
@@ -330,6 +332,8 @@ pub fn kick(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
                         });
                     }
                 }
+
+                let _ = msg.react(&ctx, ReactionType::Unicode("✅".to_string()));
             }
             None => {
                 let _ = msg.reply(&ctx, "server config missing");
@@ -381,6 +385,8 @@ pub fn ban(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
                         });
                     }
                 }
+
+                let _ = msg.react(&ctx, ReactionType::Unicode("✅".to_string()));
             }
             None => {
                 let _ = msg.reply(&ctx, "server config missing");
