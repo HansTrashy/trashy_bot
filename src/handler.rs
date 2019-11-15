@@ -60,19 +60,8 @@ impl EventHandler for Handler {
                 let default = "Unknown".to_string();
 
                 let information_body = format!(
-                    "**Joined discord:** {} ({} days ago)\n\n**Joined this server:** {} ({} days ago)",
-                    user_info.created_at,
-                    user_info.created_at_ago,
-                    user_info
-                        .member
-                        .as_ref()
-                        .and_then(|m| Some(&m.joined_at))
-                        .unwrap_or(&default),
-                    user_info
-                        .member
-                        .as_ref()
-                        .and_then(|m| Some(&m.joined_at_ago))
-                        .unwrap_or(&default)
+                    "**Joined discord:** {} ({} days ago)\n\n**Has joined this server**",
+                    user_info.created_at, user_info.created_at_ago,
                 );
 
                 if let Some(userlog_channel) = g_cfg.userlog_channel {
@@ -147,10 +136,8 @@ impl EventHandler for Handler {
                 let default = "Unknown".to_string();
 
                 let information_body = format!(
-                    "**Joined discord:** {} ({} days ago)\n\n**Left this server:** {}",
-                    user_info.created_at,
-                    user_info.created_at_ago,
-                    chrono::Utc::now(),
+                    "**Joined discord:** {} ({} days ago)\n\n**Has left the server.**",
+                    user_info.created_at, user_info.created_at_ago,
                 );
 
                 if let Some(userlog_channel) = g_cfg.userlog_channel {
@@ -176,7 +163,6 @@ impl EventHandler for Handler {
     }
 
     fn message(&self, ctx: Context, msg: Message) {
-        info!("Message: {:?}", msg);
         if msg.is_private() {
             use crate::schema::tags::dsl::*;
             // check if waiting for labels
@@ -234,21 +220,27 @@ impl EventHandler for Handler {
 
         //TODO: refactor old dispatch style into new one using the dispatcher
         match reaction.emoji {
-            ReactionType::Unicode(ref s) if s == "📗" => fav::add(ctx, reaction),
-            ReactionType::Unicode(ref s) if s == "🗑" => fav::remove(ctx, reaction),
-            ReactionType::Unicode(ref s) if s == "🏷" => fav::add_label(ctx, reaction),
-            ReactionType::Unicode(ref s) if s == "👆" => blackjack::hit(ctx, reaction),
-            ReactionType::Unicode(ref s) if s == "✋" => blackjack::stay(ctx, reaction),
-            ReactionType::Unicode(ref s) if s == "🌀" => blackjack::new_game(ctx, reaction),
+            ReactionType::Unicode(ref s) if s.starts_with("📗") => fav::add(ctx, reaction),
+            ReactionType::Unicode(ref s) if s.starts_with("🗑") => fav::remove(ctx, reaction),
+            ReactionType::Unicode(ref s) if s.starts_with("🏷") => fav::add_label(ctx, reaction),
+            ReactionType::Unicode(ref s) if s.starts_with("👆") => blackjack::hit(ctx, reaction),
+            ReactionType::Unicode(ref s) if s.starts_with("✋") => blackjack::stay(ctx, reaction),
+            ReactionType::Unicode(ref s) if s.starts_with("🌀") => {
+                blackjack::new_game(ctx, reaction)
+            }
             _ => reaction_roles::add_role(ctx, reaction),
         }
     }
 
     fn reaction_remove(&self, ctx: Context, removed_reaction: Reaction) {
         match removed_reaction.emoji {
-            ReactionType::Unicode(ref s) if s == "👆" => blackjack::hit(ctx, removed_reaction),
-            ReactionType::Unicode(ref s) if s == "✋" => blackjack::stay(ctx, removed_reaction),
-            ReactionType::Unicode(ref s) if s == "🌀" => {
+            ReactionType::Unicode(ref s) if s.starts_with("👆") => {
+                blackjack::hit(ctx, removed_reaction)
+            }
+            ReactionType::Unicode(ref s) if s.starts_with("✋") => {
+                blackjack::stay(ctx, removed_reaction)
+            }
+            ReactionType::Unicode(ref s) if s.starts_with("🌀") => {
                 blackjack::new_game(ctx, removed_reaction)
             }
             _ => reaction_roles::remove_role(ctx, removed_reaction),
