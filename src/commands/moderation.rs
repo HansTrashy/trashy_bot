@@ -11,9 +11,6 @@ use chrono::{DateTime, Utc};
 use diesel::prelude::*;
 use itertools::Itertools;
 use log::*;
-use serde::{Deserialize, Serialize};
-use serenity::model::gateway::Activity;
-use serenity::model::user::OnlineStatus;
 use serenity::prelude::*;
 use serenity::{
     framework::standard::{macros::command, Args, CommandResult},
@@ -225,8 +222,8 @@ fn create_unmute_message(users: &Vec<Member>) -> String {
 #[command]
 #[only_in("guilds")]
 #[allowed_roles("Mods")]
-pub fn unmute(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
-    let mut data = ctx.data.write();
+pub fn unmute(ctx: &mut Context, msg: &Message, _args: Args) -> CommandResult {
+    let data = ctx.data.write();
     let conn = match data.get::<DatabaseConnection>() {
         Some(v) => v.get().unwrap(),
         None => {
@@ -294,8 +291,8 @@ pub fn unmute(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
 #[only_in("guilds")]
 #[aliases("yeet")]
 #[allowed_roles("Mods")]
-pub fn kick(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
-    let mut data = ctx.data.write();
+pub fn kick(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
+    let data = ctx.data.write();
     let conn = match data.get::<DatabaseConnection>() {
         Some(v) => v.get().unwrap(),
         None => {
@@ -303,7 +300,7 @@ pub fn kick(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
             return Ok(());
         }
     };
-    let kick_message = args.single::<String>()?;
+    let kick_message = args.rest();
 
     if let Some(guild_id) = msg.guild_id {
         match server_configs::table
