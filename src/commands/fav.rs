@@ -32,7 +32,7 @@ pub fn post(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
     let mut rng = rand::thread_rng();
     let mut data = ctx.data.write();
     let conn = match data.get::<DatabaseConnection>() {
-        Some(v) => v.get().unwrap(),
+        Some(v) => v.get().expect("could not get conn from pool"),
         None => {
             let _ = msg.reply(&ctx, "Could not retrieve the database connection!");
             return Ok(());
@@ -73,11 +73,14 @@ pub fn post(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
         })
         .collect();
 
-    let (chosen_fav, _tags) = possible_favs.into_iter().choose(&mut rng).unwrap();
+    let (chosen_fav, _tags) = possible_favs
+        .into_iter()
+        .choose(&mut rng)
+        .expect("possible favs are empty");
 
     let fav_msg = ChannelId(chosen_fav.channel_id as u64)
         .message(&ctx.http, chosen_fav.msg_id as u64)
-        .unwrap();
+        .expect("no fav message exists for this id");
 
     let _ = msg.delete(&ctx);
 
