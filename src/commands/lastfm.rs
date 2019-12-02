@@ -291,3 +291,67 @@ pub fn albums(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
 
     Ok(())
 }
+
+#[command]
+#[description = "Show your top tracks"]
+#[usage = "(all|7d|1m|3m|6m|12m)"]
+#[example = "3m"]
+#[min_args(0)]
+#[max_args(1)]
+#[bucket = "lastfm"]
+pub fn tracks(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
+    let period = match args.rest() {
+        "all" => "overall",
+        "7d" => "7days",
+        "1m" => "1month",
+        "3m" => "3month",
+        "6m" => "6month",
+        "12m" => "12month",
+        _ => "overall",
+    };
+
+    let data = ctx.data.write();
+    let conn = match data.get::<DatabaseConnection>() {
+        Some(v) => v.get().unwrap(),
+        None => {
+            let _ = msg.reply(&ctx, "Could not retrieve the database connection!");
+            return Ok(());
+        }
+    };
+
+    let lastfm = dsl::lastfms
+        .filter(dsl::user_id.eq(*msg.author.id.as_u64() as i64))
+        .first::<Lastfm>(&*conn)
+        .expect("could not get lastfm for this user");
+
+    // prepare for the lastfm api
+    let url = format!("http://ws.audioscrobbler.com/2.0/?method=user.gettoptracks&user={}&api_key={}&format=json&limit=10&period={}",
+            lastfm.username,
+            *LASTFM_API_KEY,
+            period);
+
+    let res: serde_json::Value = reqwest::get(&url)?.json()?;
+
+    let mut content = String::new();
+
+    if let Some(tracks) = res.pointer("/toptracks/track").and_then(|a| a.as_array()) {
+        for t in tracks {
+            content.push_str(&format!(
+                "Rank: {} | {} - {}\n",
+                t.pointer("/@attr/rank")
+                    .and_then(|a| a.as_str())
+                    .unwrap_or("Unknown Rank"),
+                t.pointer("/name")
+                    .and_then(|a| a.as_str())
+                    .unwrap_or("Unknown Track"),
+                t.pointer("/artist/name")
+                    .and_then(|a| a.as_str())
+                    .unwrap_or("Unknown Artist")
+            ));
+        }
+    }
+
+    msg.channel_id.send_message(&ctx, |m| m.content(&content))?;
+
+    Ok(())
+}

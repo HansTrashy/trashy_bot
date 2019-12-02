@@ -22,7 +22,7 @@ pub mod lastfm {
             prefix: "lastfm",
             description: "Lastfm commands",
         },
-        commands: [register, now, recent, artists, albums]
+        commands: [register, now, recent, artists, albums, tracks]
     });
 }
 
