@@ -33,6 +33,7 @@ impl Task {
                     m.content(
                         MessageBuilder::new()
                             .mention(&UserId(user))
+                            .push(" ")
                             .push(&msg)
                             .build(),
                     )
