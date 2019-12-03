@@ -341,12 +341,12 @@ pub fn tracks(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
                 t.pointer("/@attr/rank")
                     .and_then(|a| a.as_str())
                     .unwrap_or("Unknown Rank"),
+                t.pointer("/artist/name")
+                    .and_then(|a| a.as_str())
+                    .unwrap_or("Unknown Artist"),
                 t.pointer("/name")
                     .and_then(|a| a.as_str())
                     .unwrap_or("Unknown Track"),
-                t.pointer("/artist/name")
-                    .and_then(|a| a.as_str())
-                    .unwrap_or("Unknown Artist")
             ));
         }
     }
