@@ -337,10 +337,13 @@ pub fn tracks(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
     if let Some(tracks) = res.pointer("/toptracks/track").and_then(|a| a.as_array()) {
         for t in tracks {
             content.push_str(&format!(
-                "Rank: {} | {} - {}\n",
+                "Rank: {} | Played: {} | {} - {}\n",
                 t.pointer("/@attr/rank")
                     .and_then(|a| a.as_str())
                     .unwrap_or("Unknown Rank"),
+                t.pointer("/playcount")
+                    .and_then(|a| a.as_str())
+                    .unwrap_or("-"),
                 t.pointer("/artist/name")
                     .and_then(|a| a.as_str())
                     .unwrap_or("Unknown Artist"),
