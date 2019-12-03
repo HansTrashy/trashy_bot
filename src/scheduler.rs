@@ -10,6 +10,7 @@ use serenity::{
     model::id::{RoleId, ChannelId, UserId, GuildId},
 };
 use serde::{Serialize, Deserialize};
+use tokio::time::delay_for;
 
 #[derive(PartialEq, Eq, Serialize, Deserialize, Clone)]
 pub enum Task {
@@ -97,7 +98,7 @@ impl Scheduler {
                 if duration_until > Duration::zero() {
                     task_list.lock().unwrap().push((when, task.clone()));
                     let f = async move {
-                            tokio::timer::delay(tokio::clock::now() + duration_until.to_std().unwrap()).await;
+                            delay_for(duration_until.to_std().unwrap()).await;
                             task_list_clone.lock().unwrap().retain(|(_, t)| t != &task);
                             task.execute(cache_and_http_clone, db_pool_clone);
                     };
@@ -127,7 +128,7 @@ impl Scheduler {
         let db_pool = self.db_pool.clone();
         let task_list_clone = Arc::clone(&self.task_list);
         let f = async move {
-            tokio::timer::delay(tokio::clock::now() + duration.to_std().unwrap()).await;
+            delay_for(duration.to_std().unwrap()).await;
             task_list_clone.lock().unwrap().retain(|(_, t)| t != &task);
             task.execute(cache_and_http, db_pool);
         };
