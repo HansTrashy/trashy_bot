@@ -3,6 +3,7 @@ use crate::schema::lastfms::dsl;
 use crate::DatabaseConnection;
 use crate::LASTFM_API_KEY;
 use diesel::prelude::*;
+use log::*;
 use serenity::prelude::*;
 use serenity::{
     framework::standard::{macros::command, Args, CommandResult},
@@ -180,7 +181,7 @@ pub fn recent(ctx: &mut Context, msg: &Message, _args: Args) -> CommandResult {
 pub fn artists(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
     let period = match args.rest() {
         "all" => "overall",
-        "7d" => "7days",
+        "7d" => "7day",
         "1m" => "1month",
         "3m" => "3month",
         "6m" => "6month",
@@ -241,7 +242,7 @@ pub fn artists(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
 pub fn albums(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
     let period = match args.rest() {
         "all" => "overall",
-        "7d" => "7days",
+        "7d" => "7day",
         "1m" => "1month",
         "3m" => "3month",
         "6m" => "6month",
@@ -302,13 +303,15 @@ pub fn albums(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
 pub fn tracks(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
     let period = match args.rest() {
         "all" => "overall",
-        "7d" => "7days",
+        "7d" => "7day",
         "1m" => "1month",
         "3m" => "3month",
         "6m" => "6month",
         "12m" => "12month",
         _ => "overall",
     };
+
+    info!("period: {:?}", period);
 
     let data = ctx.data.write();
     let conn = match data.get::<DatabaseConnection>() {
