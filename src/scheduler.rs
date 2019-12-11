@@ -1,15 +1,15 @@
 use chrono::{DateTime, Utc};
+use log::*;
+use serde::{Deserialize, Serialize};
+use serenity::utils::MessageBuilder;
+use serenity::CacheAndHttp;
+use serenity::{
+    framework::standard::{macros::command, Args, CommandResult},
+    model::channel::Message,
+    model::id::{ChannelId, GuildId, RoleId, UserId},
+};
 use std::sync::{Arc, Mutex};
 use time::Duration;
-use serenity::CacheAndHttp;
-use serenity::utils::MessageBuilder;
-use log::*;
-use serenity::{
-    framework::standard::{Args, CommandResult, macros::command},
-    model::channel::Message,
-    model::id::{RoleId, ChannelId, UserId, GuildId},
-};
-use serde::{Serialize, Deserialize};
 use tokio::time::delay_for;
 
 #[derive(PartialEq, Eq, Serialize, Deserialize, Clone)]
@@ -40,7 +40,11 @@ impl Task {
                     )
                 });
             }
-            Self::RemoveMute { guild_id, user, mute_role } => {
+            Self::RemoveMute {
+                guild_id,
+                user,
+                mute_role,
+            } => {
                 use crate::schema::mutes;
                 use diesel::prelude::*;
 
@@ -60,12 +64,16 @@ impl Task {
                 )
                 .execute(&*conn)
                 .expect("could not delete mute");
-            },
+            }
         }
     }
 
     pub fn remove_mute(guild_id: u64, user: u64, mute_role: u64) -> Self {
-        Self::RemoveMute { guild_id, user, mute_role }
+        Self::RemoveMute {
+            guild_id,
+            user,
+            mute_role,
+        }
     }
 
     pub fn reply(user: u64, channel: u64, msg: String) -> Self {
@@ -82,14 +90,14 @@ pub struct Scheduler {
     task_list: Arc<Mutex<Vec<(DateTime<Utc>, Task)>>>,
 }
 
-
 impl Scheduler {
     pub fn new(cache_and_http: Arc<CacheAndHttp>, db_pool: DbPool) -> Self {
         let rt = tokio::runtime::Runtime::new().unwrap();
         let task_list = Arc::new(Mutex::new(Vec::new()));
 
         if let Ok(data) = std::fs::read_to_string("scheduler_state.storage") {
-            let when_tasks = serde_json::from_str::<Vec<(DateTime<Utc>, Task)>>(&data).unwrap_or_default();
+            let when_tasks =
+                serde_json::from_str::<Vec<(DateTime<Utc>, Task)>>(&data).unwrap_or_default();
             for (when, task) in when_tasks {
                 let duration_until = when.signed_duration_since(chrono::Utc::now());
                 let cache_and_http_clone = cache_and_http.clone();
@@ -98,9 +106,9 @@ impl Scheduler {
                 if duration_until > Duration::zero() {
                     task_list.lock().unwrap().push((when, task.clone()));
                     let f = async move {
-                            delay_for(duration_until.to_std().unwrap()).await;
-                            task_list_clone.lock().unwrap().retain(|(_, t)| t != &task);
-                            task.execute(cache_and_http_clone, db_pool_clone);
+                        delay_for(duration_until.to_std().unwrap()).await;
+                        task_list_clone.lock().unwrap().retain(|(_, t)| t != &task);
+                        task.execute(cache_and_http_clone, db_pool_clone);
                     };
                     rt.spawn(f);
                 }
@@ -121,7 +129,8 @@ impl Scheduler {
             let mut lock = self.task_list.lock().unwrap();
             lock.push((when, task.clone()));
             let data = serde_json::to_string(&*lock).expect("could not serialize rules state");
-            std::fs::write("scheduler_state.storage", data).expect("could not write rules state to file");
+            std::fs::write("scheduler_state.storage", data)
+                .expect("could not write rules state to file");
         }
 
         let cache_and_http = Arc::clone(&self.cache_and_http);
@@ -135,4 +144,3 @@ impl Scheduler {
         self.runtime.spawn(f);
     }
 }
-

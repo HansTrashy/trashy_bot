@@ -1,13 +1,10 @@
-use serenity::{
-    framework::standard::{
-        Args, CommandResult,
-        macros::command,
-    },
-    model::channel::Message,
-};
-use serenity::prelude::*;
 use log::*;
 use rand::prelude::*;
+use serenity::prelude::*;
+use serenity::{
+    framework::standard::{macros::command, Args, CommandResult},
+    model::channel::Message,
+};
 
 #[command]
 #[description = "Roll x dice with y sides"]

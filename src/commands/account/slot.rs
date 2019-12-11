@@ -2,16 +2,13 @@ use crate::models::bank::Bank;
 use crate::schema::banks::dsl;
 use crate::DatabaseConnection;
 use diesel::prelude::*;
+use log::*;
 use rand::prelude::*;
+use serenity::prelude::*;
 use serenity::{
-    framework::standard::{
-        Args, CommandResult,
-        macros::command,
-    },
+    framework::standard::{macros::command, Args, CommandResult},
     model::channel::Message,
 };
-use serenity::prelude::*;
-use log::*;
 
 #[command]
 #[description = "Gamble for worthless points"]

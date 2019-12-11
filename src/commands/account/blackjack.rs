@@ -1,18 +1,15 @@
 use crate::models::bank::Bank;
 use crate::schema::banks::dsl::*;
+use crate::BlackjackState;
 use crate::DatabaseConnection;
 use diesel::prelude::*;
+use log::*;
 use serenity::model::channel::ReactionType;
-use crate::BlackjackState;
+use serenity::prelude::*;
 use serenity::{
-    framework::standard::{
-        Args, CommandResult,
-        macros::command,
-    },
+    framework::standard::{macros::command, Args, CommandResult},
     model::channel::Message,
 };
-use serenity::prelude::*;
-use log::*;
 
 #[command]
 #[bucket = "blackjack"]

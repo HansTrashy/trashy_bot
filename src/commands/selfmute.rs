@@ -1,27 +1,27 @@
-use serenity::{
-    framework::standard::{Args, CommandResult, macros::command},
-    model::channel::Message,
-    model::id::RoleId,
-    model::id::ChannelId,
-    model::prelude::*,
-};
+use super::config::GuildConfig;
+use crate::models::mute::{Mute, NewMute};
+use crate::models::server_config::{NewServerConfig, ServerConfig};
+use crate::scheduler::Task;
+use crate::schema::mutes;
+use crate::schema::server_configs;
+use crate::util;
+use crate::DatabaseConnection;
+use crate::TrashyScheduler;
+use chrono::{DateTime, Utc};
+use diesel::prelude::*;
+use log::*;
+use serde::{Deserialize, Serialize};
 use serenity::model::gateway::Activity;
 use serenity::model::user::OnlineStatus;
 use serenity::prelude::*;
-use log::*;
-use crate::models::server_config::{ServerConfig, NewServerConfig};
-use crate::models::mute::{Mute, NewMute};
-use serde::{Deserialize, Serialize};
-use crate::schema::server_configs;
-use crate::schema::mutes;
-use crate::DatabaseConnection;
-use diesel::prelude::*;
-use super::config::GuildConfig;
-use chrono::{DateTime, Utc};
-use crate::TrashyScheduler;
+use serenity::{
+    framework::standard::{macros::command, Args, CommandResult},
+    model::channel::Message,
+    model::id::ChannelId,
+    model::id::RoleId,
+    model::prelude::*,
+};
 use time::Duration;
-use crate::util;
-use crate::scheduler::Task;
 
 #[command]
 #[num_args(1)]

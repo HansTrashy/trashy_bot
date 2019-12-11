@@ -1,12 +1,9 @@
+use log::*;
+use serenity::prelude::*;
 use serenity::{
-    framework::standard::{
-        Args, CommandResult,
-        macros::command,
-    },
+    framework::standard::{macros::command, Args, CommandResult},
     model::channel::Message,
 };
-use serenity::prelude::*;
-use log::*;
 
 #[command]
 #[description = "Info about the bot"]

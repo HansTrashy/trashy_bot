@@ -1,16 +1,16 @@
-use std::{
-    collections::HashSet,
-    env,
-    hash::{Hash, Hasher},
-};
 use serenity::{
-    prelude::*,
     framework::standard::{
-        Args, CommandResult, CommandGroup, DispatchError, HelpOptions, help_commands,
+        help_commands, Args, CommandGroup, CommandResult, DispatchError, HelpOptions,
         StandardFramework,
     },
     http::Http,
     model::prelude::*,
+    prelude::*,
+};
+use std::{
+    collections::HashSet,
+    env,
+    hash::{Hash, Hasher},
 };
 
 #[derive(Clone)]

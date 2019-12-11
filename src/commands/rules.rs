@@ -1,17 +1,14 @@
 use crate::RulesState;
 use itertools::Itertools;
+use log::*;
 use serenity::model::channel::ReactionType;
+use serenity::prelude::*;
 use serenity::utils::{content_safe, ContentSafeOptions};
-use std::iter::FromIterator;
 use serenity::{
-    framework::standard::{
-        Args, CommandResult,
-        macros::command,
-    },
+    framework::standard::{macros::command, Args, CommandResult},
     model::channel::Message,
 };
-use serenity::prelude::*;
-use log::*;
+use std::iter::FromIterator;
 
 #[command]
 #[description = "Sends you the Rules in German"]

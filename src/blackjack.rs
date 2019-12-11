@@ -4,10 +4,10 @@ use log::*;
 use rand::prelude::*;
 use serde::{Deserialize, Serialize};
 use serenity::model::id::ChannelId;
+use serenity::prelude::Context;
 use serenity::prelude::Mutex;
 use std::fmt;
 use std::sync::Arc;
-use serenity::prelude::Context;
 
 type Pool = r2d2::Pool<ConnectionManager<PgConnection>>;
 

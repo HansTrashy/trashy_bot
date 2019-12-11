@@ -1,16 +1,16 @@
-use serenity::{
-    framework::standard::{Args, CommandResult, macros::command},
-    model::channel::Message,
-};
-use serenity::model::gateway::Activity;
-use serenity::model::user::OnlineStatus;
-use serenity::prelude::*;
-use log::*;
-use crate::models::server_config::{ServerConfig, NewServerConfig};
-use serde::{Deserialize, Serialize};
+use crate::models::server_config::{NewServerConfig, ServerConfig};
 use crate::schema::server_configs;
 use crate::DatabaseConnection;
 use diesel::prelude::*;
+use log::*;
+use serde::{Deserialize, Serialize};
+use serenity::model::gateway::Activity;
+use serenity::model::user::OnlineStatus;
+use serenity::prelude::*;
+use serenity::{
+    framework::standard::{macros::command, Args, CommandResult},
+    model::channel::Message,
+};
 
 #[command]
 #[num_args(0)]

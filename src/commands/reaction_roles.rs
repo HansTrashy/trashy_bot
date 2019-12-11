@@ -4,18 +4,15 @@ use crate::schema::reaction_roles::dsl::*;
 use crate::DatabaseConnection;
 use crate::ReactionRolesState;
 use diesel::prelude::*;
+use itertools::Itertools;
+use log::*;
 use log::*;
 use serenity::model::channel::ReactionType;
-use itertools::Itertools;
+use serenity::prelude::*;
 use serenity::{
-    framework::standard::{
-        Args, CommandResult,
-        macros::command,
-    },
+    framework::standard::{macros::command, Args, CommandResult},
     model::channel::Message,
 };
-use serenity::prelude::*;
-use log::*;
 
 #[command]
 #[allowed_roles("Mods")]

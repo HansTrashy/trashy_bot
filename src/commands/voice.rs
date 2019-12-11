@@ -1,13 +1,13 @@
+use crate::VoiceManager;
+use log::*;
+use serenity::prelude::*;
 use serenity::{
-    framework::standard::{Args, CommandResult, macros::command},
-    model::channel::Message,
     client::bridge::voice::ClientVoiceManager,
     client::Context,
+    framework::standard::{macros::command, Args, CommandResult},
+    model::channel::Message,
     voice,
 };
-use serenity::prelude::*;
-use log::*;
-use crate::VoiceManager;
 
 #[command]
 fn deafen(ctx: &mut Context, msg: &Message) -> CommandResult {

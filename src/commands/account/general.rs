@@ -3,15 +3,12 @@ use crate::schema::banks::dsl::*;
 use crate::DatabaseConnection;
 use chrono::prelude::*;
 use diesel::prelude::*;
+use log::*;
+use serenity::prelude::*;
 use serenity::{
-    framework::standard::{
-        Args, CommandResult,
-        macros::command,
-    },
+    framework::standard::{macros::command, Args, CommandResult},
     model::channel::Message,
 };
-use serenity::prelude::*;
-use log::*;
 
 #[command]
 #[description = "Create an account if you do not already own one"]

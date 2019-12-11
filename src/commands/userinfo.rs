@@ -1,12 +1,12 @@
+use chrono::prelude::*;
+use chrono::{DateTime, Utc};
+use log::*;
 use serde::Deserialize;
+use serenity::prelude::*;
 use serenity::{
-    framework::standard::{Args, CommandResult, macros::command},
+    framework::standard::{macros::command, Args, CommandResult},
     model::channel::Message,
 };
-use serenity::prelude::*;
-use log::*;
-use chrono::{Utc, DateTime};
-use chrono::prelude::*;
 
 pub struct UserInfo {
     pub created_at: String,

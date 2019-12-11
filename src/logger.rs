@@ -1,6 +1,6 @@
-use fern::{self, InitError, Dispatch};
-use log::LevelFilter;
 use chrono::Utc;
+use fern::{self, Dispatch, InitError};
+use log::LevelFilter;
 use std::io;
 
 pub fn setup() -> Result<(), InitError> {
