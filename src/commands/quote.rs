@@ -1,5 +1,6 @@
 use crate::dispatch::DispatchEvent;
 use crate::DispatcherKey;
+use crate::OptOut;
 use hey_listen::sync::ParallelDispatcherRequest as DispatcherRequest;
 use lazy_static::lazy_static;
 use log::*;
@@ -18,6 +19,23 @@ use serenity::{
 #[example = "https://discordapp.com/channels/_/_/_"]
 #[only_in("guilds")]
 pub fn quote(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
+    let mut data = ctx.data.read();
+    let opt_out = match data.get::<OptOut>() {
+        Some(v) => v,
+        None => {
+            let _ = msg.reply(&ctx, "OptOut list not available");
+            panic!("no optout");
+        }
+    };
+
+    if opt_out.lock().set.contains(msg.author.id.as_u64()) {
+        let _ = msg.channel_id.send_message(&ctx.http, |m| {
+            m.content("You have opted out of the quote functionality")
+        });
+        let _ = msg.delete(&ctx);
+        return Ok(());
+    }
+
     lazy_static! {
         static ref QUOTE_LINK_REGEX: Regex =
             Regex::new(r#"https://discordapp.com/channels/(\d+)/(\d+)/(\d+)"#)
@@ -28,15 +46,15 @@ pub fn quote(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
         let quote_channel_id = caps[2].parse::<u64>()?;
         let quote_msg_id = caps[3].parse::<u64>()?;
 
-        let dispatcher = {
-            let mut context = ctx.data.write();
-            context
-                .get_mut::<DispatcherKey>()
-                .expect("Expected Dispatcher.")
-                .clone()
-        };
-
         if let Ok(quoted_msg) = ChannelId(quote_channel_id).message(&ctx.http, quote_msg_id) {
+            if opt_out.lock().set.contains(quoted_msg.author.id.as_u64()) {
+                let _ = msg.channel_id.send_message(&ctx.http, |m| {
+                    m.content("The user does not want to be quoted")
+                });
+                let _ = msg.delete(&ctx);
+                return Ok(());
+            }
+
             let bot_msg = msg.channel_id.send_message(&ctx.http, |m| {
                 m.embed(|e| {
                     let mut embed = e
@@ -69,42 +87,12 @@ pub fn quote(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
                     embed
                 })
             });
-
-            let http = ctx.http.clone();
-            if let Ok(bot_msg) = bot_msg {
-                dispatcher.write().add_fn(
-                    DispatchEvent::ReactEvent(
-                        bot_msg.id,
-                        ReactionType::Unicode("ℹ".to_string()),
-                        bot_msg.channel_id,
-                        msg.author.id,
-                    ),
-                    Box::new(move |event: &DispatchEvent| match &event {
-                        DispatchEvent::ReactEvent(
-                            _msg_id,
-                            _reaction_type,
-                            _channel_id,
-                            author_id,
-                        ) => {
-                            if let Ok(dm_channel) = author_id.create_dm_channel(&http) {
-                                let _ = dm_channel.say(
-                                    &http,
-                                    format!(
-                                        "https://discordapp.com/channels/{}/{}/{}",
-                                        quote_server_id, quote_channel_id, quote_msg_id,
-                                    ),
-                                );
-                            }
-                            Some(DispatcherRequest::StopListening)
-                        }
-                    }),
-                );
-            }
         } else {
             let _ = msg.reply(&ctx, "Sorry, i can not find this message.");
             trace!("Could not find quote message");
         }
     }
+
     let _ = msg.delete(&ctx);
     Ok(())
 }

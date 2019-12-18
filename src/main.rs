@@ -20,6 +20,7 @@ use diesel::r2d2::{ConnectionManager, Pool};
 use hey_listen::sync::ParallelDispatcher as Dispatcher;
 use lazy_static::lazy_static;
 use log::*;
+use serde::{Deserialize, Serialize};
 use serenity::{
     client::bridge::gateway::ShardManager,
     client::bridge::voice::ClientVoiceManager,
@@ -99,6 +100,37 @@ impl TypeMapKey for TrashyScheduler {
     type Value = Arc<scheduler::Scheduler>;
 }
 
+struct OptOut;
+impl TypeMapKey for OptOut {
+    type Value = Arc<Mutex<OptOutStore>>;
+}
+
+#[derive(Serialize, Deserialize)]
+struct OptOutStore {
+    pub set: HashSet<u64>,
+}
+
+impl OptOutStore {
+    fn load_or_init() -> Self {
+        match std::fs::read_to_string("opt_out.storage") {
+            Ok(data) => {
+                serde_json::from_str::<Self>(&data).expect("could not deserialize rules state")
+            }
+            Err(e) => {
+                warn!("OptOutp loading error: {}", e);
+                Self {
+                    set: HashSet::new(),
+                }
+            }
+        }
+    }
+
+    fn save(&self) {
+        let data = serde_json::to_string(self).expect("could not serialize optout state");
+        std::fs::write("opt_out.storage", data).expect("could not write optout state to file");
+    }
+}
+
 #[help]
 // This replaces the information that a user can pass
 // a command-name as argument to gain specific information about it.
@@ -175,6 +207,8 @@ fn main() {
         db_pool.clone(),
     ));
 
+    let opt_out = Arc::new(Mutex::new(OptOutStore::load_or_init()));
+
     {
         let mut data = client.data.write();
 
@@ -187,6 +221,7 @@ fn main() {
         data.insert::<DispatcherKey>(Arc::new(RwLock::new(dispatcher)));
         data.insert::<VoiceManager>(Arc::clone(&client.voice_manager));
         data.insert::<TrashyScheduler>(Arc::clone(&trashy_scheduler));
+        data.insert::<OptOut>(Arc::clone(&opt_out));
     }
 
     let (owners, bot_id) = match client.cache_and_http.http.get_current_application_info() {

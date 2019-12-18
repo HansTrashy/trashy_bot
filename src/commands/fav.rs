@@ -5,6 +5,7 @@ use crate::models::tag::Tag;
 use crate::schema::favs::dsl::*;
 use crate::DatabaseConnection;
 use crate::DispatcherKey;
+use crate::OptOut;
 use crate::Waiter;
 use chrono::prelude::*;
 use diesel::prelude::*;
@@ -43,6 +44,20 @@ pub fn post(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
             .expect("Expected Dispatcher.")
             .clone()
     };
+    let opt_out = match data.get::<OptOut>() {
+        Some(v) => v,
+        None => {
+            let _ = msg.reply(&ctx, "OptOut list not available");
+            panic!("no optout");
+        }
+    };
+
+    if opt_out.lock().set.contains(msg.author.id.as_u64()) {
+        let _ = msg.channel_id.send_message(&ctx.http, |m| {
+            m.content("You have opted out of the quote functionality")
+        });
+        return Ok(());
+    }
 
     let labels: Vec<String> = args.iter::<String>().filter_map(Result::ok).collect();
 
@@ -83,6 +98,13 @@ pub fn post(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
         .expect("no fav message exists for this id");
 
     let _ = msg.delete(&ctx);
+
+    if opt_out.lock().set.contains(fav_msg.author.id.as_u64()) {
+        let _ = msg.channel_id.send_message(&ctx.http, |m| {
+            m.content("The user does not want to be quoted")
+        });
+        return Ok(());
+    }
 
     if let Some(waiter) = data.get::<Waiter>() {
         let mut wait = waiter.lock();
@@ -179,6 +201,13 @@ pub fn untagged(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
             return Ok(());
         }
     };
+    let opt_out = match data.get::<OptOut>() {
+        Some(v) => v,
+        None => {
+            let _ = msg.reply(&ctx, "OptOut list not available");
+            panic!("no optout");
+        }
+    };
 
     let results = favs
         .filter(user_id.eq(*msg.author.id.as_u64() as i64))
@@ -209,6 +238,13 @@ pub fn untagged(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
         let fav_msg = ChannelId(fa.channel_id as u64)
             .message(&ctx, fa.msg_id as u64)
             .unwrap();
+
+        if opt_out.lock().set.contains(fav_msg.author.id.as_u64()) {
+            let _ = msg.channel_id.send_message(&ctx.http, |m| {
+                m.content("The user does not want to be quoted")
+            });
+            return Ok(());
+        }
 
         if let Some(waiter) = data.get::<Waiter>() {
             let mut wait = waiter.lock();
