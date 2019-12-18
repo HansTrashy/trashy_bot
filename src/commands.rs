@@ -16,6 +16,7 @@ pub mod rules;
 pub mod selfmute;
 pub mod shiny;
 pub mod spongebob;
+pub mod testing;
 pub mod userinfo;
 pub mod voice;
 pub mod xkcd;

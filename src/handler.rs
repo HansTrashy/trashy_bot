@@ -218,6 +218,18 @@ impl EventHandler for Handler {
                 reaction.user_id,
             ));
 
+        let new_dispatcher = {
+            let mut context = ctx.data.write();
+            context
+                .get_mut::<crate::TrashyDispatcher>()
+                .expect("No new dispatcher")
+                .clone()
+        };
+
+        new_dispatcher
+            .lock()
+            .dispatch_event(reaction.emoji.clone().to_string());
+
         //TODO: refactor old dispatch style into new one using the dispatcher
         match reaction.emoji {
             ReactionType::Unicode(ref s) if s.starts_with("📗") => fav::add(ctx, reaction),

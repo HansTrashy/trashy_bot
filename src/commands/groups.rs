@@ -1,3 +1,17 @@
+pub mod testing {
+    use crate::commands::testing::*;
+    use serenity::framework::standard::macros::{check, command, group, help};
+
+    group!({
+        name: "testing",
+        options: {
+            prefix: "t",
+            description: "Testing commands",
+        },
+        commands: [dispatch]
+    });
+}
+
 pub mod general {
     use crate::commands::{
         about::*, choose::*, emoji::*, quote::*, remindme::*, roll::*, selfmute::*, spongebob::*,

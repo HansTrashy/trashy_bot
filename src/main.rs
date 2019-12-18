@@ -48,6 +48,7 @@ mod handler;
 mod interaction;
 mod logger;
 mod models;
+mod new_dispatch;
 mod reaction_roles;
 mod rules;
 mod scheduler;
@@ -97,6 +98,11 @@ impl TypeMapKey for VoiceManager {
 struct TrashyScheduler;
 impl TypeMapKey for TrashyScheduler {
     type Value = Arc<scheduler::Scheduler>;
+}
+
+struct TrashyDispatcher;
+impl TypeMapKey for TrashyDispatcher {
+    type Value = Arc<Mutex<new_dispatch::Dispatcher<String>>>;
 }
 
 #[help]
@@ -175,6 +181,8 @@ fn main() {
         db_pool.clone(),
     ));
 
+    let trashy_dispatcher = Arc::new(Mutex::new(new_dispatch::Dispatcher::new()));
+
     {
         let mut data = client.data.write();
 
@@ -187,6 +195,7 @@ fn main() {
         data.insert::<DispatcherKey>(Arc::new(RwLock::new(dispatcher)));
         data.insert::<VoiceManager>(Arc::clone(&client.voice_manager));
         data.insert::<TrashyScheduler>(Arc::clone(&trashy_scheduler));
+        data.insert::<TrashyDispatcher>(Arc::clone(&trashy_dispatcher));
     }
 
     let (owners, bot_id) = match client.cache_and_http.http.get_current_application_info() {
@@ -247,6 +256,7 @@ fn main() {
             .group(&commands::groups::moderation::MODERATION_GROUP)
             .group(&commands::groups::misc::MISC_GROUP)
             .group(&commands::groups::lastfm::LASTFM_GROUP)
+            .group(&commands::groups::testing::TESTING_GROUP)
             .group(&commands::groups::voice::VOICE_GROUP),
     );
 
