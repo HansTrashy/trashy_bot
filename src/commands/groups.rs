@@ -7,6 +7,7 @@ pub mod testing {
         options: {
             prefix: "t",
             description: "Testing commands",
+            owners_only: true,
         },
         commands: [dispatch]
     });

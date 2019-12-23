@@ -104,7 +104,7 @@ impl TypeMapKey for TrashyScheduler {
 
 struct TrashyDispatcher;
 impl TypeMapKey for TrashyDispatcher {
-    type Value = Arc<Mutex<new_dispatch::Dispatcher<String>>>;
+    type Value = Arc<Mutex<new_dispatch::Dispatcher<crate::new_dispatch::DispatchEvent>>>;
 }
 
 struct OptOut;
@@ -209,12 +209,15 @@ fn main() {
         .num_threads(2)
         .expect("could not construct threadpool for dispatcher");
 
+    let rt = Arc::new(tokio::runtime::Runtime::new().unwrap());
     let trashy_scheduler = Arc::new(scheduler::Scheduler::new(
+        Arc::clone(&rt),
         Arc::clone(&client.cache_and_http),
         db_pool.clone(),
     ));
 
     let trashy_dispatcher = Arc::new(Mutex::new(new_dispatch::Dispatcher::new()));
+
     let opt_out = Arc::new(Mutex::new(OptOutStore::load_or_init()));
 
     {
@@ -232,6 +235,15 @@ fn main() {
         data.insert::<TrashyDispatcher>(Arc::clone(&trashy_dispatcher));
         data.insert::<OptOut>(Arc::clone(&opt_out));
     }
+
+    // setup interval to check expiration of dispatcher listener
+    rt.spawn(async move {
+        let mut interval = tokio::time::interval(std::time::Duration::from_secs(20));
+        loop {
+            interval.tick().await;
+            trashy_dispatcher.lock().check_expiration();
+        }
+    });
 
     let (owners, bot_id) = match client.cache_and_http.http.get_current_application_info() {
         Ok(info) => {
@@ -300,22 +312,6 @@ fn main() {
     }
 }
 
-#[check]
-#[name = "Owner"]
-fn owner_check(_: &mut Context, msg: &Message, _: &mut Args, _: &CommandOptions) -> CheckResult {
-    (msg.author.id == 179_680_865_805_271_040).into()
-}
-
-#[check]
-#[name = "Admin"]
-fn admin_check(ctx: &mut Context, msg: &Message, _: &mut Args, _: &CommandOptions) -> CheckResult {
-    if let Some(member) = msg.member(&ctx.cache) {
-        if let Ok(permissions) = member.permissions(&ctx.cache) {
-            return permissions.administrator().into();
-        }
-    }
-    false.into()
-}
 
 #[cfg(test)]
 mod tests {}

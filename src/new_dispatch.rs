@@ -78,8 +78,8 @@ where
         entry.push(listener);
     }
 
-    pub fn dispatch_event(&self, id: K) {
-        if let Some(listener) = self.listener.get(&id) {
+    pub fn dispatch_event(&self, id: &K) {
+        if let Some(listener) = self.listener.get(id) {
             for l in listener {
                 (l.action)()
             }
@@ -106,6 +106,6 @@ mod tests {
             Listener::new(Duration::from_secs(100), Box::new(|| println!("Test"))),
         );
 
-        dispatcher.dispatch_event(1);
+        dispatcher.dispatch_event(&1);
     }
 }

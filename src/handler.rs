@@ -228,7 +228,12 @@ impl EventHandler for Handler {
 
         new_dispatcher
             .lock()
-            .dispatch_event(reaction.emoji.clone().to_string());
+            .dispatch_event(&crate::new_dispatch::DispatchEvent::ReactEvent(
+                reaction.message_id,
+                reaction.emoji.clone(),
+                reaction.channel_id,
+                reaction.user_id,
+            ));
 
         //TODO: refactor old dispatch style into new one using the dispatcher
         match reaction.emoji {

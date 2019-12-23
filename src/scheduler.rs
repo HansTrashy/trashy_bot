@@ -84,15 +84,14 @@ impl Task {
 type DbPool = diesel::r2d2::Pool<diesel::r2d2::ConnectionManager<diesel::PgConnection>>;
 
 pub struct Scheduler {
-    runtime: tokio::runtime::Runtime,
+    runtime: Arc<tokio::runtime::Runtime>,
     cache_and_http: Arc<CacheAndHttp>,
     db_pool: DbPool,
     task_list: Arc<Mutex<Vec<(DateTime<Utc>, Task)>>>,
 }
 
 impl Scheduler {
-    pub fn new(cache_and_http: Arc<CacheAndHttp>, db_pool: DbPool) -> Self {
-        let rt = tokio::runtime::Runtime::new().unwrap();
+    pub fn new(rt: Arc<tokio::runtime::Runtime>, cache_and_http: Arc<CacheAndHttp>, db_pool: DbPool) -> Self {
         let task_list = Arc::new(Mutex::new(Vec::new()));
 
         if let Ok(data) = std::fs::read_to_string("scheduler_state.storage") {
