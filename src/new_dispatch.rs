@@ -1,8 +1,49 @@
+use serenity::model::prelude::*;
 use std::collections::HashMap;
-use std::hash::Hash;
+use std::hash::{Hash, Hasher};
 use std::time::{Duration, Instant};
 
 type ListenerAction = Box<dyn Fn() + Send + Sync>;
+
+#[derive(Clone, Debug)]
+pub enum DispatchEvent {
+    ReactEvent(MessageId, ReactionType, ChannelId, UserId),
+    OwnerReactEvent(MessageId, ReactionType, ChannelId, UserId),
+}
+
+impl PartialEq for DispatchEvent {
+    fn eq(&self, other: &DispatchEvent) -> bool {
+        match (self, other) {
+            (
+                DispatchEvent::ReactEvent(s_mid, s_rt, _s_cid, _s_uid),
+                DispatchEvent::ReactEvent(o_mid, o_rt, _o_cid, _o_uid),
+            ) => s_mid == o_mid && s_rt == o_rt,
+            (
+                DispatchEvent::OwnerReactEvent(s_mid, s_rt, _s_cid, s_uid),
+                DispatchEvent::OwnerReactEvent(o_mid, o_rt, _o_cid, o_uid),
+            ) => s_mid == o_mid && s_rt == o_rt && s_uid == o_uid,
+            _ => false,
+        }
+    }
+}
+
+impl Eq for DispatchEvent {}
+
+impl Hash for DispatchEvent {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        match self {
+            DispatchEvent::ReactEvent(msg_id, reaction_type, _channeld_id, _user_id) => {
+                msg_id.hash(state);
+                reaction_type.hash(state);
+            }
+            DispatchEvent::OwnerReactEvent(msg_id, reaction_type, _channeld_id, user_id) => {
+                msg_id.hash(state);
+                reaction_type.hash(state);
+                user_id.hash(state);
+            }
+        }
+    }
+}
 
 pub struct Listener {
     action: ListenerAction,
