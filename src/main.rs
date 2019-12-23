@@ -41,6 +41,7 @@ use serenity::{
 };
 use std::collections::HashSet;
 use std::{env, sync::Arc};
+use dotenv::dotenv;
 
 mod blackjack;
 mod commands;
@@ -184,7 +185,7 @@ lazy_static! {
 
 fn main() {
     // load .env file
-    kankyo::load().expect("no env file");
+    dotenv().ok();
     // setup logging
     logger::setup().expect("Could not setup logging");
     // Configure the client with your Discord bot token in the environment.

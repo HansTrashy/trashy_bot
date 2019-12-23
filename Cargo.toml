@@ -5,8 +5,8 @@ authors = ["Denis Richartz <denisrichartz92@gmail.com>"]
 edition = "2018"
 
 [dependencies]
-kankyo = "0.2.0"
-rand = "0.6"
+dotenv = "0.15"
+rand = "0.7"
 diesel = { version = "1.0.0", features = ["postgres", "chrono", "r2d2", "serde_json"] }
 chrono = "*"
 log = { version = "0.4", features = ["max_level_trace", "release_max_level_info"] }
