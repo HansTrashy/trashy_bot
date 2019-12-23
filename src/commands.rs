@@ -8,6 +8,7 @@ pub mod fav;
 pub mod groups;
 pub mod lastfm;
 pub mod moderation;
+pub mod optout;
 pub mod quote;
 pub mod reaction_roles;
 pub mod remindme;

@@ -41,7 +41,7 @@ pub mod lastfm {
 }
 
 pub mod misc {
-    use crate::commands::{copypasta::*, emoji::*, shiny::*};
+    use crate::commands::{copypasta::*, emoji::*, optout::*, shiny::*};
     use serenity::framework::standard::macros::{check, command, group, help};
 
     group!({
@@ -50,7 +50,7 @@ pub mod misc {
             prefix: "misc",
             description: "Miscellaneous commands",
         },
-        commands: [shiny, list, setshiny, removeshiny, goldt, emoji]
+        commands: [shiny, list, setshiny, removeshiny, goldt, emoji, optout]
     });
 }
 
