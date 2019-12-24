@@ -15,9 +15,10 @@ extern crate serenity;
 #[macro_use]
 extern crate diesel;
 
+use crate::dispatch::Dispatcher;
 use diesel::pg::PgConnection;
 use diesel::r2d2::{ConnectionManager, Pool};
-use hey_listen::sync::ParallelDispatcher as Dispatcher;
+use dotenv::dotenv;
 use lazy_static::lazy_static;
 use log::*;
 use serde::{Deserialize, Serialize};
@@ -41,7 +42,6 @@ use serenity::{
 };
 use std::collections::HashSet;
 use std::{env, sync::Arc};
-use dotenv::dotenv;
 
 mod blackjack;
 mod commands;
@@ -50,7 +50,6 @@ mod handler;
 mod interaction;
 mod logger;
 mod models;
-mod new_dispatch;
 mod reaction_roles;
 mod rules;
 mod scheduler;
@@ -65,11 +64,6 @@ impl TypeMapKey for ShardManagerContainer {
 struct DatabaseConnection;
 impl TypeMapKey for DatabaseConnection {
     type Value = Pool<ConnectionManager<PgConnection>>;
-}
-
-struct DispatcherKey;
-impl TypeMapKey for DispatcherKey {
-    type Value = Arc<RwLock<Dispatcher<crate::dispatch::DispatchEvent>>>;
 }
 
 struct Waiter;
@@ -104,7 +98,7 @@ impl TypeMapKey for TrashyScheduler {
 
 struct TrashyDispatcher;
 impl TypeMapKey for TrashyDispatcher {
-    type Value = Arc<Mutex<new_dispatch::Dispatcher<crate::new_dispatch::DispatchEvent>>>;
+    type Value = Arc<Mutex<Dispatcher>>;
 }
 
 struct OptOut;
@@ -204,11 +198,6 @@ fn main() {
     let rules_state = Arc::new(Mutex::new(self::rules::State::load()));
     let blackjack_state = Arc::new(Mutex::new(self::blackjack::State::load(db_pool.clone())));
 
-    let mut dispatcher: Dispatcher<crate::dispatch::DispatchEvent> = Dispatcher::default();
-    dispatcher
-        .num_threads(2)
-        .expect("could not construct threadpool for dispatcher");
-
     let rt = Arc::new(tokio::runtime::Runtime::new().unwrap());
     let trashy_scheduler = Arc::new(scheduler::Scheduler::new(
         Arc::clone(&rt),
@@ -216,7 +205,7 @@ fn main() {
         db_pool.clone(),
     ));
 
-    let trashy_dispatcher = Arc::new(Mutex::new(new_dispatch::Dispatcher::new()));
+    let trashy_dispatcher = Arc::new(Mutex::new(Dispatcher::new()));
 
     let opt_out = Arc::new(Mutex::new(OptOutStore::load_or_init()));
 
@@ -229,7 +218,6 @@ fn main() {
         data.insert::<ReactionRolesState>(rr_state);
         data.insert::<RulesState>(rules_state);
         data.insert::<BlackjackState>(blackjack_state);
-        data.insert::<DispatcherKey>(Arc::new(RwLock::new(dispatcher)));
         data.insert::<VoiceManager>(Arc::clone(&client.voice_manager));
         data.insert::<TrashyScheduler>(Arc::clone(&trashy_scheduler));
         data.insert::<TrashyDispatcher>(Arc::clone(&trashy_dispatcher));
@@ -311,7 +299,6 @@ fn main() {
         error!("Client error: {:?}", why);
     }
 }
-
 
 #[cfg(test)]
 mod tests {}

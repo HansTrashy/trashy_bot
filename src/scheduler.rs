@@ -91,7 +91,11 @@ pub struct Scheduler {
 }
 
 impl Scheduler {
-    pub fn new(rt: Arc<tokio::runtime::Runtime>, cache_and_http: Arc<CacheAndHttp>, db_pool: DbPool) -> Self {
+    pub fn new(
+        rt: Arc<tokio::runtime::Runtime>,
+        cache_and_http: Arc<CacheAndHttp>,
+        db_pool: DbPool,
+    ) -> Self {
         let task_list = Arc::new(Mutex::new(Vec::new()));
 
         if let Ok(data) = std::fs::read_to_string("scheduler_state.storage") {

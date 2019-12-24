@@ -1,8 +1,5 @@
-use crate::new_dispatch::{Dispatcher, Listener};
-use chrono::prelude::*;
-use chrono::{DateTime, Utc};
+use crate::dispatch::{DispatchEvent, Listener};
 use log::*;
-use serde::Deserialize;
 use serenity::prelude::*;
 use serenity::{
     framework::standard::{macros::command, Args, CommandResult},
@@ -11,7 +8,8 @@ use serenity::{
 
 #[command]
 #[description = "Create a dispatcher for the given emoji"]
-pub fn dispatch(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
+pub fn dispatch(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
+    debug!("Dispatch for {}", args.rest());
     let emoji = ReactionType::from(args.rest());
 
     let mut data = ctx.data.write();
@@ -24,10 +22,10 @@ pub fn dispatch(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResu
     let (ctx_1, ctx_2) = (ctx.cache.clone(), ctx.http.clone());
     let msg_clone = msg.clone();
     dispatcher.lock().add_listener(
-        crate::new_dispatch::DispatchEvent::ReactEvent(msg.id, emoji, msg.channel_id, msg.author.id),
+        DispatchEvent::ReactMsg(msg.id, emoji, msg.channel_id, msg.author.id),
         Listener::new(
-            std::time::Duration::from_secs(10),
-            Box::new(move || {
+            std::time::Duration::from_secs(60),
+            Box::new(move |_, _event| {
                 let _ = msg_clone.reply((&ctx_1, &*ctx_2), "When life gives you lemons...");
             }),
         ),

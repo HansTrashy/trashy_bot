@@ -1,9 +1,6 @@
-use crate::dispatch::DispatchEvent;
 use crate::scheduler::Task;
 use crate::util;
-use crate::DispatcherKey;
 use crate::TrashyScheduler;
-use hey_listen::sync::ParallelDispatcherRequest as DispatcherRequest;
 use log::*;
 use serde::Deserialize;
 use serenity::utils::{content_safe, ContentSafeOptions};

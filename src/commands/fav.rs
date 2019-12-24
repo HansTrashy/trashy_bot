@@ -1,18 +1,15 @@
-use crate::dispatch::DispatchEvent;
+use crate::dispatch::{DispatchEvent, Listener};
 use crate::interaction::wait::{Action, Event};
 use crate::models::fav::Fav;
 use crate::models::tag::Tag;
 use crate::schema::favs::dsl::*;
 use crate::DatabaseConnection;
-use crate::DispatcherKey;
 use crate::OptOut;
 use crate::Waiter;
 use chrono::prelude::*;
 use diesel::prelude::*;
-use hey_listen::sync::ParallelDispatcherRequest as DispatcherRequest;
 use itertools::Itertools;
 use lazy_static::lazy_static;
-use log::*;
 use log::*;
 use rand::prelude::*;
 use regex::Regex;
@@ -39,8 +36,13 @@ pub fn post(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
             return Ok(());
         }
     };
+    // let dispatcher = {
+    //     data.get_mut::<DispatcherKey>()
+    //         .expect("Expected Dispatcher.")
+    //         .clone()
+    // };
     let dispatcher = {
-        data.get_mut::<DispatcherKey>()
+        data.get_mut::<crate::TrashyDispatcher>()
             .expect("Expected Dispatcher.")
             .clone()
     };
@@ -162,27 +164,30 @@ pub fn post(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
 
     let http = ctx.http.clone();
     if let Ok(bot_msg) = bot_msg {
-        dispatcher.write().add_fn(
-            DispatchEvent::ReactEvent(
+        dispatcher.lock().add_listener(
+            DispatchEvent::ReactMsg(
                 bot_msg.id,
-                ReactionType::Unicode("ℹ".to_string()),
+                ReactionType::Unicode("ℹ️".to_string()),
                 bot_msg.channel_id,
                 msg.author.id,
             ),
-            Box::new(move |event: &DispatchEvent| match &event {
-                DispatchEvent::ReactEvent(_msg_id, _reaction_type, _channel_id, react_user_id) => {
-                    if let Ok(dm_channel) = react_user_id.create_dm_channel(&http) {
-                        let _ = dm_channel.say(
-                            &http,
-                            format!(
-                                "https://discordapp.com/channels/{}/{}/{}",
-                                chosen_fav.server_id, chosen_fav.channel_id, chosen_fav.msg_id,
-                            ),
-                        );
+            Listener::new(
+                std::time::Duration::from_secs(60 * 60),
+                Box::new(move |_, event| match &event {
+                    DispatchEvent::ReactMsg(_msg_id, reaction_type, _channel_id, react_user_id) => {
+                        if let Ok(dm_channel) = react_user_id.create_dm_channel(&http) {
+                            let _ = dm_channel.say(
+                                &http,
+                                format!(
+                                    "https://discordapp.com/channels/{}/{}/{}",
+                                    chosen_fav.server_id, chosen_fav.channel_id, chosen_fav.msg_id,
+                                ),
+                            );
+                        }
                     }
-                    Some(DispatcherRequest::StopListening)
-                }
-            }),
+                    _ => (),
+                }),
+            ),
         );
     }
     Ok(())

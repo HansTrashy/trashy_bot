@@ -1,5 +1,6 @@
 use crate::commands::config::GuildConfig;
 use crate::commands::userinfo::{MemberInfo, UserInfo};
+use crate::dispatch::{DispatchEvent, Listener, Dispatcher};
 use crate::interaction::wait::Action;
 use crate::models::mute::Mute;
 use crate::models::server_config::{NewServerConfig, ServerConfig};
@@ -12,12 +13,15 @@ use chrono::Utc;
 use diesel::prelude::*;
 use log::*;
 use serenity::{
+    model::prelude::*,
     model::{
         channel::Message, channel::Reaction, channel::ReactionType, gateway::Ready, guild::Member,
         id::ChannelId, id::GuildId, id::RoleId, user::User,
     },
     prelude::*,
 };
+use std::sync::Arc;
+use std::time::Duration;
 
 mod blackjack;
 mod fav;
@@ -205,35 +209,17 @@ impl EventHandler for Handler {
         let dispatcher = {
             let mut context = ctx.data.write();
             context
-                .get_mut::<crate::DispatcherKey>()
-                .expect("No Dispatcher")
-                .clone()
-        };
-        dispatcher
-            .write()
-            .dispatch_event(&crate::dispatch::DispatchEvent::ReactEvent(
-                reaction.message_id,
-                reaction.emoji.clone(), //TODO: this can be removed after refactoring old dispatch
-                reaction.channel_id,
-                reaction.user_id,
-            ));
-
-        let new_dispatcher = {
-            let mut context = ctx.data.write();
-            context
                 .get_mut::<crate::TrashyDispatcher>()
                 .expect("No new dispatcher")
                 .clone()
         };
 
-        new_dispatcher
-            .lock()
-            .dispatch_event(&crate::new_dispatch::DispatchEvent::ReactEvent(
-                reaction.message_id,
-                reaction.emoji.clone(),
-                reaction.channel_id,
-                reaction.user_id,
-            ));
+        dispatcher.lock().dispatch_event(&ctx, &DispatchEvent::ReactMsg(
+            reaction.message_id,
+            reaction.emoji.clone(),
+            reaction.channel_id,
+            reaction.user_id,
+        ));
 
         //TODO: refactor old dispatch style into new one using the dispatcher
         match reaction.emoji {
