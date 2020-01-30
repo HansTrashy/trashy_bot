@@ -170,7 +170,7 @@ pub fn post(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
 
     let rules_text = match lang.as_str() {
         "en" => &lock.en,
-        "de" | _ => &lock.de,
+        _ => &lock.de,
     };
 
     rules_text

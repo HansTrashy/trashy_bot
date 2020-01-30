@@ -29,7 +29,7 @@ pub fn xkcd(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
     let xkcd_id = args.single::<u64>()?;
 
     let comic: Comic =
-        reqwest::get(&format!("https://xkcd.com/{}/info.0.json", xkcd_id))?.json()?;
+        reqwest::blocking::get(&format!("https://xkcd.com/{}/info.0.json", xkcd_id))?.json()?;
     let xkcd_link = format!("https://xkcd.com/{}", xkcd_id);
 
     match msg.channel_id.send_message(&ctx.http, |m| {

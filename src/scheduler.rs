@@ -83,11 +83,13 @@ impl Task {
 
 type DbPool = diesel::r2d2::Pool<diesel::r2d2::ConnectionManager<diesel::PgConnection>>;
 
+type ScheduledTask = (DateTime<Utc>, Task);
+
 pub struct Scheduler {
     runtime: Arc<tokio::runtime::Runtime>,
     cache_and_http: Arc<CacheAndHttp>,
     db_pool: DbPool,
-    task_list: Arc<Mutex<Vec<(DateTime<Utc>, Task)>>>,
+    task_list: Arc<Mutex<Vec<ScheduledTask>>>,
 }
 
 impl Scheduler {

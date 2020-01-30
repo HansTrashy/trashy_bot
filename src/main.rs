@@ -286,12 +286,11 @@ fn main() {
             .group(&commands::groups::config::CONFIG_GROUP)
             .group(&commands::groups::greenbook::GREENBOOK_GROUP)
             .group(&commands::groups::rules::RULES_GROUP)
-            .group(&commands::groups::reaction_roles::REACTION_ROLES_GROUP)
+            .group(&commands::groups::roles::ROLES_GROUP)
             .group(&commands::groups::account::ACCOUNT_GROUP)
             .group(&commands::groups::moderation::MODERATION_GROUP)
             .group(&commands::groups::misc::MISC_GROUP)
             .group(&commands::groups::lastfm::LASTFM_GROUP)
-            .group(&commands::groups::testing::TESTING_GROUP)
             .group(&commands::groups::voice::VOICE_GROUP),
     );
 

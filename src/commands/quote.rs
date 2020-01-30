@@ -72,7 +72,10 @@ pub fn quote(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
                             f.text(&format!(
                                 "{} (UTC) | #{} | Quoted by: {}",
                                 &quoted_msg.timestamp.format("%d.%m.%Y, %H:%M:%S"),
-                                &quoted_msg.channel_id.name(&ctx).unwrap_or("-".to_string()),
+                                &quoted_msg
+                                    .channel_id
+                                    .name(&ctx)
+                                    .unwrap_or_else(|| "-".to_string()),
                                 &msg.author.name
                             ))
                         });
@@ -108,13 +111,14 @@ pub fn quote(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
                 ),
                 Listener::new(
                     std::time::Duration::from_secs(60 * 60),
-                    Box::new(move |_, event| match &event {
-                        DispatchEvent::ReactMsg(
+                    Box::new(move |_, event| {
+                        if let DispatchEvent::ReactMsg(
                             _msg_id,
                             _reaction_type,
                             _channel_id,
                             react_user_id,
-                        ) => {
+                        ) = &event
+                        {
                             if let Ok(dm_channel) = react_user_id.create_dm_channel(&http) {
                                 let _ = dm_channel.say(
                                     &http,
@@ -125,7 +129,6 @@ pub fn quote(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
                                 );
                             }
                         }
-                        _ => (),
                     }),
                 ),
             );

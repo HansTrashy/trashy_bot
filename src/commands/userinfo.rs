@@ -48,7 +48,7 @@ pub fn userinfo(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResu
         } else {
             member
                 .joined_at
-                .and_then(|time| Some(time.format("%d.%m.%Y %H:%M:%S").to_string()))
+                .map(|time| time.format("%d.%m.%Y %H:%M:%S").to_string())
                 .unwrap_or_else(|| "Unknown".to_string())
         };
         let joined_at_ago = if let Some(special) = special_case {
@@ -59,13 +59,11 @@ pub fn userinfo(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResu
         } else {
             member
                 .joined_at
-                .and_then(|time| {
-                    Some(
-                        Utc::now()
-                            .signed_duration_since(time)
-                            .num_days()
-                            .to_string(),
-                    )
+                .map(|time| {
+                    Utc::now()
+                        .signed_duration_since(time)
+                        .num_days()
+                        .to_string()
                 })
                 .unwrap_or_else(|| "Unknown".to_string())
         };
@@ -78,7 +76,7 @@ pub fn userinfo(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResu
             roles: member
                 .roles
                 .iter()
-                .filter_map(|r| r.to_role_cached(&ctx.cache).and_then(|r| Some(r.name)))
+                .filter_map(|r| r.to_role_cached(&ctx.cache).map(|r| r.name))
                 .collect(),
         };
         user_info.member = Some(member_info);
@@ -93,18 +91,15 @@ pub fn userinfo(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResu
         user_info
             .member
             .as_ref()
-            .and_then(|m| Some(&m.joined_at))
-            .unwrap_or(&default),
+            .map_or(&default, |m| &m.joined_at),
         user_info
             .member
             .as_ref()
-            .and_then(|m| Some(&m.joined_at_ago))
-            .unwrap_or(&default),
+            .map_or(&default, |m| &m.joined_at_ago),
         user_info
             .member
             .as_ref()
-            .and_then(|m| Some(m.roles.join(", ")))
-            .unwrap_or_else(|| default.clone()),
+            .map_or(default.clone(), |m| m.roles.join(", ")),
     );
 
     let _ = msg.channel_id.send_message(ctx, |m| {

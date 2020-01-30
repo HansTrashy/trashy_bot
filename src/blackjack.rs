@@ -1,3 +1,6 @@
+//TODO: refactor this unholy monster
+#![allow(clippy::comparison_chain)]
+
 use diesel::pg::PgConnection;
 use diesel::r2d2::{self, ConnectionManager};
 use log::*;

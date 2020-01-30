@@ -73,7 +73,7 @@ pub fn mute(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
                             .map(|user| NewMute {
                                 server_id: *guild_id.as_u64() as i64,
                                 user_id: *user.id.as_u64() as i64,
-                                end_time: end_time.clone(),
+                                end_time,
                             })
                             .collect::<Vec<NewMute>>();
                         diesel::insert_into(mutes::table)
@@ -90,7 +90,7 @@ pub fn mute(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
                         }
 
                         if let Some(modlog_channel) = &guild_config.modlog_channel {
-                            if found_members.len() > 0 {
+                            if !found_members.is_empty() {
                                 let _ = ChannelId(*modlog_channel).send_message(&ctx, |m| {
                                     m.embed(|e| {
                                         e.description(create_mute_message(
@@ -117,7 +117,7 @@ pub fn mute(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
     Ok(())
 }
 
-fn create_mute_message(users: &Vec<Member>, duration: &Duration, mute_message: &str) -> String {
+fn create_mute_message(users: &[Member], duration: &Duration, mute_message: &str) -> String {
     let intro = if users.len() > 1 {
         "Muted users:"
     } else {
@@ -147,7 +147,7 @@ fn create_mute_message(users: &Vec<Member>, duration: &Duration, mute_message: &
     )
 }
 
-fn create_ban_message(users: &Vec<Member>, ban_message: &str) -> String {
+fn create_ban_message(users: &[Member], ban_message: &str) -> String {
     let intro = if users.len() > 1 {
         "Banned users:"
     } else {
@@ -171,7 +171,7 @@ fn create_ban_message(users: &Vec<Member>, ban_message: &str) -> String {
     format!("{} **{}**\nPlease note: *{}*", intro, users, ban_message)
 }
 
-fn create_kick_message(users: &Vec<Member>, kick_message: &str) -> String {
+fn create_kick_message(users: &[Member], kick_message: &str) -> String {
     let intro = if users.len() > 1 {
         "Kicked users:"
     } else {
@@ -195,7 +195,7 @@ fn create_kick_message(users: &Vec<Member>, kick_message: &str) -> String {
     format!("{} **{}**\nPlease note: *{}*", intro, users, kick_message)
 }
 
-fn create_unmute_message(users: &Vec<Member>) -> String {
+fn create_unmute_message(users: &[Member]) -> String {
     let intro = if users.len() > 1 {
         "Unmuted users:"
     } else {
@@ -266,7 +266,7 @@ pub fn unmute(ctx: &mut Context, msg: &Message, _args: Args) -> CommandResult {
                     .execute(&*conn)?;
 
                     if let Some(modlog_channel) = &guild_config.modlog_channel {
-                        if found_members.len() > 0 {
+                        if !found_members.is_empty() {
                             let _ = ChannelId(*modlog_channel).send_message(&ctx, |m| {
                                 m.embed(|e| {
                                     e.description(create_unmute_message(&found_members))
@@ -320,7 +320,7 @@ pub fn kick(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
                 }
 
                 if let Some(modlog_channel) = &guild_config.modlog_channel {
-                    if found_members.len() > 0 {
+                    if !found_members.is_empty() {
                         let _ = ChannelId(*modlog_channel).send_message(&ctx, |m| {
                             m.embed(|e| {
                                 e.description(create_kick_message(&found_members, &kick_message))
@@ -373,7 +373,7 @@ pub fn ban(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
                 }
 
                 if let Some(modlog_channel) = &guild_config.modlog_channel {
-                    if found_members.len() > 0 {
+                    if !found_members.is_empty() {
                         let _ = ChannelId(*modlog_channel).send_message(&ctx, |m| {
                             m.embed(|e| {
                                 e.description(create_ban_message(&found_members, ban_msg))

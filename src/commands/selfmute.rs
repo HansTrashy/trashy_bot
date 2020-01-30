@@ -73,7 +73,7 @@ pub fn selfmute(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResu
                     let mute = NewMute {
                         server_id: *guild_id.as_u64() as i64,
                         user_id: *msg.author.id.as_u64() as i64,
-                        end_time: end_time.clone(),
+                        end_time,
                     };
                     diesel::insert_into(mutes::table)
                         .values(&mute)

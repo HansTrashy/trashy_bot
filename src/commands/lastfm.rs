@@ -88,7 +88,7 @@ pub fn now(ctx: &mut Context, msg: &Message, _args: Args) -> CommandResult {
             lastfm.username,
             *LASTFM_API_KEY);
 
-    let res: serde_json::Value = reqwest::get(&url)?.json()?;
+    let res: serde_json::Value = reqwest::blocking::get(&url)?.json()?;
 
     // ignore the case where users only played a single title and there is no array
     if let Some(tracks) = res
@@ -144,7 +144,7 @@ pub fn recent(ctx: &mut Context, msg: &Message, _args: Args) -> CommandResult {
             lastfm.username,
             *LASTFM_API_KEY);
 
-    let res: serde_json::Value = reqwest::get(&url)?.json()?;
+    let res: serde_json::Value = reqwest::blocking::get(&url)?.json()?;
 
     let mut content = String::new();
 
@@ -209,7 +209,7 @@ pub fn artists(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
             *LASTFM_API_KEY,
             period);
 
-    let res: serde_json::Value = reqwest::get(&url)?.json()?;
+    let res: serde_json::Value = reqwest::blocking::get(&url)?.json()?;
 
     let mut content = String::new();
 
@@ -270,7 +270,7 @@ pub fn albums(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
             *LASTFM_API_KEY,
             period);
 
-    let res: serde_json::Value = reqwest::get(&url)?.json()?;
+    let res: serde_json::Value = reqwest::blocking::get(&url)?.json()?;
 
     let mut content = String::new();
 
@@ -333,7 +333,7 @@ pub fn tracks(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
             *LASTFM_API_KEY,
             period);
 
-    let res: serde_json::Value = reqwest::get(&url)?.json()?;
+    let res: serde_json::Value = reqwest::blocking::get(&url)?.json()?;
 
     let mut content = String::new();
 
