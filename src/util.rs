@@ -1,4 +1,4 @@
-use time::Duration;
+use chrono::Duration;
 
 static OTHER_MOD_CMD: [char; 3] = ['%', '=', '$'];
 

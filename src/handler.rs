@@ -1,29 +1,22 @@
-use crate::commands::config::GuildConfig;
-use crate::commands::userinfo::{MemberInfo, UserInfo};
-use crate::dispatch::{DispatchEvent, Listener, Dispatcher};
+use crate::commands::config::Guild;
+use crate::commands::userinfo::UserInfo;
+use crate::dispatch::{DispatchEvent, Dispatcher, Listener};
 use crate::interaction::wait::Action;
 use crate::models::mute::Mute;
-use crate::models::server_config::{NewServerConfig, ServerConfig};
-use crate::models::tag::NewTag;
-use crate::schema::mutes;
-use crate::schema::server_configs;
+use crate::models::server_config::ServerConfig;
+use crate::models::tag::Tag;
 use crate::DatabaseConnection;
 use crate::Waiter;
 use chrono::Utc;
-use diesel::prelude::*;
-use log::*;
 use serenity::{
-    model::prelude::*,
     model::{
         channel::Message, channel::Reaction, channel::ReactionType, gateway::Ready, guild::Member,
         id::ChannelId, id::GuildId, id::RoleId, user::User,
     },
     prelude::*,
 };
-use std::sync::Arc;
-use std::time::Duration;
 
-mod blackjack;
+// mod blackjack;
 mod fav;
 mod reaction_roles;
 
@@ -38,15 +31,10 @@ impl EventHandler for Handler {
         let mut data = ctx.data.write();
 
         if let Some(pool) = data.get::<DatabaseConnection>() {
-            let conn = pool.get().unwrap();
+            let mut conn = pool.get().unwrap();
 
-            if let Some(mut config) = server_configs::table
-                .filter(server_configs::server_id.eq(*guild_id.as_u64() as i64))
-                .first::<ServerConfig>(&*conn)
-                .optional()
-                .unwrap()
-            {
-                let g_cfg: GuildConfig = serde_json::from_value(config.config.take()).unwrap();
+            if let Ok(mut config) = ServerConfig::get(&mut *conn, *guild_id.as_u64() as i64) {
+                let g_cfg: Guild = serde_json::from_value(config.config.take()).unwrap();
 
                 let mut user_info = UserInfo {
                     created_at: new_member
@@ -94,13 +82,13 @@ impl EventHandler for Handler {
                     });
                 }
 
-                let mute = mutes::table
-                    .filter(mutes::user_id.eq(*new_member.user.read().id.as_u64() as i64))
-                    .first::<Mute>(&*conn)
-                    .optional()
-                    .unwrap();
+                let mute = Mute::get(
+                    &mut *conn,
+                    *guild_id.as_u64() as i64,
+                    *new_member.user.read().id.as_u64() as i64,
+                );
 
-                if let Some(mute) = mute {
+                if let Ok(mute) = mute {
                     if let Some(mute_role) = g_cfg.mute_role {
                         let _ = new_member.add_role(&ctx, RoleId(mute_role));
                     }
@@ -119,15 +107,10 @@ impl EventHandler for Handler {
         let mut data = ctx.data.write();
 
         if let Some(pool) = data.get::<DatabaseConnection>() {
-            let conn = pool.get().unwrap();
+            let mut conn = pool.get().unwrap();
 
-            if let Some(mut config) = server_configs::table
-                .filter(server_configs::server_id.eq(*guild_id.as_u64() as i64))
-                .first::<ServerConfig>(&*conn)
-                .optional()
-                .unwrap()
-            {
-                let g_cfg: GuildConfig = serde_json::from_value(config.config.take()).unwrap();
+            if let Ok(mut config) = ServerConfig::get(&mut *conn, *guild_id.as_u64() as i64) {
+                let g_cfg: Guild = serde_json::from_value(config.config.take()).unwrap();
 
                 let mut user_info = UserInfo {
                     created_at: user.created_at().format("%d.%m.%Y %H:%M:%S").to_string(),
@@ -168,14 +151,13 @@ impl EventHandler for Handler {
 
     fn message(&self, ctx: Context, msg: Message) {
         if msg.is_private() {
-            use crate::schema::tags::dsl::*;
             // check if waiting for labels
             let data = ctx.data.read();
             if let Some(waiter) = data.get::<Waiter>() {
                 let mut wait = waiter.lock();
                 if let Some(waited_fav_id) = wait.waiting(*msg.author.id.as_u64(), Action::AddTags)
                 {
-                    let conn = match data.get::<DatabaseConnection>() {
+                    let mut conn = match data.get::<DatabaseConnection>() {
                         Some(v) => v.get().unwrap(),
                         None => {
                             let _ = msg.reply(&ctx, "Could not retrieve the database connection!");
@@ -184,16 +166,12 @@ impl EventHandler for Handler {
                     };
 
                     // clear old tags for this fav
-                    diesel::delete(tags.filter(fav_id.eq(waited_fav_id)))
-                        .execute(&conn)
-                        .expect("could not delete tags");
+                    let _ = Tag::delete(&mut *conn, waited_fav_id);
 
-                    let received_tags: Vec<NewTag> = msg
-                        .content
-                        .split(' ')
-                        .map(|t| NewTag::new(waited_fav_id, t.to_string()))
-                        .collect();
-                    crate::models::tag::create_tags(&conn, &received_tags);
+                    // TODO: make this a single statement
+                    msg.content.split(' ').for_each(|tag| {
+                        let _ = Tag::create(&mut *conn, waited_fav_id, tag.to_string());
+                    });
 
                     wait.purge(
                         *msg.author.id.as_u64(),
@@ -214,38 +192,41 @@ impl EventHandler for Handler {
                 .clone()
         };
 
-        dispatcher.lock().dispatch_event(&ctx, &DispatchEvent::ReactMsg(
-            reaction.message_id,
-            reaction.emoji.clone(),
-            reaction.channel_id,
-            reaction.user_id,
-        ));
+        dispatcher.lock().dispatch_event(
+            &ctx,
+            &DispatchEvent::ReactMsg(
+                reaction.message_id,
+                reaction.emoji.clone(),
+                reaction.channel_id,
+                reaction.user_id,
+            ),
+        );
 
         //TODO: refactor old dispatch style into new one using the dispatcher
         match reaction.emoji {
             ReactionType::Unicode(ref s) if s.starts_with("📗") => fav::add(ctx, reaction),
             ReactionType::Unicode(ref s) if s.starts_with("🗑") => fav::remove(ctx, reaction),
             ReactionType::Unicode(ref s) if s.starts_with("🏷") => fav::add_label(ctx, reaction),
-            ReactionType::Unicode(ref s) if s.starts_with("👆") => blackjack::hit(ctx, reaction),
-            ReactionType::Unicode(ref s) if s.starts_with("✋") => blackjack::stay(ctx, reaction),
-            ReactionType::Unicode(ref s) if s.starts_with("🌀") => {
-                blackjack::new_game(ctx, reaction)
-            }
+            // ReactionType::Unicode(ref s) if s.starts_with("👆") => blackjack::hit(ctx, reaction),
+            // ReactionType::Unicode(ref s) if s.starts_with("✋") => blackjack::stay(ctx, reaction),
+            // ReactionType::Unicode(ref s) if s.starts_with("🌀") => {
+            //     blackjack::new_game(ctx, reaction)
+            // }
             _ => reaction_roles::add_role(ctx, reaction),
         }
     }
 
     fn reaction_remove(&self, ctx: Context, removed_reaction: Reaction) {
         match removed_reaction.emoji {
-            ReactionType::Unicode(ref s) if s.starts_with("👆") => {
-                blackjack::hit(ctx, removed_reaction)
-            }
-            ReactionType::Unicode(ref s) if s.starts_with("✋") => {
-                blackjack::stay(ctx, removed_reaction)
-            }
-            ReactionType::Unicode(ref s) if s.starts_with("🌀") => {
-                blackjack::new_game(ctx, removed_reaction)
-            }
+            // ReactionType::Unicode(ref s) if s.starts_with("👆") => {
+            //     blackjack::hit(ctx, removed_reaction)
+            // }
+            // ReactionType::Unicode(ref s) if s.starts_with("✋") => {
+            //     blackjack::stay(ctx, removed_reaction)
+            // }
+            // ReactionType::Unicode(ref s) if s.starts_with("🌀") => {
+            //     blackjack::new_game(ctx, removed_reaction)
+            // }
             _ => reaction_roles::remove_role(ctx, removed_reaction),
         }
     }

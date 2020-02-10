@@ -1,8 +1,6 @@
 //TODO: refactor this unholy monster
 #![allow(clippy::comparison_chain)]
 
-use diesel::pg::PgConnection;
-use diesel::r2d2::{self, ConnectionManager};
 use log::*;
 use rand::prelude::*;
 use serde::{Deserialize, Serialize};
@@ -12,7 +10,7 @@ use serenity::prelude::Mutex;
 use std::fmt;
 use std::sync::Arc;
 
-type Pool = r2d2::Pool<ConnectionManager<PgConnection>>;
+// type Pool = r2d2::Pool<ConnectionManager<PgConnection>>;
 
 pub struct State(Vec<Game>);
 
@@ -594,7 +592,7 @@ impl PlayerAccount {
         use crate::schema::banks::dsl;
         use diesel::prelude::*;
 
-        let conn: &PgConnection = &self.0.get().unwrap();
+        let mut conn: &PgConnection = &self.0.get().unwrap();
 
         debug!("Check if user {} can pay: {}", &self.1, &amount);
 
@@ -611,7 +609,7 @@ impl PlayerAccount {
         use crate::schema::banks::dsl;
         use diesel::prelude::*;
 
-        let conn: &PgConnection = &self.0.get().unwrap();
+        let mut conn: &PgConnection = &self.0.get().unwrap();
 
         let results = dsl::banks
             .filter(dsl::user_id.eq(self.1 as i64))

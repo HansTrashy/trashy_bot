@@ -1,9 +1,7 @@
 use crate::models::reaction_role::ReactionRole;
 use crate::reaction_roles::State;
-use crate::schema::reaction_roles::dsl::*;
 use crate::DatabaseConnection;
 use crate::ReactionRolesState;
-use diesel::prelude::*;
 use log::info;
 use serenity::{
     model::{channel::Reaction, channel::ReactionType},
@@ -12,7 +10,7 @@ use serenity::{
 
 pub fn add_role(ctx: Context, add_reaction: Reaction) {
     let data = ctx.data.read();
-    let conn = match data.get::<DatabaseConnection>() {
+    let mut conn = match data.get::<DatabaseConnection>() {
         Some(v) => v.get().unwrap(),
         None => return,
     };
@@ -33,10 +31,8 @@ pub fn add_role(ctx: Context, add_reaction: Reaction) {
         info!("On correct message reacted!");
         if let ReactionType::Unicode(ref s) = add_reaction.emoji {
             // check if rr registered for this emoji
-            let results = reaction_roles
-                .filter(emoji.eq(s))
-                .load::<ReactionRole>(&conn)
-                .expect("could not load reaction roles");
+            let results =
+                ReactionRole::list_by_emoji(&mut *conn, s).expect("could not get by emojis");
 
             if !results.is_empty() {
                 info!("Found role for this emoji!");
@@ -58,7 +54,7 @@ pub fn add_role(ctx: Context, add_reaction: Reaction) {
 
 pub fn remove_role(ctx: Context, remove_reaction: Reaction) {
     let data = ctx.data.read();
-    let conn = match data.get::<DatabaseConnection>() {
+    let mut conn = match data.get::<DatabaseConnection>() {
         Some(v) => v.get().unwrap(),
         None => return,
     };
@@ -79,10 +75,8 @@ pub fn remove_role(ctx: Context, remove_reaction: Reaction) {
         info!("On correct message reacted!");
         if let ReactionType::Unicode(ref s) = remove_reaction.emoji {
             // check if rr registered for this emoji
-            let results = reaction_roles
-                .filter(emoji.eq(s))
-                .load::<ReactionRole>(&conn)
-                .expect("could not load reaction roles");
+            let results =
+                ReactionRole::list_by_emoji(&mut *conn, s).expect("could not get by emojis");
 
             if !results.is_empty() {
                 info!("Found role for this emoji!");

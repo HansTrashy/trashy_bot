@@ -1,40 +1,48 @@
-#![allow(clippy::module_name_repetitions)]
 use crate::models::fav::Fav;
-use crate::schema::tags;
-use diesel::prelude::*;
+use itertools::Itertools;
+use postgres::{row::Row, Client};
 
-#[derive(Identifiable, Queryable, Associations, Debug)]
-#[belongs_to(Fav)]
+pub type DbError = Box<dyn std::error::Error>;
+
+#[derive(Debug)]
 pub struct Tag {
     pub id: i64,
     pub fav_id: i64,
     pub label: String,
 }
 
-#[derive(Insertable)]
-#[table_name = "tags"]
-pub struct NewTag {
-    fav_id: i64,
-    label: String,
-}
-
-impl NewTag {
-    pub const fn new(fav_id: i64, label: String) -> Self {
-        Self { fav_id, label }
+impl Tag {
+    pub fn create(client: &mut Client, fav_id: i64, label: String) -> Result<Self, DbError> {
+        Ok(Self::from_row(client.query_one(
+            "INSERT INTO tags (fav_id, label) VALUES ($1, $2) RETURNING *",
+            &[&fav_id, &label],
+        )?)?)
     }
-}
 
-pub fn create_tag(conn: &PgConnection, fav_id: i64, label: String) -> Tag {
-    let new_tag = NewTag { fav_id, label };
-    diesel::insert_into(tags::table)
-        .values(&new_tag)
-        .get_result(conn)
-        .expect("Error saving tag")
-}
+    pub fn delete(client: &mut Client, fav_id: i64) -> Result<u64, DbError> {
+        Ok(client.execute("DELETE FROM tags WHERE fav_id = $2", &[&fav_id])?)
+    }
 
-pub fn create_tags(conn: &PgConnection, new_tags: &[NewTag]) -> Vec<Tag> {
-    diesel::insert_into(tags::table)
-        .values(new_tags)
-        .get_results(conn)
-        .expect("Error saving tag")
+    pub fn belonging_to(client: &mut Client, favs: &[Fav]) -> Result<Vec<Vec<Self>>, DbError> {
+        Ok(client
+            .query(
+                "SELECT * FROM tags WHERE fav_id IN $1 ORDER BY fav_id",
+                &[&favs.iter().map(|f| f.id).collect::<Vec<_>>()],
+            )?
+            .into_iter()
+            .map(Self::from_row)
+            .filter_map(Result::ok)
+            .group_by(|tag| tag.fav_id)
+            .into_iter()
+            .map(|(_key, group)| group.collect::<Vec<Tag>>())
+            .collect::<Vec<_>>())
+    }
+
+    fn from_row(row: Row) -> Result<Self, DbError> {
+        Ok(Self {
+            id: row.try_get("id")?,
+            fav_id: row.try_get("fav_id")?,
+            label: row.try_get("label")?,
+        })
+    }
 }

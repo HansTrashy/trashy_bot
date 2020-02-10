@@ -37,7 +37,7 @@ fn twitch_hook(
 ) -> impl Future<Item = HttpResponse, Error = Error> {
     debug!("received webhook for: {}", twitch_user_id.0);
 
-    let conn: &PgConnection = &pool.get().unwrap();
+    let mut conn: &PgConnection = &pool.get().unwrap();
 
     if payload.data.is_empty() {
         // stream went offline -> update message

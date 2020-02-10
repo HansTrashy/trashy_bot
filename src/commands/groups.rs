@@ -95,11 +95,11 @@ pub mod moderation {
 }
 
 pub mod account {
-    use crate::commands::account::{blackjack::*, general::*, slot::*};
+    use crate::commands::account::{general::*, slot::*};
     use serenity::framework::standard::macros::{check, command, group, help};
 
     #[group]
-    #[commands(createaccount, payday, leaderboard, transfer, slot, blackjack)]
+    #[commands(createaccount, payday, leaderboard, transfer, slot)]
     pub struct Account;
 
     // group!({

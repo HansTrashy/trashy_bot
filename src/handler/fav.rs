@@ -1,18 +1,18 @@
 use crate::interaction::wait::Action;
 use crate::interaction::wait::Event;
+use crate::models::fav::Fav;
 use crate::DatabaseConnection;
 use crate::Waiter;
 use chrono::prelude::*;
-use diesel::prelude::*;
 use serenity::{model::channel::Reaction, prelude::*};
 
 pub fn add(ctx: Context, add_reaction: Reaction) {
     let data = ctx.data.read();
 
     if let Some(pool) = data.get::<DatabaseConnection>() {
-        let conn: &PgConnection = &pool.get().unwrap();
-        let created_fav = crate::models::fav::create_fav(
-            conn,
+        let mut conn = pool.get().unwrap();
+        let created_fav = Fav::create(
+            &mut *conn,
             *add_reaction
                 .channel(&ctx)
                 .unwrap()
@@ -25,7 +25,8 @@ pub fn add(ctx: Context, add_reaction: Reaction) {
             *add_reaction.message_id.as_u64() as i64,
             *add_reaction.user_id.as_u64() as i64,
             *add_reaction.message(&ctx.http).unwrap().author.id.as_u64() as i64,
-        );
+        )
+        .expect("could not create fav");
 
         if let Some(waiter) = data.get::<Waiter>() {
             let mut wait = waiter.lock();
@@ -66,7 +67,6 @@ pub fn add_label(ctx: Context, add_reaction: Reaction) {
 }
 
 pub fn remove(ctx: Context, add_reaction: Reaction) {
-    use crate::schema::favs::dsl::*;
     let data = ctx.data.read();
 
     // check if waiting for deletion
@@ -74,10 +74,8 @@ pub fn remove(ctx: Context, add_reaction: Reaction) {
         let mut wait = waiter.lock();
         if let Some(fav_id) = wait.waiting(*add_reaction.user_id.as_u64(), Action::DeleteFav) {
             if let Some(pool) = data.get::<DatabaseConnection>() {
-                let conn: &PgConnection = &pool.get().unwrap();
-                diesel::delete(favs.filter(id.eq(fav_id)))
-                    .execute(conn)
-                    .expect("could not delete fav");
+                let mut conn = pool.get().unwrap();
+                Fav::delete(&mut *conn, fav_id).expect("could not delete fav");
             }
         }
     }

@@ -2,12 +2,10 @@ use crate::dispatch::{DispatchEvent, Listener};
 use crate::interaction::wait::{Action, Event};
 use crate::models::fav::Fav;
 use crate::models::tag::Tag;
-use crate::schema::favs::dsl::*;
 use crate::DatabaseConnection;
 use crate::OptOut;
 use crate::Waiter;
 use chrono::prelude::*;
-use diesel::prelude::*;
 use itertools::Itertools;
 use lazy_static::lazy_static;
 use log::*;
@@ -16,9 +14,7 @@ use regex::Regex;
 use serenity::model::{channel::Attachment, channel::ReactionType, id::ChannelId};
 use serenity::prelude::*;
 use serenity::{
-    builder::CreateEmbed,
     framework::standard::{macros::command, Args, CommandResult},
-    model::channel::Embed,
     model::channel::Message,
 };
 use std::iter::FromIterator;
@@ -29,18 +25,13 @@ use std::iter::FromIterator;
 pub fn post(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
     let mut rng = rand::thread_rng();
     let mut data = ctx.data.write();
-    let conn = match data.get::<DatabaseConnection>() {
+    let mut conn = match data.get::<DatabaseConnection>() {
         Some(v) => v.get().expect("could not get conn from pool"),
         None => {
             let _ = msg.reply(&ctx, "Could not retrieve the database connection!");
             return Ok(());
         }
     };
-    // let dispatcher = {
-    //     data.get_mut::<DispatcherKey>()
-    //         .expect("Expected Dispatcher.")
-    //         .clone()
-    // };
     let dispatcher = {
         data.get_mut::<crate::TrashyDispatcher>()
             .expect("Expected Dispatcher.")
@@ -63,16 +54,14 @@ pub fn post(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
 
     let labels: Vec<String> = args.iter::<String>().filter_map(Result::ok).collect();
 
-    let results = favs
-        .filter(user_id.eq(*msg.author.id.as_u64() as i64))
-        .load::<Fav>(&conn)
-        .expect("could not retrieve favs");
+    let results = Fav::list(&mut *conn, *msg.author.id.as_u64() as i64)?;
 
-    let fav_tags = Tag::belonging_to(&results)
-        .load::<Tag>(&conn)
-        .expect("could not retrieve tags")
-        .grouped_by(&results);
-    let zipped = results.into_iter().zip(fav_tags).collect::<Vec<_>>();
+    let fav_tags = Tag::belonging_to(&mut *conn, &results)?;
+
+    let zipped = results
+        .into_iter()
+        .zip(fav_tags)
+        .collect::<Vec<(Fav, Vec<Tag>)>>();
 
     let possible_favs: Vec<(Fav, Vec<Tag>)> = zipped
         .into_iter()
@@ -207,7 +196,7 @@ pub fn post(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
 #[num_args(0)]
 pub fn untagged(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
     let data = ctx.data.read();
-    let conn = match data.get::<DatabaseConnection>() {
+    let mut conn = match data.get::<DatabaseConnection>() {
         Some(v) => v.get().unwrap(),
         None => {
             let _ = msg.reply(&ctx, "Could not retrieve the database connection!");
@@ -222,16 +211,14 @@ pub fn untagged(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
         }
     };
 
-    let results = favs
-        .filter(user_id.eq(*msg.author.id.as_u64() as i64))
-        .load::<Fav>(&conn)
-        .expect("could not retrieve favs");
+    let results = Fav::list(&mut *conn, *msg.author.id.as_u64() as i64)?;
 
-    let fav_tags = Tag::belonging_to(&results)
-        .load::<Tag>(&conn)
-        .expect("could not retrieve tags")
-        .grouped_by(&results);
-    let zipped = results.into_iter().zip(fav_tags).collect::<Vec<_>>();
+    let fav_tags = Tag::belonging_to(&mut *conn, &results)?;
+
+    let zipped = results
+        .into_iter()
+        .zip(fav_tags)
+        .collect::<Vec<(Fav, Vec<Tag>)>>();
 
     let possible_favs: Vec<(Fav, Vec<Tag>)> = zipped
         .into_iter()
@@ -337,15 +324,15 @@ pub fn add(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
             .expect("cannot find this message");
 
         if let Some(pool) = data.get::<DatabaseConnection>() {
-            let conn: &PgConnection = &pool.get().unwrap();
-            crate::models::fav::create_fav(
-                conn,
+            let mut conn = pool.get().unwrap();
+            Fav::create(
+                &mut *conn,
                 fav_server_id as i64,
                 fav_channel_id as i64,
                 fav_msg_id as i64,
                 *msg.author.id.as_u64() as i64,
                 *fav_msg.author.id.as_u64() as i64,
-            );
+            )?;
 
             if let Err(why) = msg.author.dm(&ctx, |m| m.content("Fav saved!")) {
                 debug!("Error sending message: {:?}", why);
@@ -361,7 +348,7 @@ pub fn add(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
 #[num_args(0)]
 pub fn tags(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
     let data = ctx.data.read();
-    let conn = match data.get::<DatabaseConnection>() {
+    let mut conn = match data.get::<DatabaseConnection>() {
         Some(v) => v.get().unwrap(),
         None => {
             let _ = msg.reply(&ctx, "Could not retrieve the database connection!");
@@ -369,13 +356,12 @@ pub fn tags(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
         }
     };
 
-    let user_favs = favs
-        .filter(user_id.eq(*msg.author.id.as_u64() as i64))
-        .load::<Fav>(&conn)
-        .expect("could not retrieve favs");
-    let mut fav_tags = Tag::belonging_to(&user_favs)
-        .load::<Tag>(&conn)
-        .expect("could not retrieve tags");
+    let results = Fav::list(&mut *conn, *msg.author.id.as_u64() as i64)?;
+
+    let mut fav_tags = Tag::belonging_to(&mut *conn, &results)?
+        .into_iter()
+        .flatten()
+        .collect::<Vec<Tag>>();
 
     fav_tags.sort_unstable_by(|a, b| a.label.partial_cmp(&b.label).unwrap());
 

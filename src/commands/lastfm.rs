@@ -1,8 +1,6 @@
-use crate::models::lastfm::{Lastfm, NewLastfm};
-use crate::schema::lastfms::dsl;
+use crate::models::lastfm::Lastfm;
 use crate::DatabaseConnection;
 use crate::LASTFM_API_KEY;
-use diesel::prelude::*;
 use log::*;
 use serenity::prelude::*;
 use serenity::{
@@ -18,7 +16,7 @@ use serenity::{
 pub fn register(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
     let username = args.single::<String>()?;
     let data = ctx.data.write();
-    let conn = match data.get::<DatabaseConnection>() {
+    let mut conn = match data.get::<DatabaseConnection>() {
         Some(v) => v.get().unwrap(),
         None => {
             let _ = msg.reply(&ctx, "Could not retrieve the database connection!");
@@ -27,32 +25,15 @@ pub fn register(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResu
     };
 
     if let Some(server_id) = msg.guild_id {
-        if let Some(user) = dsl::lastfms
-            .filter(dsl::user_id.eq(*msg.author.id.as_u64() as i64))
-            .first::<Lastfm>(&*conn)
-            .optional()
-            .expect("could not get lastfm for this user")
-        {
-            let lastfm = diesel::update(
-                dsl::lastfms.filter(dsl::user_id.eq(*msg.author.id.as_u64() as i64)),
-            )
-            .set(dsl::username.eq(username))
-            .get_result::<Lastfm>(&*conn)
-            .expect("could not update user");
+        if let Ok(user) = Lastfm::get(&mut *conn, *msg.author.id.as_u64() as i64) {
+            let lastfm = Lastfm::update(&mut *conn, user.id, username)?;
 
             msg.reply(
                 &ctx,
                 format!("Updated your lastfm username to {}", lastfm.username),
             )?;
         } else {
-            let lastfm = diesel::insert_into(dsl::lastfms)
-                .values(&NewLastfm {
-                    user_id: *msg.author.id.as_u64() as i64,
-                    server_id: *server_id.as_u64() as i64,
-                    username,
-                })
-                .get_result::<Lastfm>(&conn)
-                .expect("Could not insert new amount");
+            let lastfm = Lastfm::create(&mut *conn, *msg.author.id.as_u64() as i64, username)?;
 
             msg.reply(
                 &ctx,
@@ -70,7 +51,7 @@ pub fn register(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResu
 #[bucket = "lastfm"]
 pub fn now(ctx: &mut Context, msg: &Message, _args: Args) -> CommandResult {
     let data = ctx.data.write();
-    let conn = match data.get::<DatabaseConnection>() {
+    let mut conn = match data.get::<DatabaseConnection>() {
         Some(v) => v.get().unwrap(),
         None => {
             let _ = msg.reply(&ctx, "Could not retrieve the database connection!");
@@ -78,10 +59,7 @@ pub fn now(ctx: &mut Context, msg: &Message, _args: Args) -> CommandResult {
         }
     };
 
-    let lastfm = dsl::lastfms
-        .filter(dsl::user_id.eq(*msg.author.id.as_u64() as i64))
-        .first::<Lastfm>(&*conn)
-        .expect("could not get lastfm for this user");
+    let lastfm = Lastfm::get(&mut *conn, *msg.author.id.as_u64() as i64)?;
 
     // prepare for the lastfm api
     let url = format!("http://ws.audioscrobbler.com/2.0/?method=user.getrecenttracks&user={}&api_key={}&format=json",
@@ -126,7 +104,7 @@ pub fn now(ctx: &mut Context, msg: &Message, _args: Args) -> CommandResult {
 #[bucket = "lastfm"]
 pub fn recent(ctx: &mut Context, msg: &Message, _args: Args) -> CommandResult {
     let data = ctx.data.write();
-    let conn = match data.get::<DatabaseConnection>() {
+    let mut conn = match data.get::<DatabaseConnection>() {
         Some(v) => v.get().unwrap(),
         None => {
             let _ = msg.reply(&ctx, "Could not retrieve the database connection!");
@@ -134,10 +112,7 @@ pub fn recent(ctx: &mut Context, msg: &Message, _args: Args) -> CommandResult {
         }
     };
 
-    let lastfm = dsl::lastfms
-        .filter(dsl::user_id.eq(*msg.author.id.as_u64() as i64))
-        .first::<Lastfm>(&*conn)
-        .expect("could not get lastfm for this user");
+    let lastfm = Lastfm::get(&mut *conn, *msg.author.id.as_u64() as i64)?;
 
     // prepare for the lastfm api
     let url = format!("http://ws.audioscrobbler.com/2.0/?method=user.getrecenttracks&user={}&api_key={}&format=json&limit=10",
@@ -190,7 +165,7 @@ pub fn artists(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
     };
 
     let data = ctx.data.write();
-    let conn = match data.get::<DatabaseConnection>() {
+    let mut conn = match data.get::<DatabaseConnection>() {
         Some(v) => v.get().unwrap(),
         None => {
             let _ = msg.reply(&ctx, "Could not retrieve the database connection!");
@@ -198,10 +173,7 @@ pub fn artists(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
         }
     };
 
-    let lastfm = dsl::lastfms
-        .filter(dsl::user_id.eq(*msg.author.id.as_u64() as i64))
-        .first::<Lastfm>(&*conn)
-        .expect("could not get lastfm for this user");
+    let lastfm = Lastfm::get(&mut *conn, *msg.author.id.as_u64() as i64)?;
 
     // prepare for the lastfm api
     let url = format!("http://ws.audioscrobbler.com/2.0/?method=user.gettopartists&user={}&api_key={}&format=json&limit=10&period={}",
@@ -251,7 +223,7 @@ pub fn albums(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
     };
 
     let data = ctx.data.write();
-    let conn = match data.get::<DatabaseConnection>() {
+    let mut conn = match data.get::<DatabaseConnection>() {
         Some(v) => v.get().unwrap(),
         None => {
             let _ = msg.reply(&ctx, "Could not retrieve the database connection!");
@@ -259,10 +231,7 @@ pub fn albums(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
         }
     };
 
-    let lastfm = dsl::lastfms
-        .filter(dsl::user_id.eq(*msg.author.id.as_u64() as i64))
-        .first::<Lastfm>(&*conn)
-        .expect("could not get lastfm for this user");
+    let lastfm = Lastfm::get(&mut *conn, *msg.author.id.as_u64() as i64)?;
 
     // prepare for the lastfm api
     let url = format!("http://ws.audioscrobbler.com/2.0/?method=user.gettopalbums&user={}&api_key={}&format=json&limit=10&period={}",
@@ -314,7 +283,7 @@ pub fn tracks(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
     info!("period: {:?}", period);
 
     let data = ctx.data.write();
-    let conn = match data.get::<DatabaseConnection>() {
+    let mut conn = match data.get::<DatabaseConnection>() {
         Some(v) => v.get().unwrap(),
         None => {
             let _ = msg.reply(&ctx, "Could not retrieve the database connection!");
@@ -322,10 +291,7 @@ pub fn tracks(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
         }
     };
 
-    let lastfm = dsl::lastfms
-        .filter(dsl::user_id.eq(*msg.author.id.as_u64() as i64))
-        .first::<Lastfm>(&*conn)
-        .expect("could not get lastfm for this user");
+    let lastfm = Lastfm::get(&mut *conn, *msg.author.id.as_u64() as i64)?;
 
     // prepare for the lastfm api
     let url = format!("http://ws.audioscrobbler.com/2.0/?method=user.gettoptracks&user={}&api_key={}&format=json&limit=10&period={}",

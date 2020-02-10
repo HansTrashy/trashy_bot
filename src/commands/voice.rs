@@ -57,7 +57,7 @@ fn join(ctx: &mut Context, msg: &Message) -> CommandResult {
         .get(&msg.author.id)
         .and_then(|voice_state| voice_state.channel_id);
 
-    let connect_to = match channel_id {
+    let mut connect_to = match channel_id {
         Some(channel) => channel,
         None => {
             msg.reply(&ctx, "Not in a voice channel")?;

@@ -27,7 +27,7 @@ pub fn blackjack(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandRes
         );
         return Ok(());
     };
-    let conn: &PgConnection = &pool.get().unwrap();
+    let mut conn: &PgConnection = &pool.get().unwrap();
     let amount_to_bet = match args.single::<i64>() {
         Ok(v) if v > 0 => v,
         Ok(_) => {

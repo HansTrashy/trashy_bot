@@ -1,6 +1,7 @@
 use crate::scheduler::Task;
 use crate::util;
 use crate::TrashyScheduler;
+use chrono::Duration;
 use log::*;
 use serde::Deserialize;
 use serenity::utils::{content_safe, ContentSafeOptions};
@@ -11,7 +12,6 @@ use serenity::{
     prelude::*,
 };
 use std::sync::Arc;
-use time::Duration;
 
 #[command]
 #[description = "Reminds you after the given time with the given text. Allows (w, d, h, m, s)"]

@@ -1,11 +1,8 @@
-use crate::models::reaction_role::{self, ReactionRole};
+use crate::models::reaction_role::ReactionRole;
 use crate::reaction_roles::State as RRState;
-use crate::schema::reaction_roles::dsl::*;
 use crate::DatabaseConnection;
 use crate::ReactionRolesState;
-use diesel::prelude::*;
 use itertools::Itertools;
-use log::*;
 use log::*;
 use serenity::model::channel::ReactionType;
 use serenity::prelude::*;
@@ -20,7 +17,7 @@ use serenity::{
 #[example = "🧀 group_name role_name"]
 pub fn create(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
     let data = ctx.data.read();
-    let conn = match data.get::<DatabaseConnection>() {
+    let mut conn = match data.get::<DatabaseConnection>() {
         Some(v) => v.get().unwrap(),
         None => {
             let _ = msg.reply(&ctx, "Could not retrieve the database connection!");
@@ -33,8 +30,8 @@ pub fn create(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult
 
     if let Some(guild) = msg.guild(&ctx.cache) {
         if let Some(role) = guild.read().role_by_name(&role_arg) {
-            reaction_role::create_reaction_role(
-                &conn,
+            ReactionRole::create(
+                &mut *conn,
                 *msg.channel(&ctx.cache)
                     .ok_or("no channel")?
                     .guild()
@@ -59,7 +56,7 @@ pub fn create(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult
 #[example = "🧀 role_name"]
 pub fn remove(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
     let data = ctx.data.read();
-    let conn = match data.get::<DatabaseConnection>() {
+    let mut conn = match data.get::<DatabaseConnection>() {
         Some(v) => v.get().unwrap(),
         None => {
             let _ = msg.reply(&ctx, "Could not retrieve the database connection!");
@@ -75,13 +72,11 @@ pub fn remove(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult
         debug!("Some guild found");
         if let Some(role) = guild.read().role_by_name(&role_arg) {
             debug!("Role found: {:?}", &role);
-            diesel::delete(
-                reaction_roles
-                    .filter(emoji.eq(emoji_arg))
-                    .filter(role_id.eq(*role.id.as_u64() as i64)),
-            )
-            .execute(&conn)
-            .expect("could not delete reaction role");
+            let _ = ReactionRole::delete(
+                &mut *conn,
+                *msg.guild_id.unwrap().as_u64() as i64,
+                *role.id.as_u64() as i64,
+            );
             let _ = msg.reply(&ctx, "deleted rr!");
         }
     }
@@ -93,19 +88,15 @@ pub fn remove(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult
 #[description = "Lists all reaction roles"]
 pub fn list(ctx: &mut Context, msg: &Message, _args: Args) -> CommandResult {
     let data = ctx.data.read();
-    let conn = match data.get::<DatabaseConnection>() {
+    let mut conn = match data.get::<DatabaseConnection>() {
         Some(v) => v.get().unwrap(),
         None => {
             let _ = msg.reply(&ctx, "Could not retrieve the database connection!");
             return Ok(());
         }
     };
-    use crate::schema::reaction_roles::dsl::*;
-    use diesel::prelude::*;
 
-    let results = reaction_roles
-        .load::<ReactionRole>(&conn)
-        .expect("could not retrieve reaction roles");
+    let results = ReactionRole::list(&mut *conn)?;
 
     let mut output = String::new();
     for r in results {
@@ -126,7 +117,7 @@ pub fn list(ctx: &mut Context, msg: &Message, _args: Args) -> CommandResult {
 #[description = "Posts the reaction role groups"]
 pub fn postgroups(ctx: &mut Context, msg: &Message, _args: Args) -> CommandResult {
     let data = ctx.data.read();
-    let conn = match data.get::<DatabaseConnection>() {
+    let mut conn = match data.get::<DatabaseConnection>() {
         Some(v) => v.get().unwrap(),
         None => {
             let _ = msg.reply(&ctx, "Could not retrieve the database connection!");
@@ -134,12 +125,7 @@ pub fn postgroups(ctx: &mut Context, msg: &Message, _args: Args) -> CommandResul
         }
     };
 
-    use crate::schema::reaction_roles::dsl::*;
-    use diesel::prelude::*;
-
-    let mut results = reaction_roles
-        .load::<ReactionRole>(&conn)
-        .expect("Could not retrieve rr");
+    let mut results = ReactionRole::list(&mut *conn)?;
     results.sort_by_key(|r| r.role_group.to_owned());
     // post a message for each group and react under them with the respective emojis
 

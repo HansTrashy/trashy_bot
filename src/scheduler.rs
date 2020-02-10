@@ -1,5 +1,9 @@
-use chrono::{DateTime, Utc};
+use crate::models::mute::Mute;
+use chrono::{DateTime, Duration, Utc};
 use log::*;
+use postgres::NoTls;
+use r2d2::Pool;
+use r2d2_postgres::PostgresConnectionManager;
 use serde::{Deserialize, Serialize};
 use serenity::utils::MessageBuilder;
 use serenity::CacheAndHttp;
@@ -9,8 +13,9 @@ use serenity::{
     model::id::{ChannelId, GuildId, RoleId, UserId},
 };
 use std::sync::{Arc, Mutex};
-use time::Duration;
 use tokio::time::delay_for;
+
+pub type DbPool = Pool<PostgresConnectionManager<NoTls>>;
 
 #[derive(PartialEq, Eq, Serialize, Deserialize, Clone)]
 pub enum Task {
@@ -45,10 +50,7 @@ impl Task {
                 user,
                 mute_role,
             } => {
-                use crate::schema::mutes;
-                use diesel::prelude::*;
-
-                let conn = db_pool.get().unwrap();
+                let mut conn = db_pool.get().unwrap();
 
                 match GuildId(guild_id).member(&*cache_and_http.http, UserId(user)) {
                     Ok(mut member) => {
@@ -57,13 +59,8 @@ impl Task {
                     Err(e) => error!("could not get member: {:?}", e),
                 };
 
-                diesel::delete(
-                    mutes::table
-                        .filter(mutes::server_id.eq(guild_id as i64))
-                        .filter(mutes::user_id.eq(user as i64)),
-                )
-                .execute(&*conn)
-                .expect("could not delete mute");
+                Mute::delete(&mut *conn, guild_id as i64, user as i64)
+                    .expect("could not delete mute");
             }
         }
     }
@@ -80,8 +77,6 @@ impl Task {
         Self::Reply { user, channel, msg }
     }
 }
-
-type DbPool = diesel::r2d2::Pool<diesel::r2d2::ConnectionManager<diesel::PgConnection>>;
 
 type ScheduledTask = (DateTime<Utc>, Task);
 
@@ -110,12 +105,11 @@ impl Scheduler {
                 let task_list_clone = Arc::clone(&task_list);
                 if duration_until > Duration::zero() {
                     task_list.lock().unwrap().push((when, task.clone()));
-                    let f = async move {
+                    rt.spawn(async move {
                         delay_for(duration_until.to_std().unwrap()).await;
                         task_list_clone.lock().unwrap().retain(|(_, t)| t != &task);
                         task.execute(cache_and_http_clone, db_pool_clone);
-                    };
-                    rt.spawn(f);
+                    });
                 }
             }
         }

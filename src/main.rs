@@ -12,15 +12,18 @@
 
 #[macro_use]
 extern crate serenity;
-#[macro_use]
-extern crate diesel;
+// #[macro_use]
+// extern crate diesel;
 
 use crate::dispatch::Dispatcher;
-use diesel::pg::PgConnection;
-use diesel::r2d2::{ConnectionManager, Pool};
+// use diesel::pg::PgConnection;
+// use diesel::r2d2::{ConnectionManager, Pool};
 use dotenv::dotenv;
 use lazy_static::lazy_static;
 use log::*;
+use postgres::NoTls;
+use r2d2::Pool;
+use r2d2_postgres::PostgresConnectionManager;
 use serde::{Deserialize, Serialize};
 use serenity::{
     client::bridge::gateway::ShardManager,
@@ -43,7 +46,7 @@ use serenity::{
 use std::collections::HashSet;
 use std::{env, sync::Arc};
 
-mod blackjack;
+// mod blackjack;
 mod commands;
 mod dispatch;
 mod handler;
@@ -53,7 +56,6 @@ mod models;
 mod reaction_roles;
 mod rules;
 mod scheduler;
-mod schema;
 mod util;
 
 struct ShardManagerContainer;
@@ -63,7 +65,7 @@ impl TypeMapKey for ShardManagerContainer {
 
 struct DatabaseConnection;
 impl TypeMapKey for DatabaseConnection {
-    type Value = Pool<ConnectionManager<PgConnection>>;
+    type Value = Pool<PostgresConnectionManager<NoTls>>;
 }
 
 struct Waiter;
@@ -81,10 +83,10 @@ impl TypeMapKey for RulesState {
     type Value = Arc<Mutex<self::rules::State>>;
 }
 
-struct BlackjackState;
-impl TypeMapKey for BlackjackState {
-    type Value = Arc<Mutex<self::blackjack::State>>;
-}
+// struct BlackjackState;
+// impl TypeMapKey for BlackjackState {
+//     type Value = Arc<Mutex<self::blackjack::State>>;
+// }
 
 struct VoiceManager;
 impl TypeMapKey for VoiceManager {
@@ -186,17 +188,19 @@ fn main() {
     let token = env::var("DISCORD_TOKEN").expect("Expected a discord token in the environment");
     let mut client = Client::new(&token, handler::Handler).expect("Err creating client");
 
-    let db_manager = ConnectionManager::<PgConnection>::new(
-        env::var("DATABASE_URL").expect("Expected a database in the environment"),
+    let db_manager = PostgresConnectionManager::new(
+        env::var("DATABASE_URL")
+            .expect("no database url specified")
+            .parse()
+            .expect("could not parse DATABASE_URL as PG CONFIG"),
+        NoTls,
     );
-    let db_pool = Pool::builder()
-        .build(db_manager)
-        .expect("Failed to create db pool.");
+    let db_pool = r2d2::Pool::new(db_manager).expect("Failed to create db pool.");
 
     let waiter = Arc::new(Mutex::new(self::interaction::wait::Wait::new()));
     let rr_state = Arc::new(Mutex::new(self::reaction_roles::State::load_set()));
     let rules_state = Arc::new(Mutex::new(self::rules::State::load()));
-    let blackjack_state = Arc::new(Mutex::new(self::blackjack::State::load(db_pool.clone())));
+    // let blackjack_state = Arc::new(Mutex::new(self::blackjack::State::load(db_pool.clone())));
 
     let rt = Arc::new(tokio::runtime::Runtime::new().unwrap());
     let trashy_scheduler = Arc::new(scheduler::Scheduler::new(
@@ -217,7 +221,7 @@ fn main() {
         data.insert::<Waiter>(waiter);
         data.insert::<ReactionRolesState>(rr_state);
         data.insert::<RulesState>(rules_state);
-        data.insert::<BlackjackState>(blackjack_state);
+        // data.insert::<BlackjackState>(blackjack_state);
         data.insert::<VoiceManager>(Arc::clone(&client.voice_manager));
         data.insert::<TrashyScheduler>(Arc::clone(&trashy_scheduler));
         data.insert::<TrashyDispatcher>(Arc::clone(&trashy_dispatcher));
@@ -275,6 +279,11 @@ fn main() {
                     let _ = msg.channel_id.say(
                         &ctx.http,
                         &format!("Versuche es in {} sekunden noch einmal.", seconds),
+                    );
+                } else {
+                    let _ = msg.channel_id.say(
+                        &ctx.http,
+                        &format!("Something didn't quite work: {:?}", error),
                     );
                 }
             })
