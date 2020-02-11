@@ -10,12 +10,6 @@ pub mod general {
         about, roll, choose, xkcd, quote, userinfo, remindme, spongebob, selfmute, katzer
     )]
     pub struct General;
-
-    // group!({
-    //     name: "general",
-    //     options: {},
-    //     commands: [about, roll, choose, xkcd, quote, userinfo, remindme, spongebob, selfmute, katzer],
-    // });
 }
 
 pub mod lastfm {
@@ -25,15 +19,6 @@ pub mod lastfm {
     #[group]
     #[commands(register, now, recent, artists, albums, tracks)]
     pub struct Lastfm;
-
-    // group!({
-    //     name: "lastfm",
-    //     options: {
-    //         prefix: "lastfm",
-    //         description: "Lastfm commands",
-    //     },
-    //     commands: [register, now, recent, artists, albums, tracks]
-    // });
 }
 
 pub mod misc {
@@ -43,15 +28,6 @@ pub mod misc {
     #[group]
     #[commands(shiny, list, setshiny, removeshiny, goldt, emoji, optout)]
     pub struct Misc;
-
-    // group!({
-    //     name: "misc",
-    //     options: {
-    //         prefix: "misc",
-    //         description: "Miscellaneous commands",
-    //     },
-    //     commands: [shiny, list, setshiny, removeshiny, goldt, emoji, optout]
-    // });
 }
 
 pub mod config {
@@ -61,16 +37,6 @@ pub mod config {
     #[group]
     #[commands(status, show_config, set_modlog, set_muterole, set_userlog)]
     pub struct Config;
-    // group!({
-    //     name: "config",
-
-    //     options: {
-    //         prefix: "cfg",
-    //         description: "Config commands",
-    //         default_command: status,
-    //     },
-    //     commands: [status, show_config, set_modlog, set_muterole, set_userlog]
-    // });
 }
 
 pub mod moderation {
@@ -79,19 +45,6 @@ pub mod moderation {
     #[group]
     #[commands(mute, unmute, kick, ban)]
     pub struct Moderation;
-    // group!({
-    //     name: "moderation",
-    //     options: {
-    //         prefix: "mod",
-    //         description: "Moderation commands",
-    //         allowed_roles: [
-    //             "Mods",
-    //         ]
-    //     },
-    //     commands: [
-    // mute, unmute, kick, ban
-    //     ]
-    // });
 }
 
 pub mod account {
@@ -101,16 +54,6 @@ pub mod account {
     #[group]
     #[commands(createaccount, payday, leaderboard, transfer, slot)]
     pub struct Account;
-
-    // group!({
-    //     name: "account",
-    //     options: {
-    //         prefix: "acc",
-    //         description: "Having fun with some games",
-    //         default_command: payday,
-    //     },
-    //     commands: [createaccount, payday, leaderboard, transfer, slot, blackjack]
-    // });
 }
 
 pub mod greenbook {
@@ -121,16 +64,6 @@ pub mod greenbook {
     #[prefix("fav")]
     #[commands(post, untagged, add, tags)]
     pub struct Greenbook;
-
-    // group!({
-    //     name: "greenbook",
-    //     options: {
-    //         prefix: "fav",
-    //         description: "Saving your favourite messages.",
-    //         default_command: post,
-    //     },
-    //     commands: [post, untagged, add, tags],
-    // });
 }
 
 pub mod rules {
@@ -140,16 +73,6 @@ pub mod rules {
     #[group]
     #[commands(de, en, setde, addde, seten, adden, post)]
     pub struct Rules;
-
-    // group!({
-    //     name: "rules",
-    //     options: {
-    //         prefix: "rules",
-    //         description: "Rules to be sent by the bot",
-    //         default_command: de,
-    //     },
-    //     commands: [de, en, setde, addde, seten, adden, post],
-    // });
 }
 
 pub mod roles {
@@ -159,31 +82,13 @@ pub mod roles {
     #[group]
     #[commands(list, create, remove, postgroups)]
     pub struct Roles;
-
-    // group!({
-    //     name: "reaction_roles",
-    //     options: {
-    //         prefix: "rr",
-    //         description: "Let users easily add roles to themselves with reactions",
-    //         default_command: list,
-    //     },
-    //     commands: [list, create, remove, postgroups],
-    // });
 }
 
-pub mod voice {
-    use crate::commands::voice::*;
-    use serenity::framework::standard::macros::{check, command, group, help};
+// pub mod voice {
+//     use crate::commands::voice::*;
+//     use serenity::framework::standard::macros::{check, command, group, help};
 
-    #[group]
-    #[commands(deafen, join, leave, mute, play, undeafen, unmute)]
-    pub struct Voice;
-    // group!({
-    //     name: "voice",
-    //     options: {
-    //         prefix: "v",
-    //         description: "Let the bot sing for you",
-    //     },
-    //     commands: [deafen, join, leave, mute, play, undeafen, unmute]
-    // });
-}
+//     #[group]
+//     #[commands(deafen, join, leave, mute, play, undeafen, unmute)]
+//     pub struct Voice;
+// }

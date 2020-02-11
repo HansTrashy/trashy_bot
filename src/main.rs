@@ -27,7 +27,7 @@ use r2d2_postgres::PostgresConnectionManager;
 use serde::{Deserialize, Serialize};
 use serenity::{
     client::bridge::gateway::ShardManager,
-    client::bridge::voice::ClientVoiceManager,
+    // client::bridge::voice::ClientVoiceManager,
     client::Context,
     framework::standard::{
         help_commands,
@@ -41,7 +41,7 @@ use serenity::{
         id::UserId,
     },
     prelude::*,
-    voice,
+    // voice,
 };
 use std::collections::HashSet;
 use std::{env, sync::Arc};
@@ -89,10 +89,10 @@ impl TypeMapKey for RulesState {
 //     type Value = Arc<Mutex<self::blackjack::State>>;
 // }
 
-struct VoiceManager;
-impl TypeMapKey for VoiceManager {
-    type Value = Arc<Mutex<ClientVoiceManager>>;
-}
+// struct VoiceManager;
+// impl TypeMapKey for VoiceManager {
+//     type Value = Arc<Mutex<ClientVoiceManager>>;
+// }
 
 struct TrashyScheduler;
 impl TypeMapKey for TrashyScheduler {
@@ -228,7 +228,7 @@ fn main() {
         data.insert::<ReactionRolesState>(rr_state);
         data.insert::<RulesState>(rules_state);
         // data.insert::<BlackjackState>(blackjack_state);
-        data.insert::<VoiceManager>(Arc::clone(&client.voice_manager));
+        // data.insert::<VoiceManager>(Arc::clone(&client.voice_manager));
         data.insert::<TrashyScheduler>(Arc::clone(&trashy_scheduler));
         data.insert::<TrashyDispatcher>(Arc::clone(&trashy_dispatcher));
         data.insert::<OptOut>(Arc::clone(&opt_out));
@@ -305,8 +305,8 @@ fn main() {
             .group(&commands::groups::account::ACCOUNT_GROUP)
             .group(&commands::groups::moderation::MODERATION_GROUP)
             .group(&commands::groups::misc::MISC_GROUP)
-            .group(&commands::groups::lastfm::LASTFM_GROUP)
-            .group(&commands::groups::voice::VOICE_GROUP),
+            .group(&commands::groups::lastfm::LASTFM_GROUP),
+        // .group(&commands::groups::voice::VOICE_GROUP),
     );
 
     if let Err(why) = client.start() {
