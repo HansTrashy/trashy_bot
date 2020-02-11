@@ -5,4 +5,4 @@ CREATE TABLE reaction_roles (
     role_name TEXT NOT NULL,
     role_group TEXT NOT NULL,
     emoji TEXT NOT NULL
-)
+);

@@ -12,7 +12,7 @@ pub struct Tag {
 }
 
 impl Tag {
-    pub fn create(client: &mut Client, fav_id: i64, label: String) -> Result<Self, DbError> {
+    pub fn create(client: &mut Client, fav_id: i64, label: &str) -> Result<Self, DbError> {
         Ok(Self::from_row(client.query_one(
             "INSERT INTO tags (fav_id, label) VALUES ($1, $2) RETURNING *",
             &[&fav_id, &label],
@@ -26,7 +26,7 @@ impl Tag {
     pub fn belonging_to(client: &mut Client, favs: &[Fav]) -> Result<Vec<Vec<Self>>, DbError> {
         Ok(client
             .query(
-                "SELECT * FROM tags WHERE fav_id IN $1 ORDER BY fav_id",
+                "SELECT * FROM tags WHERE fav_id = ANY($1) ORDER BY fav_id",
                 &[&favs.iter().map(|f| f.id).collect::<Vec<_>>()],
             )?
             .into_iter()
@@ -34,7 +34,7 @@ impl Tag {
             .filter_map(Result::ok)
             .group_by(|tag| tag.fav_id)
             .into_iter()
-            .map(|(_key, group)| group.collect::<Vec<Tag>>())
+            .map(|(_key, group)| group.collect::<Vec<Self>>())
             .collect::<Vec<_>>())
     }
 

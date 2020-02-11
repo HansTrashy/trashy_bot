@@ -30,7 +30,7 @@ impl Fav {
         author_id: i64,
     ) -> Result<Self, DbError> {
         Ok(Self::from_row(client.query_one(
-            "INSERT INTO favs VALUES (server_id, channel_id, msg_id, user_id, author_id) = ($1, $2, $3, $4, $5) RETURNING *",
+            "INSERT INTO favs (server_id, channel_id, msg_id, user_id, author_id) VALUES ($1, $2, $3, $4, $5) RETURNING *",
             &[&server_id, &channel_id, &msg_id, &user_id, &author_id],
         )?)?)
     }

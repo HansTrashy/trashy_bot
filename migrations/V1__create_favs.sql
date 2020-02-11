@@ -5,4 +5,4 @@ CREATE TABLE favs (
     msg_id INT8 NOT NULL,
     user_id INT8 NOT NULL,
     author_id INT8 NOT NULL
-)
+);

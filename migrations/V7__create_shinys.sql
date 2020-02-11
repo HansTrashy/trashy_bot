@@ -4,4 +4,4 @@ CREATE TABLE shinys (
     user_id INT8 NOT NULL,
     username TEXT NOT NULL,
     amount INT8 NOT NULL
-)
+);

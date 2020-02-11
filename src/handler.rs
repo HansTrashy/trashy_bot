@@ -170,7 +170,7 @@ impl EventHandler for Handler {
 
                     // TODO: make this a single statement
                     msg.content.split(' ').for_each(|tag| {
-                        let _ = Tag::create(&mut *conn, waited_fav_id, tag.to_string());
+                        let _ = Tag::create(&mut *conn, waited_fav_id, tag);
                     });
 
                     wait.purge(

@@ -118,6 +118,7 @@ pub mod greenbook {
     use serenity::framework::standard::macros::{check, command, group, help};
 
     #[group]
+    #[prefix("fav")]
     #[commands(post, untagged, add, tags)]
     pub struct Greenbook;
 

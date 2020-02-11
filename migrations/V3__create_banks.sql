@@ -4,4 +4,4 @@ CREATE TABLE banks (
     user_name TEXT NOT NULL,
     amount INT8 NOT NULL,
     last_payday TIMESTAMP NOT NULL
-)
+);

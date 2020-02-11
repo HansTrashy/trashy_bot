@@ -52,6 +52,7 @@ mod dispatch;
 mod handler;
 mod interaction;
 mod logger;
+mod migrations;
 mod models;
 mod reaction_roles;
 mod rules;
@@ -196,6 +197,11 @@ fn main() {
         NoTls,
     );
     let db_pool = r2d2::Pool::new(db_manager).expect("Failed to create db pool.");
+
+    {
+        let mut client = db_pool.get().unwrap();
+        migrations::run(&mut client).expect("could not run migrations");
+    }
 
     let waiter = Arc::new(Mutex::new(self::interaction::wait::Wait::new()));
     let rr_state = Arc::new(Mutex::new(self::reaction_roles::State::load_set()));
