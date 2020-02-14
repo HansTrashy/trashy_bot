@@ -23,7 +23,7 @@ impl ServerConfig {
         config: serde_json::Value,
     ) -> Result<Self, DbError> {
         Ok(Self::from_row(client.query_one(
-            "INSERT INTO server_configs VALUES (server_id, config) = ($1, $2) RETURNING *",
+            "INSERT INTO (server_id, config) server_configs VALUES ($1, $2) RETURNING *",
             &[&server_id, &config],
         )?)?)
     }

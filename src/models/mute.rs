@@ -26,7 +26,7 @@ impl Mute {
         end_time: DateTime<Utc>,
     ) -> Result<Self, DbError> {
         Ok(Self::from_row(client.query_one(
-            "INSERT INTO mutes VALUES (server_id, user_id, end_time) = ($1, $2, $3) RETURNING *",
+            "INSERT INTO mutes (server_id, user_id, end_time) VALUES ($1, $2, $3) RETURNING *",
             &[&server_id, &user_id, &end_time],
         )?)?)
     }

@@ -35,7 +35,7 @@ impl Shiny {
         amount: i64,
     ) -> Result<Self, DbError> {
         Ok(Self::from_row(client.query_one(
-            "INSERT INTO shinys VALUES (server_id, user_id, username, amount) = ($1, $2, $3, $4) RETURNING *",
+            "INSERT INTO shinys (server_id, user_id, username, amount) VALUES ($1, $2, $3, $4) RETURNING *",
             &[&server_id, &user_id, &username, &amount],
         )?)?)
     }

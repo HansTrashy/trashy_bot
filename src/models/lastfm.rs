@@ -20,7 +20,7 @@ impl Lastfm {
 
     pub fn create(client: &mut Client, user_id: i64, username: String) -> Result<Self, DbError> {
         Ok(Self::from_row(client.query_one(
-            "INSERT INTO lastfms VALUES (server_id, user_id, username) = (0, $1, $2) RETURNING *",
+            "INSERT INTO lastfms (server_id, user_id, username) VALUES (0, $1, $2) RETURNING *",
             &[&user_id, &username],
         )?)?)
     }

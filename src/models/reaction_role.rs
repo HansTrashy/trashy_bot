@@ -45,7 +45,7 @@ impl ReactionRole {
         emoji: String,
     ) -> Result<Self, DbError> {
         Ok(Self::from_row(client.query_one(
-            "INSERT INTO reaction_roles VALUES (server_id, role_id, role_name, role_group, emoji) = ($1, $2, $3, $4, $5) RETURNING *",
+            "INSERT INTO reaction_roles (server_id, role_id, role_name, role_group, emoji) VALUES ($1, $2, $3, $4, $5) RETURNING *",
             &[&server_id, &role_id, &role_name, &role_group, &emoji],
         )?)?)
     }
