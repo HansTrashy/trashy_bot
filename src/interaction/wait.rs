@@ -16,7 +16,7 @@ pub struct Event {
 }
 
 impl Event {
-    pub fn new(action: Action, action_id: i64, timestamp: DateTime<Utc>) -> Self {
+    pub const fn new(action: Action, action_id: i64, timestamp: DateTime<Utc>) -> Self {
         Self {
             action,
             action_id,
@@ -38,12 +38,12 @@ impl Wait {
         wait_events.push(event);
     }
 
-    pub fn waiting(&mut self, user_id: u64, action: Action) -> Option<i64> {
+    pub fn waiting(&mut self, user_id: u64, action: &Action) -> Option<i64> {
         let wait_events = self.0.entry(user_id).or_insert_with(Vec::new);
 
         let mut was_waiting = None;
         wait_events.retain(|w| {
-            if w.action == action {
+            if w.action == *action {
                 was_waiting = Some(w.action_id);
                 false
             } else {

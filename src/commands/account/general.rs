@@ -1,6 +1,7 @@
 use crate::models::bank::Bank;
 use crate::DatabaseConnection;
 use chrono::prelude::*;
+use log::*;
 use serenity::prelude::*;
 use serenity::{
     framework::standard::{macros::command, Args, CommandResult},
@@ -10,9 +11,8 @@ use serenity::{
 #[command]
 #[description = "Create an account if you do not already own one"]
 #[num_args(0)]
-pub fn createaccount(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
-    let data = ctx.data.read();
-    let mut conn = match data.get::<DatabaseConnection>() {
+pub fn create(ctx: &mut Context, msg: &Message, _args: Args) -> CommandResult {
+    let mut conn = match ctx.data.read().get::<DatabaseConnection>() {
         Some(v) => v.get().unwrap(),
         None => {
             let _ = msg.reply(&ctx, "Could not retrieve the database connection!");
@@ -23,13 +23,14 @@ pub fn createaccount(ctx: &mut Context, msg: &Message, args: Args) -> CommandRes
     if let Ok(bank) = Bank::get(&mut *conn, *msg.author.id.as_u64() as i64) {
         let _ = msg.reply(&ctx, &format!("Your bank balance: {}", bank.amount));
     } else {
-        Bank::create(
+        let bank = Bank::create(
             &mut *conn,
             *msg.author.id.as_u64() as i64,
             msg.author.name.to_string(),
             1000,
             Utc::now().naive_utc(),
         );
+        debug!("Created bank entry {:?}", bank);
         let _ = msg.reply(&ctx, "Created bank!");
     }
     Ok(())

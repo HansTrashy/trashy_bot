@@ -51,7 +51,7 @@ pub fn add_label(ctx: Context, add_reaction: Reaction) {
 
     if let Some(waiter) = data.get::<Waiter>() {
         let mut wait = waiter.lock();
-        if let Some(fav_id) = wait.waiting(*add_reaction.user_id.as_u64(), Action::ReqTags) {
+        if let Some(fav_id) = wait.waiting(*add_reaction.user_id.as_u64(), &Action::ReqTags) {
             wait.wait(
                 *add_reaction.user_id.as_u64(),
                 Event::new(Action::AddTags, fav_id, Utc::now()),
@@ -72,7 +72,7 @@ pub fn remove(ctx: Context, add_reaction: Reaction) {
     // check if waiting for deletion
     if let Some(waiter) = data.get::<Waiter>() {
         let mut wait = waiter.lock();
-        if let Some(fav_id) = wait.waiting(*add_reaction.user_id.as_u64(), Action::DeleteFav) {
+        if let Some(fav_id) = wait.waiting(*add_reaction.user_id.as_u64(), &Action::DeleteFav) {
             if let Some(pool) = data.get::<DatabaseConnection>() {
                 let mut conn = pool.get().unwrap();
                 Fav::delete(&mut *conn, fav_id).expect("could not delete fav");

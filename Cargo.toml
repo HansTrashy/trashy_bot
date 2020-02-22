@@ -17,10 +17,17 @@ serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 reqwest = { version = "0.10", features = ["blocking", "json"] }
 tokio = { version = "0.2", features = ["full"] }
+futures = "0.3"
+
+#TODO: sync database stuff, replace when serenity is asnyc
 postgres = { version = "0.17", features = ["with-serde_json-1", "with-chrono-0_4"] }
 r2d2 = "0.8.8"
 r2d2_postgres = "0.16.0"
-refinery = { version = "0.2", features = ["postgres"] }
+refinery = { version = "0.2", features = ["postgres"] } # this has to be changed, but not removed, see todo
+
+# async database stuff
+tokio-postgres = { version = "0.5", features = ["with-serde_json-1", "with-chrono-0_4"] }
+deadpool-postgres = "0.5.4"
 
 [dependencies.serenity]
 version = "0.8"

@@ -20,7 +20,7 @@ impl Tag {
     }
 
     pub fn delete(client: &mut Client, fav_id: i64) -> Result<u64, DbError> {
-        Ok(client.execute("DELETE FROM tags WHERE fav_id = $2", &[&fav_id])?)
+        Ok(client.execute("DELETE FROM tags WHERE fav_id = $1", &[&fav_id])?)
     }
 
     pub fn belonging_to(client: &mut Client, favs: &[Fav]) -> Result<Vec<Vec<Self>>, DbError> {

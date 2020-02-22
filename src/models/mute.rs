@@ -50,6 +50,19 @@ impl Mute {
         )?)
     }
 
+    pub async fn async_delete(
+        client: &mut tokio_postgres::Client,
+        server_id: i64,
+        user_id: i64,
+    ) -> Result<u64, DbError> {
+        Ok(client
+            .execute(
+                "DELETE FROM mutes WHERE server_id = $1 AND user_id = $2",
+                &[&server_id, &user_id],
+            )
+            .await?)
+    }
+
     fn from_row(row: Row) -> Result<Self, DbError> {
         Ok(Self {
             id: row.try_get("id")?,

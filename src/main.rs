@@ -1,23 +1,15 @@
 #![deny(clippy::all)]
 #![warn(clippy::nursery)]
 #![warn(clippy::pedantic)]
-#![allow(clippy::non_ascii_literal)]
+// #![allow(clippy::non_ascii_literal)]
 #![deny(nonstandard_style)]
 #![deny(future_incompatible)]
 #![deny(rust_2018_idioms)]
 #![warn(missing_docs)]
 #![warn(unused)]
-#![feature(async_closure)]
 //! Trashy Bot
 
-#[macro_use]
-extern crate serenity;
-// #[macro_use]
-// extern crate diesel;
-
 use crate::dispatch::Dispatcher;
-// use diesel::pg::PgConnection;
-// use diesel::r2d2::{ConnectionManager, Pool};
 use dotenv::dotenv;
 use lazy_static::lazy_static;
 use log::*;
@@ -27,7 +19,6 @@ use r2d2_postgres::PostgresConnectionManager;
 use serde::{Deserialize, Serialize};
 use serenity::{
     client::bridge::gateway::ShardManager,
-    // client::bridge::voice::ClientVoiceManager,
     client::Context,
     framework::standard::{
         help_commands,
@@ -41,12 +32,10 @@ use serenity::{
         id::UserId,
     },
     prelude::*,
-    // voice,
 };
 use std::collections::HashSet;
 use std::{env, sync::Arc};
 
-// mod blackjack;
 mod commands;
 mod dispatch;
 mod handler;
@@ -83,16 +72,6 @@ struct RulesState;
 impl TypeMapKey for RulesState {
     type Value = Arc<Mutex<self::rules::State>>;
 }
-
-// struct BlackjackState;
-// impl TypeMapKey for BlackjackState {
-//     type Value = Arc<Mutex<self::blackjack::State>>;
-// }
-
-// struct VoiceManager;
-// impl TypeMapKey for VoiceManager {
-//     type Value = Arc<Mutex<ClientVoiceManager>>;
-// }
 
 struct TrashyScheduler;
 impl TypeMapKey for TrashyScheduler {
@@ -136,34 +115,13 @@ impl OptOutStore {
 }
 
 #[help]
-// This replaces the information that a user can pass
-// a command-name as argument to gain specific information about it.
 #[individual_command_tip = "If you want more information about a specific command, just pass the command as argument."]
-// Some arguments require a `{}` in order to replace it with contextual information.
-// In this case our `{}` refers to a command's name.
 #[command_not_found_text = "Could not find: `{}`."]
-// Define the maximum Levenshtein-distance between a searched command-name
-// and commands. If the distance is lower than or equal the set distance,
-// it will be displayed as a suggestion.
-// Setting the distance to 0 will disable suggestions.
 #[max_levenshtein_distance(3)]
-// When you use sub-groups, Serenity will use the `indention_prefix` to indicate
-// how deeply an item is indented.
-// The default value is "-", it will be changed to "+".
 #[indention_prefix = "-"]
-// On another note, you can set up the help-menu-filter-behaviour.
-// Here are all possible settings shown on all possible options.
-// First case is if a user lacks permissions for a command, we can hide the command.
 #[lacking_permissions = "Hide"]
-// If the user is nothing but lacking a certain role, we just display it hence our variant is `Nothing`.
 #[lacking_role = "Hide"]
-// The last `enum`-variant is `Strike`, which ~~strikes~~ a command.
 #[wrong_channel = "Strike"]
-// Serenity will automatically analyse and generate a hint/tip explaining the possible
-// cases of ~~strikethrough-commands~~, but only if
-// `strikethrough_commands_tip(Some(""))` keeps `Some()` wrapping an empty `String`, which is the default value.
-// If the `String` is not empty, your given `String` will be used instead.
-// If you pass in a `None`, no hint will be displayed at all.
 fn my_help(
     context: &mut Context,
     msg: &Message,
@@ -206,13 +164,17 @@ fn main() {
     let waiter = Arc::new(Mutex::new(self::interaction::wait::Wait::new()));
     let rr_state = Arc::new(Mutex::new(self::reaction_roles::State::load_set()));
     let rules_state = Arc::new(Mutex::new(self::rules::State::load()));
-    // let blackjack_state = Arc::new(Mutex::new(self::blackjack::State::load(db_pool.clone())));
+
+    let async_db_pool = deadpool_postgres::Config::from_env("PG")
+        .expect("PG env vars not found")
+        .create_pool(tokio_postgres::NoTls)
+        .expect("could not create async db pool");
 
     let rt = Arc::new(tokio::runtime::Runtime::new().unwrap());
     let trashy_scheduler = Arc::new(scheduler::Scheduler::new(
         Arc::clone(&rt),
         Arc::clone(&client.cache_and_http),
-        db_pool.clone(),
+        async_db_pool,
     ));
 
     let trashy_dispatcher = Arc::new(Mutex::new(Dispatcher::new()));
@@ -227,8 +189,6 @@ fn main() {
         data.insert::<Waiter>(waiter);
         data.insert::<ReactionRolesState>(rr_state);
         data.insert::<RulesState>(rules_state);
-        // data.insert::<BlackjackState>(blackjack_state);
-        // data.insert::<VoiceManager>(Arc::clone(&client.voice_manager));
         data.insert::<TrashyScheduler>(Arc::clone(&trashy_scheduler));
         data.insert::<TrashyDispatcher>(Arc::clone(&trashy_dispatcher));
         data.insert::<OptOut>(Arc::clone(&opt_out));
@@ -306,7 +266,6 @@ fn main() {
             .group(&commands::groups::moderation::MODERATION_GROUP)
             .group(&commands::groups::misc::MISC_GROUP)
             .group(&commands::groups::lastfm::LASTFM_GROUP),
-        // .group(&commands::groups::voice::VOICE_GROUP),
     );
 
     if let Err(why) = client.start() {

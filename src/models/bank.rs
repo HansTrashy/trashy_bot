@@ -22,7 +22,7 @@ impl Bank {
 
     pub fn top10(client: &mut Client) -> Result<Vec<Self>, DbError> {
         Ok(client
-            .query("SELECT * FROM banks ORDER BY DESC amount LIMIT 10", &[])?
+            .query("SELECT * FROM banks ORDER BY amount DESC LIMIT 10", &[])?
             .into_iter()
             .map(Self::from_row)
             .collect::<Result<Vec<_>, DbError>>()?)
@@ -36,7 +36,7 @@ impl Bank {
         last_payday: NaiveDateTime,
     ) -> Result<Self, DbError> {
         Ok(Self::from_row(client.query_one(
-            "INSERT INTO banks VALUES (user_id, user_name, amount, last_payday) = ($1, $2, $3, $4) RETURNING *",
+            "INSERT INTO banks (user_id, user_name, amount, last_payday) VALUES ($1, $2, $3, $4) RETURNING *",
             &[&user_id, &user_name, &amount, &last_payday],
         )?)?)
     }
@@ -48,7 +48,7 @@ impl Bank {
         last_payday: NaiveDateTime,
     ) -> Result<Self, DbError> {
         Ok(Self::from_row(client.query_one(
-            "UPDATE banks SET (amount, last_payday) = ($2, $3) WHERE user_id = $1",
+            "UPDATE banks SET (amount, last_payday) = ($2, $3) WHERE user_id = $1 RETURNING *",
             &[&user_id, &amount, &last_payday],
         )?)?)
     }

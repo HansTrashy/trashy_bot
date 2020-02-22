@@ -1,21 +1,14 @@
 use crate::models::mute::Mute;
 use chrono::{DateTime, Duration, Utc};
+use deadpool_postgres::Pool;
+use futures::future::BoxFuture;
 use log::*;
-use postgres::NoTls;
-use r2d2::Pool;
-use r2d2_postgres::PostgresConnectionManager;
 use serde::{Deserialize, Serialize};
+use serenity::model::id::{ChannelId, GuildId, RoleId, UserId};
 use serenity::utils::MessageBuilder;
 use serenity::CacheAndHttp;
-use serenity::{
-    framework::standard::{macros::command, Args, CommandResult},
-    model::channel::Message,
-    model::id::{ChannelId, GuildId, RoleId, UserId},
-};
 use std::sync::{Arc, Mutex};
 use tokio::time::delay_for;
-
-pub type DbPool = Pool<PostgresConnectionManager<NoTls>>;
 
 #[derive(PartialEq, Eq, Serialize, Deserialize, Clone)]
 pub enum Task {
@@ -31,37 +24,46 @@ pub enum Task {
     },
 }
 
-impl Task {
-    fn execute(self, cache_and_http: Arc<CacheAndHttp>, db_pool: DbPool) {
+impl<'a> Task {
+    fn execute(self, cache_and_http: Arc<CacheAndHttp>, db_pool: Pool) -> BoxFuture<'a, ()> {
         match self {
-            Self::Reply { user, channel, msg } => {
-                let _ = ChannelId(channel).send_message(&*cache_and_http.http, |m| {
-                    m.content(
-                        MessageBuilder::new()
-                            .mention(&UserId(user))
-                            .push(" ")
-                            .push(&msg)
-                            .build(),
-                    )
-                });
-            }
+            Self::Reply { user, channel, msg } => Box::pin(async move {
+                tokio::task::spawn_blocking(move || {
+                    let _ = ChannelId(channel).send_message(&*cache_and_http.http, |m| {
+                        m.content(
+                            MessageBuilder::new()
+                                .mention(&UserId(user))
+                                .push(" ")
+                                .push(&msg)
+                                .build(),
+                        )
+                    });
+                })
+                .await
+                .expect("could not send message")
+            }),
             Self::RemoveMute {
                 guild_id,
                 user,
                 mute_role,
-            } => {
-                let mut conn = db_pool.get().unwrap();
+            } => Box::pin(async move {
+                let mut conn = db_pool.get().await.expect("could not get database conn");
 
-                match GuildId(guild_id).member(&*cache_and_http.http, UserId(user)) {
-                    Ok(mut member) => {
-                        let _ = member.remove_role(&*cache_and_http.http, RoleId(mute_role));
-                    }
-                    Err(e) => error!("could not get member: {:?}", e),
-                };
+                tokio::task::spawn_blocking(move || {
+                    match GuildId(guild_id).member(&*cache_and_http.http, UserId(user)) {
+                        Ok(mut member) => {
+                            let _ = member.remove_role(&*cache_and_http.http, RoleId(mute_role));
+                        }
+                        Err(e) => error!("could not get member: {:?}", e),
+                    };
+                })
+                .await
+                .expect("could not remove role");
 
-                Mute::delete(&mut *conn, guild_id as i64, user as i64)
+                Mute::async_delete(&mut *conn, guild_id as i64, user as i64)
+                    .await
                     .expect("could not delete mute");
-            }
+            }),
         }
     }
 
@@ -83,7 +85,7 @@ type ScheduledTask = (DateTime<Utc>, Task);
 pub struct Scheduler {
     runtime: Arc<tokio::runtime::Runtime>,
     cache_and_http: Arc<CacheAndHttp>,
-    db_pool: DbPool,
+    db_pool: Pool,
     task_list: Arc<Mutex<Vec<ScheduledTask>>>,
 }
 
@@ -91,7 +93,7 @@ impl Scheduler {
     pub fn new(
         rt: Arc<tokio::runtime::Runtime>,
         cache_and_http: Arc<CacheAndHttp>,
-        db_pool: DbPool,
+        db_pool: Pool,
     ) -> Self {
         let task_list = Arc::new(Mutex::new(Vec::new()));
 
@@ -138,7 +140,8 @@ impl Scheduler {
         let f = async move {
             delay_for(duration.to_std().unwrap()).await;
             task_list_clone.lock().unwrap().retain(|(_, t)| t != &task);
-            task.execute(cache_and_http, db_pool);
+            let executable_f = task.execute(cache_and_http, db_pool);
+            executable_f.await;
         };
         self.runtime.spawn(f);
     }

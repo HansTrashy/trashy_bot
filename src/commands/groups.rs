@@ -17,6 +17,7 @@ pub mod lastfm {
     use serenity::framework::standard::macros::{check, command, group, help};
 
     #[group]
+    #[prefix("lastfm")]
     #[commands(register, now, recent, artists, albums, tracks)]
     pub struct Lastfm;
 }
@@ -26,6 +27,7 @@ pub mod misc {
     use serenity::framework::standard::macros::{check, command, group, help};
 
     #[group]
+    #[prefix("misc")]
     #[commands(shiny, list, setshiny, removeshiny, goldt, emoji, optout)]
     pub struct Misc;
 }
@@ -35,6 +37,7 @@ pub mod config {
     use serenity::framework::standard::macros::{check, command, group, help};
 
     #[group]
+    #[prefix("cfg")]
     #[commands(status, show_config, set_modlog, set_muterole, set_userlog)]
     pub struct Config;
 }
@@ -43,6 +46,7 @@ pub mod moderation {
     use crate::commands::moderation::*;
     use serenity::framework::standard::macros::{check, command, group, help};
     #[group]
+    #[prefix("mod")]
     #[commands(mute, unmute, kick, ban)]
     pub struct Moderation;
 }
@@ -52,7 +56,8 @@ pub mod account {
     use serenity::framework::standard::macros::{check, command, group, help};
 
     #[group]
-    #[commands(createaccount, payday, leaderboard, transfer, slot)]
+    #[prefix("acc")]
+    #[commands(create, payday, leaderboard, transfer, slot)]
     pub struct Account;
 }
 
@@ -62,6 +67,7 @@ pub mod greenbook {
 
     #[group]
     #[prefix("fav")]
+    #[default_command(post)]
     #[commands(post, untagged, add, tags)]
     pub struct Greenbook;
 }
@@ -71,6 +77,7 @@ pub mod rules {
     use serenity::framework::standard::macros::{check, command, group, help};
 
     #[group]
+    #[prefix("rules")]
     #[commands(de, en, setde, addde, seten, adden, post)]
     pub struct Rules;
 }
@@ -80,15 +87,7 @@ pub mod roles {
     use serenity::framework::standard::macros::{check, command, group, help};
 
     #[group]
+    #[prefix("roles")]
     #[commands(list, create, remove, postgroups)]
     pub struct Roles;
 }
-
-// pub mod voice {
-//     use crate::commands::voice::*;
-//     use serenity::framework::standard::macros::{check, command, group, help};
-
-//     #[group]
-//     #[commands(deafen, join, leave, mute, play, undeafen, unmute)]
-//     pub struct Voice;
-// }

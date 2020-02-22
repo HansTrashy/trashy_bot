@@ -38,8 +38,8 @@ pub fn parse_duration(duration_str: &str) -> Option<Duration> {
 
 pub fn humanize_duration(duration: &Duration) -> String {
     let days = duration.num_days();
-    let hours = duration.num_hours() - days * 24i64;
-    let minutes = duration.num_minutes() - (days * 24i64 * 60i64) - (hours * 60i64);
+    let hours = duration.num_hours() - days * 24_i64;
+    let minutes = duration.num_minutes() - (days * 24_i64 * 60_i64) - (hours * 60_i64);
 
     match (days, hours, minutes) {
         (0, 0, 0) => "less than one minute".to_string(),
