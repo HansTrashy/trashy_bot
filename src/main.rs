@@ -219,7 +219,7 @@ fn main() {
                 c.with_whitespace(true)
                     .on_mention(Some(bot_id))
                     .prefix("$")
-                    .delimiter(" ")
+                    .delimiter(' ')
                     .owners(owners)
             })
             .before(|_ctx, msg, command_name| {
