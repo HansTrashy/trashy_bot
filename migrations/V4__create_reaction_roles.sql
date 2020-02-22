@@ -1,4 +1,4 @@
-CREATE TABLE reaction_roles (
+CREATE TABLE IF NOT EXISTS reaction_roles (
     id SERIAL8 PRIMARY KEY,
     server_id INT8 NOT NULL,
     role_id INT8 NOT NULL,

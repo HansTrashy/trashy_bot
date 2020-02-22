@@ -1,4 +1,4 @@
-CREATE TABLE banks (
+CREATE TABLE IF NOT EXISTS banks (
     id SERIAL8 PRIMARY KEY,
     user_id INT8 NOT NULL,
     user_name TEXT NOT NULL,

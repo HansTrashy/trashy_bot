@@ -1,4 +1,4 @@
-CREATE TABLE mutes (
+CREATE TABLE IF NOT EXISTS mutes (
     id SERIAL8 PRIMARY KEY,
     server_id INT8 NOT NULL,
     user_id INT8 NOT NULL,

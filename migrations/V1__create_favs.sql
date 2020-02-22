@@ -1,4 +1,4 @@
-CREATE TABLE favs (
+CREATE TABLE IF NOT EXISTS favs (
     id SERIAL8 PRIMARY KEY,
     server_id INT8 NOT NULL,
     channel_id INT8 NOT NULL,

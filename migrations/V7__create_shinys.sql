@@ -1,4 +1,4 @@
-CREATE TABLE shinys (
+CREATE TABLE IF NOT EXISTS shinys (
     id SERIAL8 PRIMARY KEY,
     server_id INT8 NOT NULL,
     user_id INT8 NOT NULL,
