@@ -39,6 +39,20 @@ impl Fav {
         Ok(client.execute("DELETE FROM favs WHERE id = $1", &[&id])?)
     }
 
+    pub fn untagged(client: &mut Client, user_id: i64) -> Result<Vec<Self>, DbError> {
+        Ok(client.query("SELECT favs.id, favs.server_id, favs.channel_id, favs.msg_id, favs.user_id, favs.author_id FROM favs LEFT JOIN tags ON favs.id = tags.fav_id WHERE favs.user_id = $1 AND tags.id IS NULL",
+            &[&user_id])?.into_iter().map(Self::from_row).collect::<Result<Vec<_>, DbError>>()?)
+    }
+
+    pub fn tagged_with(
+        client: &mut Client,
+        user_id: i64,
+        tags: Vec<String>,
+    ) -> Result<Vec<Self>, DbError> {
+        Ok(client.query("SELECT favs.id, favs.server_id, favs.channel_id, favs.msg_id, favs.user_id, favs.author_id FROM favs INNER JOIN tags ON favs.id = tags.id WHERE favs.user_id = $1 AND tags.label = ANY($2)",
+            &[&user_id, &tags])?.into_iter().map(Self::from_row).collect::<Result<Vec<_>, DbError>>()?)
+    }
+
     fn from_row(row: Row) -> Result<Self, DbError> {
         Ok(Self {
             id: row.try_get("id")?,

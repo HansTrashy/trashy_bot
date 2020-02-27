@@ -23,19 +23,9 @@ impl Tag {
         Ok(client.execute("DELETE FROM tags WHERE fav_id = $1", &[&fav_id])?)
     }
 
-    pub fn belonging_to(client: &mut Client, favs: &[Fav]) -> Result<Vec<Vec<Self>>, DbError> {
-        Ok(client
-            .query(
-                "SELECT * FROM tags WHERE fav_id = ANY($1) ORDER BY fav_id",
-                &[&favs.iter().map(|f| f.id).collect::<Vec<_>>()],
-            )?
-            .into_iter()
-            .map(Self::from_row)
-            .filter_map(Result::ok)
-            .group_by(|tag| tag.fav_id)
-            .into_iter()
-            .map(|(_key, group)| group.collect::<Vec<Self>>())
-            .collect::<Vec<_>>())
+    pub fn of_user(client: &mut Client, user_id: i64) -> Result<Vec<Self>, DbError> {
+        Ok(client.query("SELECT tags.id, tags.fav_id, tags.label FROM tags INNER JOIN favs ON tags.fav_id = favs.id WHERE favs.user_id = $1",
+            &[&user_id])?.into_iter().map(Self::from_row).collect::<Result<Vec<_>, DbError>>()?)
     }
 
     fn from_row(row: Row) -> Result<Self, DbError> {

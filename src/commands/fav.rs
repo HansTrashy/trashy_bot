@@ -54,32 +54,9 @@ pub fn post(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
 
     let labels: Vec<String> = args.iter::<String>().filter_map(Result::ok).collect();
 
-    let results = Fav::list(&mut *conn, *msg.author.id.as_u64() as i64)?;
+    let results = Fav::tagged_with(&mut *conn, *msg.author.id.as_u64() as i64, labels)?;
 
-    let fav_tags = Tag::belonging_to(&mut *conn, &results)?;
-
-    let zipped = results
-        .into_iter()
-        .zip(fav_tags)
-        .collect::<Vec<(Fav, Vec<Tag>)>>();
-
-    let possible_favs: Vec<(Fav, Vec<Tag>)> = zipped
-        .into_iter()
-        .filter_map(|(f, f_tags)| {
-            for l in &labels {
-                let x = f_tags
-                    .iter()
-                    .fold(0, |acc, x| if &*x.label == l { acc + 1 } else { acc });
-                if x == 0 {
-                    return None;
-                }
-            }
-
-            Some((f, f_tags))
-        })
-        .collect();
-
-    let (chosen_fav, _tags) = possible_favs
+    let chosen_fav = results
         .into_iter()
         .choose(&mut rng)
         .expect("possible favs are empty");
@@ -211,30 +188,12 @@ pub fn untagged(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
         }
     };
 
-    let results = Fav::list(&mut *conn, *msg.author.id.as_u64() as i64)?;
+    let results = Fav::untagged(&mut *conn, *msg.author.id.as_u64() as i64)?;
 
-    let fav_tags = Tag::belonging_to(&mut *conn, &results)?;
-
-    let zipped = results
-        .into_iter()
-        .zip(fav_tags)
-        .collect::<Vec<(Fav, Vec<Tag>)>>();
-
-    let possible_favs: Vec<(Fav, Vec<Tag>)> = zipped
-        .into_iter()
-        .filter_map(|(f, f_tags)| {
-            if f_tags.is_empty() {
-                Some((f, f_tags))
-            } else {
-                None
-            }
-        })
-        .collect();
-
-    if possible_favs.is_empty() {
+    if results.is_empty() {
         let _ = msg.reply(&ctx, "Du hat keine untagged Favs!");
     } else {
-        let (fa, _t) = possible_favs.first().unwrap();
+        let fa = results.first().unwrap();
         let fav_msg = ChannelId(fa.channel_id as u64)
             .message(&ctx, fa.msg_id as u64)
             .unwrap();
@@ -356,12 +315,7 @@ pub fn tags(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
         }
     };
 
-    let results = Fav::list(&mut *conn, *msg.author.id.as_u64() as i64)?;
-
-    let mut fav_tags = Tag::belonging_to(&mut *conn, &results)?
-        .into_iter()
-        .flatten()
-        .collect::<Vec<Tag>>();
+    let mut fav_tags = Tag::of_user(&mut *conn, *msg.author.id.as_u64() as i64)?;
 
     fav_tags.sort_unstable_by(|a, b| a.label.partial_cmp(&b.label).unwrap());
 
