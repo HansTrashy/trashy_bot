@@ -49,13 +49,10 @@ fn list(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
 fn shiny(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
     let amount = args.single::<i64>()?;
     let mut data = ctx.data.write();
-    let mut conn = match data.get::<DatabaseConnection>() {
-        Some(v) => v.get().unwrap(),
-        None => {
-            let _ = msg.reply(&ctx, "Could not retrieve the database connection!");
-            return Ok(());
-        }
-    };
+    let mut conn = data
+        .get::<DatabaseConnection>()
+        .map(|v| v.get().expect("pool error"))
+        .ok_or("Could not retrieve the database connection!")?;
 
     let respond = |shiny: Shiny| {
         msg.reply(&ctx, format!("Shiny value: {}", shiny.amount))
@@ -98,13 +95,10 @@ fn shiny(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
 fn setshiny(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
     let amount = args.single::<i64>()?;
     let data = ctx.data.write();
-    let mut conn = match data.get::<DatabaseConnection>() {
-        Some(v) => v.get().unwrap(),
-        None => {
-            let _ = msg.reply(&ctx, "Could not retrieve the database connection!");
-            return Ok(());
-        }
-    };
+    let mut conn = data
+        .get::<DatabaseConnection>()
+        .map(|v| v.get().expect("pool error"))
+        .ok_or("Could not retrieve the database connection!")?;
 
     let mut response = Vec::new();
 
@@ -145,13 +139,10 @@ fn setshiny(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
 #[usage("*user1* *user2*")]
 fn removeshiny(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
     let data = ctx.data.write();
-    let mut conn = match data.get::<DatabaseConnection>() {
-        Some(v) => v.get().unwrap(),
-        None => {
-            let _ = msg.reply(&ctx, "Could not retrieve the database connection!");
-            return Ok(());
-        }
-    };
+    let mut conn = data
+        .get::<DatabaseConnection>()
+        .map(|v| v.get().expect("pool error"))
+        .ok_or("Could not retrieve the database connection!")?;
 
     let mut response = Vec::new();
 

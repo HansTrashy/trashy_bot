@@ -17,13 +17,10 @@ use serenity::{
 #[example = "🧀 group_name role_name"]
 pub fn create(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
     let data = ctx.data.read();
-    let mut conn = match data.get::<DatabaseConnection>() {
-        Some(v) => v.get().unwrap(),
-        None => {
-            let _ = msg.reply(&ctx, "Could not retrieve the database connection!");
-            return Ok(());
-        }
-    };
+    let mut conn = data
+        .get::<DatabaseConnection>()
+        .map(|v| v.get().expect("pool error"))
+        .ok_or("Could not retrieve the database connection!")?;
     let emoji_arg = args.single::<String>()?;
     let role_group_arg = args.single::<String>()?;
     let role_arg = args.rest();
@@ -56,13 +53,10 @@ pub fn create(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult
 #[example = "🧀 role_name"]
 pub fn remove(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
     let data = ctx.data.read();
-    let mut conn = match data.get::<DatabaseConnection>() {
-        Some(v) => v.get().unwrap(),
-        None => {
-            let _ = msg.reply(&ctx, "Could not retrieve the database connection!");
-            return Ok(());
-        }
-    };
+    let mut conn = data
+        .get::<DatabaseConnection>()
+        .map(|v| v.get().expect("pool error"))
+        .ok_or("Could not retrieve the database connection!")?;
 
     let emoji_arg = args.single::<String>().unwrap();
     let role_arg = args.rest();
@@ -88,13 +82,10 @@ pub fn remove(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult
 #[description = "Lists all reaction roles"]
 pub fn list(ctx: &mut Context, msg: &Message, _args: Args) -> CommandResult {
     let data = ctx.data.read();
-    let mut conn = match data.get::<DatabaseConnection>() {
-        Some(v) => v.get().unwrap(),
-        None => {
-            let _ = msg.reply(&ctx, "Could not retrieve the database connection!");
-            return Ok(());
-        }
-    };
+    let mut conn = data
+        .get::<DatabaseConnection>()
+        .map(|v| v.get().expect("pool error"))
+        .ok_or("Could not retrieve the database connection!")?;
 
     let results = ReactionRole::list(&mut *conn)?;
 
@@ -117,13 +108,10 @@ pub fn list(ctx: &mut Context, msg: &Message, _args: Args) -> CommandResult {
 #[description = "Posts the reaction role groups"]
 pub fn postgroups(ctx: &mut Context, msg: &Message, _args: Args) -> CommandResult {
     let data = ctx.data.read();
-    let mut conn = match data.get::<DatabaseConnection>() {
-        Some(v) => v.get().unwrap(),
-        None => {
-            let _ = msg.reply(&ctx, "Could not retrieve the database connection!");
-            return Ok(());
-        }
-    };
+    let mut conn = data
+        .get::<DatabaseConnection>()
+        .map(|v| v.get().expect("pool error"))
+        .ok_or("Could not retrieve the database connection!")?;
 
     let mut results = ReactionRole::list(&mut *conn)?;
     results.sort_by_key(|r| r.role_group.to_owned());

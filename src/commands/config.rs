@@ -30,13 +30,10 @@ pub struct Guild {
 #[allowed_roles("Mods")]
 pub fn show_config(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
     let mut data = ctx.data.write();
-    let mut conn = match data.get::<DatabaseConnection>() {
-        Some(v) => v.get().unwrap(),
-        None => {
-            let _ = msg.reply(&ctx, "Could not retrieve the database connection!");
-            return Ok(());
-        }
-    };
+    let mut conn = data
+        .get::<DatabaseConnection>()
+        .map(|v| v.get().expect("pool error"))
+        .ok_or("Could not retrieve the database connection!")?;
 
     if let Some(server_id) = msg.guild_id {
         let server_config = ServerConfig::get(&mut *conn, *server_id.as_u64() as i64);
@@ -67,13 +64,10 @@ pub fn show_config(ctx: &mut Context, msg: &Message, args: Args) -> CommandResul
 pub fn set_modlog(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
     let modlog_channel = args.parse::<u64>()?;
     let mut data = ctx.data.write();
-    let mut conn = match data.get::<DatabaseConnection>() {
-        Some(v) => v.get().unwrap(),
-        None => {
-            let _ = msg.reply(&ctx, "Could not retrieve the database connection!");
-            return Ok(());
-        }
-    };
+    let mut conn = data
+        .get::<DatabaseConnection>()
+        .map(|v| v.get().expect("pool error"))
+        .ok_or("Could not retrieve the database connection!")?;
 
     if let Some(server_id) = msg.guild_id {
         match ServerConfig::get(&mut *conn, *server_id.as_u64() as i64) {
@@ -126,13 +120,10 @@ pub fn set_modlog(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult
 pub fn set_userlog(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
     let userlog_channel = args.parse::<u64>()?;
     let mut data = ctx.data.write();
-    let mut conn = match data.get::<DatabaseConnection>() {
-        Some(v) => v.get().unwrap(),
-        None => {
-            let _ = msg.reply(&ctx, "Could not retrieve the database connection!");
-            return Ok(());
-        }
-    };
+    let mut conn = data
+        .get::<DatabaseConnection>()
+        .map(|v| v.get().expect("pool error"))
+        .ok_or("Could not retrieve the database connection!")?;
 
     if let Some(server_id) = msg.guild_id {
         match ServerConfig::get(&mut *conn, *server_id.as_u64() as i64) {
@@ -185,13 +176,10 @@ pub fn set_userlog(ctx: &mut Context, msg: &Message, args: Args) -> CommandResul
 pub fn set_muterole(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
     let mute_role = args.parse::<u64>()?;
     let mut data = ctx.data.write();
-    let mut conn = match data.get::<DatabaseConnection>() {
-        Some(v) => v.get().unwrap(),
-        None => {
-            let _ = msg.reply(&ctx, "Could not retrieve the database connection!");
-            return Ok(());
-        }
-    };
+    let mut conn = data
+        .get::<DatabaseConnection>()
+        .map(|v| v.get().expect("pool error"))
+        .ok_or("Could not retrieve the database connection!")?;
 
     if let Some(server_id) = msg.guild_id {
         match ServerConfig::get(&mut *conn, *server_id.as_u64() as i64) {

@@ -12,13 +12,12 @@ use serenity::{
 #[description = "Create an account if you do not already own one"]
 #[num_args(0)]
 pub fn create(ctx: &mut Context, msg: &Message, _args: Args) -> CommandResult {
-    let mut conn = match ctx.data.read().get::<DatabaseConnection>() {
-        Some(v) => v.get().unwrap(),
-        None => {
-            let _ = msg.reply(&ctx, "Could not retrieve the database connection!");
-            return Ok(());
-        }
-    };
+    let mut conn = ctx
+        .data
+        .read()
+        .get::<DatabaseConnection>()
+        .map(|v| v.get().expect("pool error"))
+        .ok_or("Could not retrieve the database connection!")?;
     // check if user already owns a bank
     if let Ok(bank) = Bank::get(&mut *conn, *msg.author.id.as_u64() as i64) {
         let _ = msg.reply(&ctx, &format!("Your bank balance: {}", bank.amount));
@@ -42,13 +41,10 @@ pub fn create(ctx: &mut Context, msg: &Message, _args: Args) -> CommandResult {
 pub fn payday(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
     // check if user has a bank & last payday was over 24h ago
     let data = ctx.data.read();
-    let mut conn = match data.get::<DatabaseConnection>() {
-        Some(v) => v.get().unwrap(),
-        None => {
-            let _ = msg.reply(&ctx, "Could not retrieve the database connection!");
-            return Ok(());
-        }
-    };
+    let mut conn = data
+        .get::<DatabaseConnection>()
+        .map(|v| v.get().expect("pool error"))
+        .ok_or("Could not retrieve the database connection!")?;
 
     if let Ok(bank) = Bank::get(&mut *conn, *msg.author.id.as_u64() as i64) {
         let hours_diff = Utc::now()
@@ -86,15 +82,10 @@ pub fn payday(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
 #[num_args(0)]
 pub fn leaderboard(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
     let data = ctx.data.read();
-    let mut conn = match data.get::<DatabaseConnection>() {
-        Some(v) => v.get().unwrap(),
-        None => {
-            let _ = msg
-                .channel_id
-                .say(&ctx, "Datenbankfehler, bitte informiere einen Moderator!");
-            return Ok(());
-        }
-    };
+    let mut conn = data
+        .get::<DatabaseConnection>()
+        .map(|v| v.get().expect("pool error"))
+        .ok_or("Could not retrieve the database connection!")?;
 
     let results = Bank::top10(&mut *conn)?;
 
@@ -114,15 +105,10 @@ pub fn leaderboard(ctx: &mut Context, msg: &Message, args: Args) -> CommandResul
 #[example = "1000 @user1 @user2"]
 pub fn transfer(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
     let data = ctx.data.read();
-    let mut conn = match data.get::<DatabaseConnection>() {
-        Some(v) => v.get().unwrap(),
-        None => {
-            let _ = msg
-                .channel_id
-                .say(&ctx, "Datenbankfehler, bitte informiere einen Moderator!");
-            return Ok(());
-        }
-    };
+    let mut conn = data
+        .get::<DatabaseConnection>()
+        .map(|v| v.get().expect("pool error"))
+        .ok_or("Could not retrieve the database connection!")?;
     let amount_to_transfer = match args.single::<i64>() {
         Ok(v) if v > 0 => v,
         Ok(_) => {

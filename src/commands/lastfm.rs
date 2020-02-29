@@ -16,13 +16,10 @@ use serenity::{
 pub fn register(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
     let username = args.single::<String>()?;
     let data = ctx.data.write();
-    let mut conn = match data.get::<DatabaseConnection>() {
-        Some(v) => v.get().unwrap(),
-        None => {
-            let _ = msg.reply(&ctx, "Could not retrieve the database connection!");
-            return Ok(());
-        }
-    };
+    let mut conn = data
+        .get::<DatabaseConnection>()
+        .map(|v| v.get().expect("pool error"))
+        .ok_or("Could not retrieve the database connection!")?;
 
     if let Some(server_id) = msg.guild_id {
         if let Ok(user) = Lastfm::get(&mut *conn, *msg.author.id.as_u64() as i64) {
@@ -51,13 +48,10 @@ pub fn register(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResu
 #[bucket = "lastfm"]
 pub fn now(ctx: &mut Context, msg: &Message, _args: Args) -> CommandResult {
     let data = ctx.data.write();
-    let mut conn = match data.get::<DatabaseConnection>() {
-        Some(v) => v.get().unwrap(),
-        None => {
-            let _ = msg.reply(&ctx, "Could not retrieve the database connection!");
-            return Ok(());
-        }
-    };
+    let mut conn = data
+        .get::<DatabaseConnection>()
+        .map(|v| v.get().expect("pool error"))
+        .ok_or("Could not retrieve the database connection!")?;
 
     let lastfm = Lastfm::get(&mut *conn, *msg.author.id.as_u64() as i64)?;
 
@@ -104,13 +98,10 @@ pub fn now(ctx: &mut Context, msg: &Message, _args: Args) -> CommandResult {
 #[bucket = "lastfm"]
 pub fn recent(ctx: &mut Context, msg: &Message, _args: Args) -> CommandResult {
     let data = ctx.data.write();
-    let mut conn = match data.get::<DatabaseConnection>() {
-        Some(v) => v.get().unwrap(),
-        None => {
-            let _ = msg.reply(&ctx, "Could not retrieve the database connection!");
-            return Ok(());
-        }
-    };
+    let mut conn = data
+        .get::<DatabaseConnection>()
+        .map(|v| v.get().expect("pool error"))
+        .ok_or("Could not retrieve the database connection!")?;
 
     let lastfm = Lastfm::get(&mut *conn, *msg.author.id.as_u64() as i64)?;
 
@@ -165,13 +156,10 @@ pub fn artists(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
     };
 
     let data = ctx.data.write();
-    let mut conn = match data.get::<DatabaseConnection>() {
-        Some(v) => v.get().unwrap(),
-        None => {
-            let _ = msg.reply(&ctx, "Could not retrieve the database connection!");
-            return Ok(());
-        }
-    };
+    let mut conn = data
+        .get::<DatabaseConnection>()
+        .map(|v| v.get().expect("pool error"))
+        .ok_or("Could not retrieve the database connection!")?;
 
     let lastfm = Lastfm::get(&mut *conn, *msg.author.id.as_u64() as i64)?;
 
@@ -223,13 +211,10 @@ pub fn albums(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
     };
 
     let data = ctx.data.write();
-    let mut conn = match data.get::<DatabaseConnection>() {
-        Some(v) => v.get().unwrap(),
-        None => {
-            let _ = msg.reply(&ctx, "Could not retrieve the database connection!");
-            return Ok(());
-        }
-    };
+    let mut conn = data
+        .get::<DatabaseConnection>()
+        .map(|v| v.get().expect("pool error"))
+        .ok_or("Could not retrieve the database connection!")?;
 
     let lastfm = Lastfm::get(&mut *conn, *msg.author.id.as_u64() as i64)?;
 
@@ -283,13 +268,10 @@ pub fn tracks(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
     info!("period: {:?}", period);
 
     let data = ctx.data.write();
-    let mut conn = match data.get::<DatabaseConnection>() {
-        Some(v) => v.get().unwrap(),
-        None => {
-            let _ = msg.reply(&ctx, "Could not retrieve the database connection!");
-            return Ok(());
-        }
-    };
+    let mut conn = data
+        .get::<DatabaseConnection>()
+        .map(|v| v.get().expect("pool error"))
+        .ok_or("Could not retrieve the database connection!")?;
 
     let lastfm = Lastfm::get(&mut *conn, *msg.author.id.as_u64() as i64)?;
 

@@ -38,7 +38,7 @@ pub fn quote(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
             Regex::new(r#"https://discordapp.com/channels/(\d+)/(\d+)/(\d+)"#)
                 .expect("could not compile quote link regex");
     }
-    for caps in QUOTE_LINK_REGEX.captures_iter(&args.rest()) {
+    for caps in QUOTE_LINK_REGEX.captures_iter(args.rest()) {
         let quote_server_id = caps[1].parse::<u64>()?;
         let quote_channel_id = caps[2].parse::<u64>()?;
         let quote_msg_id = caps[3].parse::<u64>()?;

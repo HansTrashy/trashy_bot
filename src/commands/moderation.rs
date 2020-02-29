@@ -23,13 +23,10 @@ use serenity::{
 #[allowed_roles("Mods")]
 pub fn mute(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
     let mut data = ctx.data.write();
-    let mut conn = match data.get::<DatabaseConnection>() {
-        Some(v) => v.get().unwrap(),
-        None => {
-            let _ = msg.reply(&ctx, "Could not retrieve the database connection!");
-            return Ok(());
-        }
-    };
+    let mut conn = data
+        .get::<DatabaseConnection>()
+        .map(|v| v.get().expect("pool error"))
+        .ok_or("Could not retrieve the database connection!")?;
 
     let scheduler = data
         .get_mut::<TrashyScheduler>()
@@ -211,13 +208,10 @@ fn create_unmute_message(users: &[Member]) -> String {
 #[allowed_roles("Mods")]
 pub fn unmute(ctx: &mut Context, msg: &Message, _args: Args) -> CommandResult {
     let data = ctx.data.write();
-    let mut conn = match data.get::<DatabaseConnection>() {
-        Some(v) => v.get().unwrap(),
-        None => {
-            let _ = msg.reply(&ctx, "Could not retrieve the database connection!");
-            return Ok(());
-        }
-    };
+    let mut conn = data
+        .get::<DatabaseConnection>()
+        .map(|v| v.get().expect("pool error"))
+        .ok_or("Could not retrieve the database connection!")?;
 
     if let Some(guild_id) = msg.guild_id {
         match ServerConfig::get(&mut *conn, *guild_id.as_u64() as i64) {
@@ -273,13 +267,10 @@ pub fn unmute(ctx: &mut Context, msg: &Message, _args: Args) -> CommandResult {
 #[allowed_roles("Mods")]
 pub fn kick(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
     let data = ctx.data.write();
-    let mut conn = match data.get::<DatabaseConnection>() {
-        Some(v) => v.get().unwrap(),
-        None => {
-            let _ = msg.reply(&ctx, "Could not retrieve the database connection!");
-            return Ok(());
-        }
-    };
+    let mut conn = data
+        .get::<DatabaseConnection>()
+        .map(|v| v.get().expect("pool error"))
+        .ok_or("Could not retrieve the database connection!")?;
     let kick_message = args.rest();
 
     if let Some(guild_id) = msg.guild_id {
@@ -321,13 +312,10 @@ pub fn kick(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
 #[allowed_roles("Mods")]
 pub fn ban(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
     let data = ctx.data.write();
-    let mut conn = match data.get::<DatabaseConnection>() {
-        Some(v) => v.get().unwrap(),
-        None => {
-            let _ = msg.reply(&ctx, "Could not retrieve the database connection!");
-            return Ok(());
-        }
-    };
+    let mut conn = data
+        .get::<DatabaseConnection>()
+        .map(|v| v.get().expect("pool error"))
+        .ok_or("Could not retrieve the database connection!")?;
     let ban_msg = args.rest();
 
     if let Some(guild_id) = msg.guild_id {

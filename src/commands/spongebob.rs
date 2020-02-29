@@ -8,7 +8,8 @@ use serenity::{
 
 #[command]
 #[description = "Let spongebob say something"]
-fn spongebob(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
+#[aliases("sponge")]
+fn spongebob(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
     let spongify_this: String = args
         .rest()
         .chars()

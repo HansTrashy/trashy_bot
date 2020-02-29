@@ -25,24 +25,20 @@ use std::iter::FromIterator;
 pub fn post(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
     let mut rng = rand::thread_rng();
     let mut data = ctx.data.write();
-    let mut conn = match data.get::<DatabaseConnection>() {
-        Some(v) => v.get().expect("could not get conn from pool"),
-        None => {
-            let _ = msg.reply(&ctx, "Could not retrieve the database connection!");
-            return Ok(());
-        }
-    };
+    let mut conn = data
+        .get::<DatabaseConnection>()
+        .map(|v| v.get().expect("pool error"))
+        .ok_or("Could not retrieve the database connection!")?;
     let dispatcher = {
         data.get_mut::<crate::TrashyDispatcher>()
             .expect("Expected Dispatcher.")
             .clone()
     };
-    let opt_out = match data.get::<OptOut>() {
-        Some(v) => v,
-        None => {
-            let _ = msg.reply(&ctx, "OptOut list not available");
-            panic!("no optout");
-        }
+    let opt_out = if let Some(v) = data.get::<OptOut>() {
+        v
+    } else {
+        let _ = msg.reply(&ctx, "OptOut list not available");
+        panic!("no optout");
     };
 
     if opt_out.lock().set.contains(msg.author.id.as_u64()) {
@@ -177,13 +173,10 @@ pub fn post(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
 #[num_args(0)]
 pub fn untagged(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
     let data = ctx.data.read();
-    let mut conn = match data.get::<DatabaseConnection>() {
-        Some(v) => v.get().unwrap(),
-        None => {
-            let _ = msg.reply(&ctx, "Could not retrieve the database connection!");
-            return Ok(());
-        }
-    };
+    let mut conn = data
+        .get::<DatabaseConnection>()
+        .map(|v| v.get().expect("pool error"))
+        .ok_or("Could not retrieve the database connection!")?;
     let opt_out = match data.get::<OptOut>() {
         Some(v) => v,
         None => {
@@ -311,13 +304,10 @@ pub fn add(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
 #[num_args(0)]
 pub fn tags(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
     let data = ctx.data.read();
-    let mut conn = match data.get::<DatabaseConnection>() {
-        Some(v) => v.get().unwrap(),
-        None => {
-            let _ = msg.reply(&ctx, "Could not retrieve the database connection!");
-            return Ok(());
-        }
-    };
+    let mut conn = data
+        .get::<DatabaseConnection>()
+        .map(|v| v.get().expect("pool error"))
+        .ok_or("Could not retrieve the database connection!")?;
 
     let mut fav_tags = Tag::of_user(&mut *conn, *msg.author.id.as_u64() as i64)?;
 

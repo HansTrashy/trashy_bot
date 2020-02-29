@@ -14,15 +14,10 @@ use serenity::{
 pub fn slot(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
     let mut rng = rand::thread_rng();
     let data = ctx.data.read();
-    let mut conn = match data.get::<DatabaseConnection>() {
-        Some(v) => v.get().unwrap(),
-        None => {
-            let _ = msg
-                .channel_id
-                .say(&ctx, "Datenbankfehler, bitte informiere einen Moderator!");
-            return Ok(());
-        }
-    };
+    let mut conn = data
+        .get::<DatabaseConnection>()
+        .map(|v| v.get().expect("pool error"))
+        .ok_or("Could not retrieve the database connection!")?;
     let amount_to_bet = match args.single::<i64>() {
         Ok(v) if v > 0 => v,
         Ok(_) => {
