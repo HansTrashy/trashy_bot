@@ -54,7 +54,11 @@ pub fn post(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
 
     let labels: Vec<String> = args.iter::<String>().filter_map(Result::ok).collect();
 
-    let results = Fav::tagged_with(&mut *conn, *msg.author.id.as_u64() as i64, labels)?;
+    let results = if labels.is_empty() {
+        Fav::tagged_with(&mut *conn, *msg.author.id.as_u64() as i64, labels)?
+    } else {
+        Fav::list(&mut *conn, *msg.author.id.as_u64() as i64)?
+    };
 
     let chosen_fav = results
         .into_iter()
