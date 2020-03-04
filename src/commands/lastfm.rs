@@ -21,22 +21,20 @@ pub fn register(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResu
         .map(|v| v.get().expect("pool error"))
         .ok_or("Could not retrieve the database connection!")?;
 
-    if let Some(server_id) = msg.guild_id {
-        if let Ok(user) = Lastfm::get(&mut *conn, *msg.author.id.as_u64() as i64) {
-            let lastfm = Lastfm::update(&mut *conn, user.id, username)?;
+    if let Ok(user) = Lastfm::get(&mut *conn, *msg.author.id.as_u64() as i64) {
+        let lastfm = Lastfm::update(&mut *conn, user.id, username)?;
 
-            msg.reply(
-                &ctx,
-                format!("Updated your lastfm username to {}", lastfm.username),
-            )?;
-        } else {
-            let lastfm = Lastfm::create(&mut *conn, *msg.author.id.as_u64() as i64, username)?;
+        msg.reply(
+            &ctx,
+            format!("Updated your lastfm username to {}", lastfm.username),
+        )?;
+    } else {
+        let lastfm = Lastfm::create(&mut *conn, *msg.author.id.as_u64() as i64, username)?;
 
-            msg.reply(
-                &ctx,
-                format!("added {} as your lastfm username!", lastfm.username),
-            )?;
-        }
+        msg.reply(
+            &ctx,
+            format!("added {} as your lastfm username!", lastfm.username),
+        )?;
     }
 
     Ok(())
