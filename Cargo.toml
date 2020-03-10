@@ -9,7 +9,7 @@ dotenv = "0.15"
 rand = "0.7"
 chrono = "*"
 log = { version = "0.4", features = ["max_level_trace", "release_max_level_info"] }
-fern = "0.5"
+env_logger = "0.7.1"
 regex = "1"
 lazy_static = "1.4.0"
 itertools = "0.8.0"

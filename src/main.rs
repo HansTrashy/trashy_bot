@@ -40,7 +40,6 @@ mod commands;
 mod dispatch;
 mod handler;
 mod interaction;
-mod logger;
 mod migrations;
 mod models;
 mod reaction_roles;
@@ -142,7 +141,7 @@ fn main() {
     // load .env file
     dotenv().ok();
     // setup logging
-    logger::setup().expect("Could not setup logging");
+    env_logger::init();
     // Configure the client with your Discord bot token in the environment.
     let token = env::var("DISCORD_TOKEN").expect("Expected a discord token in the environment");
     let mut client = Client::new(&token, handler::Handler).expect("Err creating client");
