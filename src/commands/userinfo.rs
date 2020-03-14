@@ -1,7 +1,6 @@
 use chrono::prelude::*;
-use chrono::{DateTime, Utc};
-use log::*;
-use serde::Deserialize;
+use chrono::Utc;
+use futures::future::join_all;
 use serenity::prelude::*;
 use serenity::{
     framework::standard::{macros::command, Args, CommandResult},
@@ -24,7 +23,7 @@ pub struct MemberInfo {
 #[command]
 #[description = "Display information about the user"]
 #[only_in("guilds")]
-pub fn userinfo(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
+pub async fn userinfo(ctx: &mut Context, msg: &Message, _args: Args) -> CommandResult {
     let user = msg.mentions.get(0).ok_or("No user mentioned")?;
 
     let mut user_info = UserInfo {
@@ -36,7 +35,7 @@ pub fn userinfo(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResu
     };
 
     if let Some(guild_id) = msg.guild_id {
-        let member = guild_id.member(&ctx, user.id)?;
+        let member = guild_id.member(&ctx, user.id).await?;
         let special_case =
             if user.id == 200_009_451_292_459_011 && guild_id == 217_015_995_385_118_721 {
                 Some(Utc.ymd(2017, 5, 26).and_hms(8, 56, 0))
@@ -67,17 +66,20 @@ pub fn userinfo(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResu
                 })
                 .unwrap_or_else(|| "Unknown".to_string())
         };
+
+        let roles = join_all(member.roles.iter().map(|r| r.to_role_cached(&ctx.cache)))
+            .await
+            .into_iter()
+            .filter_map(|r| r.map(|r| r.name))
+            .collect();
+
         let member_info = MemberInfo {
             nick: member
                 .nick
                 .unwrap_or_else(|| format!("{}#{}", user.name, user.discriminator)),
             joined_at,
             joined_at_ago,
-            roles: member
-                .roles
-                .iter()
-                .filter_map(|r| r.to_role_cached(&ctx.cache).map(|r| r.name))
-                .collect(),
+            roles,
         };
         user_info.member = Some(member_info);
     }

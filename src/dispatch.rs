@@ -1,10 +1,12 @@
+use futures::future::Future;
+use serenity::client::Context;
 use serenity::model::prelude::*;
 use std::collections::HashMap;
 use std::hash::{Hash, Hasher};
 use std::time::{Duration, Instant};
-use serenity::client::Context;
 
-type ListenerAction = Box<dyn Fn(&Context, &DispatchEvent) + Send + Sync>;
+type ListenerAction =
+    Box<dyn Fn(&Context, &DispatchEvent) -> Box<dyn Future<Output = ()>> + Send + Sync>;
 
 #[derive(Clone, Debug)]
 pub enum DispatchEvent {

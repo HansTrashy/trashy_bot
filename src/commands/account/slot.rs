@@ -1,5 +1,5 @@
 use crate::models::bank::Bank;
-use crate::DatabaseConnection;
+use crate::DatabasePool;
 use rand::prelude::*;
 use serenity::prelude::*;
 use serenity::{
@@ -11,14 +11,14 @@ use serenity::{
 #[description = "Gamble for worthless points"]
 #[num_args(1)]
 #[example = "1000"]
-pub fn slot(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
-    let mut rng = rand::thread_rng();
-    let data = ctx.data.read();
-    let mut conn = data
-        .get::<DatabaseConnection>()
-        .map(|v| v.get().expect("pool error"))
+pub async fn slot(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
+    let data = ctx.data.read().await;
+    let pool = data
+        .get::<DatabasePool>()
         .ok_or("Could not retrieve the database connection!")?;
-    let amount_to_bet = match args.single::<i64>() {
+    let mut conn = pool.get().await?;
+
+    let amount_to_bet = match args.single::<i64>().await {
         Ok(v) if v > 0 => v,
         Ok(_) => {
             // log
@@ -33,12 +33,12 @@ pub fn slot(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
     };
 
     // check if user already owns a bank & has enough balance
-    if let Ok(bank) = Bank::get(&mut *conn, *msg.author.id.as_u64() as i64) {
+    if let Ok(bank) = Bank::get(&mut *conn, *msg.author.id.as_u64() as i64).await {
         if bank.amount >= amount_to_bet {
             // roll
             let full_reels: Vec<Vec<i64>> = (0..3)
                 .map(|_| {
-                    let roll = rng.gen_range(0, 7);
+                    let roll = rand::thread_rng().gen_range(0, 7);
                     let prev;
                     let next;
                     if roll == 6 {
@@ -59,7 +59,7 @@ pub fn slot(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
             let delta = payout - amount_to_bet;
             let updated_amount = bank.amount + delta;
 
-            Bank::update(&mut *conn, bank.user_id, updated_amount, bank.last_payday)?;
+            Bank::update(&mut *conn, bank.user_id, updated_amount, bank.last_payday).await?;
 
             let slot_machine_output = display_reels(&full_reels, payout, updated_amount);
             let _ = msg.channel_id.send_message(&ctx, |m| {

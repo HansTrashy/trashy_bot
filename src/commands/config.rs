@@ -1,5 +1,5 @@
 use crate::models::server_config::ServerConfig;
-use crate::DatabaseConnection;
+use crate::DatabasePool;
 use serde::{Deserialize, Serialize};
 use serenity::model::gateway::Activity;
 use serenity::model::user::OnlineStatus;
@@ -12,8 +12,9 @@ use serenity::{
 #[command]
 #[num_args(0)]
 #[allowed_roles("Mods")]
-pub fn status(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
-    ctx.set_presence(Some(Activity::listening("$help")), OnlineStatus::Online);
+pub async fn status(ctx: &mut Context, _msg: &Message, _args: Args) -> CommandResult {
+    ctx.set_presence(Some(Activity::listening("$help")), OnlineStatus::Online)
+        .await;
     Ok(())
 }
 
@@ -28,15 +29,15 @@ pub struct Guild {
 #[command]
 #[num_args(0)]
 #[allowed_roles("Mods")]
-pub fn show_config(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
-    let mut data = ctx.data.write();
-    let mut conn = data
-        .get::<DatabaseConnection>()
-        .map(|v| v.get().expect("pool error"))
+pub async fn show_config(ctx: &mut Context, msg: &Message, _args: Args) -> CommandResult {
+    let data = ctx.data.write().await;
+    let pool = data
+        .get::<DatabasePool>()
         .ok_or("Could not retrieve the database connection!")?;
+    let mut conn = pool.get().await?;
 
     if let Some(server_id) = msg.guild_id {
-        let server_config = ServerConfig::get(&mut *conn, *server_id.as_u64() as i64);
+        let server_config = ServerConfig::get(&mut *conn, *server_id.as_u64() as i64).await;
 
         if let Ok(server_config) = server_config {
             let _ = msg.channel_id.send_message(&ctx.http, |m| {
@@ -61,16 +62,16 @@ pub fn show_config(ctx: &mut Context, msg: &Message, args: Args) -> CommandResul
 #[command]
 #[num_args(1)]
 #[allowed_roles("Mods")]
-pub fn set_modlog(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
-    let modlog_channel = args.parse::<u64>()?;
-    let mut data = ctx.data.write();
-    let mut conn = data
-        .get::<DatabaseConnection>()
-        .map(|v| v.get().expect("pool error"))
+pub async fn set_modlog(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
+    let modlog_channel = args.parse::<u64>().await?;
+    let data = ctx.data.write().await;
+    let pool = data
+        .get::<DatabasePool>()
         .ok_or("Could not retrieve the database connection!")?;
+    let mut conn = pool.get().await?;
 
     if let Some(server_id) = msg.guild_id {
-        match ServerConfig::get(&mut *conn, *server_id.as_u64() as i64) {
+        match ServerConfig::get(&mut *conn, *server_id.as_u64() as i64).await {
             Ok(mut config) => {
                 let mut old_guild_config: Guild =
                     serde_json::from_value(config.config.take()).unwrap();
@@ -81,16 +82,20 @@ pub fn set_modlog(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult
                     &mut *conn,
                     *server_id.as_u64() as i64,
                     serde_json::to_value(old_guild_config).unwrap(),
-                )?;
+                )
+                .await?;
 
-                let _ = msg.channel_id.send_message(&ctx.http, |m| {
-                    m.embed(|e| {
-                        e.description(format!("{:?}", &updated_config))
-                            .color((0, 120, 220))
+                let _ = msg
+                    .channel_id
+                    .send_message(&ctx.http, |m| {
+                        m.embed(|e| {
+                            e.description(format!("{:?}", &updated_config))
+                                .color((0, 120, 220))
+                        })
                     })
-                });
+                    .await;
             }
-            Err(e) => {
+            Err(_e) => {
                 let mut guild_config = Guild::default();
 
                 guild_config.modlog_channel = Some(modlog_channel);
@@ -99,7 +104,8 @@ pub fn set_modlog(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult
                     &mut *conn,
                     *server_id.as_u64() as i64,
                     serde_json::to_value(guild_config).unwrap(),
-                )?;
+                )
+                .await?;
 
                 let _ = msg.channel_id.send_message(&ctx.http, |m| {
                     m.embed(|e| {
@@ -117,16 +123,16 @@ pub fn set_modlog(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult
 #[command]
 #[num_args(1)]
 #[allowed_roles("Mods")]
-pub fn set_userlog(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
-    let userlog_channel = args.parse::<u64>()?;
-    let mut data = ctx.data.write();
-    let mut conn = data
-        .get::<DatabaseConnection>()
-        .map(|v| v.get().expect("pool error"))
+pub async fn set_userlog(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
+    let userlog_channel = args.parse::<u64>().await?;
+    let data = ctx.data.write().await;
+    let pool = data
+        .get::<DatabasePool>()
         .ok_or("Could not retrieve the database connection!")?;
+    let mut conn = pool.get().await?;
 
     if let Some(server_id) = msg.guild_id {
-        match ServerConfig::get(&mut *conn, *server_id.as_u64() as i64) {
+        match ServerConfig::get(&mut *conn, *server_id.as_u64() as i64).await {
             Ok(mut config) => {
                 let mut old_guild_config: Guild =
                     serde_json::from_value(config.config.take()).unwrap();
@@ -137,16 +143,20 @@ pub fn set_userlog(ctx: &mut Context, msg: &Message, args: Args) -> CommandResul
                     &mut *conn,
                     *server_id.as_u64() as i64,
                     serde_json::to_value(old_guild_config).unwrap(),
-                )?;
+                )
+                .await?;
 
-                let _ = msg.channel_id.send_message(&ctx.http, |m| {
-                    m.embed(|e| {
-                        e.description(format!("{:?}", &inserted_config))
-                            .color((0, 120, 220))
+                let _ = msg
+                    .channel_id
+                    .send_message(&ctx.http, |m| {
+                        m.embed(|e| {
+                            e.description(format!("{:?}", &inserted_config))
+                                .color((0, 120, 220))
+                        })
                     })
-                });
+                    .await;
             }
-            Err(e) => {
+            Err(_e) => {
                 let mut guild_config = Guild::default();
 
                 guild_config.modlog_channel = Some(userlog_channel);
@@ -155,14 +165,18 @@ pub fn set_userlog(ctx: &mut Context, msg: &Message, args: Args) -> CommandResul
                     &mut *conn,
                     *server_id.as_u64() as i64,
                     serde_json::to_value(guild_config).unwrap(),
-                )?;
+                )
+                .await?;
 
-                let _ = msg.channel_id.send_message(&ctx.http, |m| {
-                    m.embed(|e| {
-                        e.description(format!("{:?}", &inserted_config))
-                            .color((0, 120, 220))
+                let _ = msg
+                    .channel_id
+                    .send_message(&ctx.http, |m| {
+                        m.embed(|e| {
+                            e.description(format!("{:?}", &inserted_config))
+                                .color((0, 120, 220))
+                        })
                     })
-                });
+                    .await;
             }
         }
     }
@@ -173,16 +187,16 @@ pub fn set_userlog(ctx: &mut Context, msg: &Message, args: Args) -> CommandResul
 #[command]
 #[num_args(1)]
 #[allowed_roles("Mods")]
-pub fn set_muterole(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
-    let mute_role = args.parse::<u64>()?;
-    let mut data = ctx.data.write();
-    let mut conn = data
-        .get::<DatabaseConnection>()
-        .map(|v| v.get().expect("pool error"))
+pub async fn set_muterole(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
+    let mute_role = args.parse::<u64>().await?;
+    let data = ctx.data.write().await;
+    let pool = data
+        .get::<DatabasePool>()
         .ok_or("Could not retrieve the database connection!")?;
+    let mut conn = pool.get().await?;
 
     if let Some(server_id) = msg.guild_id {
-        match ServerConfig::get(&mut *conn, *server_id.as_u64() as i64) {
+        match ServerConfig::get(&mut *conn, *server_id.as_u64() as i64).await {
             Ok(mut config) => {
                 let mut old_guild_config: Guild =
                     serde_json::from_value(config.config.take()).unwrap();
@@ -193,16 +207,20 @@ pub fn set_muterole(ctx: &mut Context, msg: &Message, args: Args) -> CommandResu
                     &mut *conn,
                     *server_id.as_u64() as i64,
                     serde_json::to_value(old_guild_config).unwrap(),
-                )?;
+                )
+                .await?;
 
-                let _ = msg.channel_id.send_message(&ctx.http, |m| {
-                    m.embed(|e| {
-                        e.description(format!("{:?}", &inserted_config))
-                            .color((0, 120, 220))
+                let _ = msg
+                    .channel_id
+                    .send_message(&ctx.http, |m| {
+                        m.embed(|e| {
+                            e.description(format!("{:?}", &inserted_config))
+                                .color((0, 120, 220))
+                        })
                     })
-                });
+                    .await;
             }
-            Err(e) => {
+            Err(_e) => {
                 let mut guild_config = Guild::default();
 
                 guild_config.mute_role = Some(mute_role);
@@ -211,14 +229,18 @@ pub fn set_muterole(ctx: &mut Context, msg: &Message, args: Args) -> CommandResu
                     &mut *conn,
                     *server_id.as_u64() as i64,
                     serde_json::to_value(guild_config).unwrap(),
-                )?;
+                )
+                .await?;
 
-                let _ = msg.channel_id.send_message(&ctx.http, |m| {
-                    m.embed(|e| {
-                        e.description(format!("{:?}", &inserted_config))
-                            .color((0, 120, 220))
+                let _ = msg
+                    .channel_id
+                    .send_message(&ctx.http, |m| {
+                        m.embed(|e| {
+                            e.description(format!("{:?}", &inserted_config))
+                                .color((0, 120, 220))
+                        })
                     })
-                });
+                    .await;
             }
         }
     }
