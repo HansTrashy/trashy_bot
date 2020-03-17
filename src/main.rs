@@ -6,13 +6,12 @@
 #![deny(future_incompatible)]
 #![deny(rust_2018_idioms)]
 #![warn(missing_docs)]
-#![deny(unused)]
+#![warn(unused)]
 //! Trashy Bot
 
 use deadpool_postgres::Pool;
 use dotenv::dotenv;
 use lazy_static::lazy_static;
-use log::*;
 use serde::{Deserialize, Serialize};
 use serenity::{
     client::bridge::gateway::ShardManager,
@@ -29,8 +28,10 @@ use serenity::{
 use std::collections::HashSet;
 use std::{env, sync::Arc};
 use tokio::sync::Mutex;
+use tracing::{debug, error, info, instrument, trace, warn, Level};
 
 mod commands;
+mod dispatch;
 mod handler;
 mod interaction;
 mod migrations;
@@ -68,6 +69,11 @@ impl TypeMapKey for RulesState {
 struct TrashyScheduler;
 impl TypeMapKey for TrashyScheduler {
     type Value = Arc<scheduler::Scheduler>;
+}
+
+struct TrashyDispatcher;
+impl TypeMapKey for TrashyDispatcher {
+    type Value = Arc<Mutex<dispatch::Dispatcher>>;
 }
 
 struct OptOut;
@@ -181,7 +187,12 @@ async fn main() {
     // load .env file
     dotenv().ok();
     // setup logging
-    env_logger::init();
+    let subscriber = tracing_subscriber::FmtSubscriber::builder()
+        .with_max_level(Level::TRACE)
+        .finish();
+
+    tracing::subscriber::set_global_default(subscriber).expect("setting default subscriber failed");
+
     // Configure the client with your Discord bot token in the environment.
     let token = env::var("DISCORD_TOKEN").expect("Expected a discord token in the environment");
 
@@ -266,6 +277,16 @@ async fn main() {
 
     let opt_out = Arc::new(Mutex::new(OptOutStore::load_or_init()));
 
+    let trashy_dispatcher = Arc::new(Mutex::new(dispatch::Dispatcher::new()));
+
+    let trashy_dispatcher_clone = Arc::clone(&trashy_dispatcher);
+    tokio::spawn(async move {
+        loop {
+            tokio::time::delay_for(std::time::Duration::from_secs(60)).await;
+            trashy_dispatcher_clone.lock().await.check_expiration();
+        }
+    });
+
     {
         let mut data = client.data.write().await;
 
@@ -276,10 +297,11 @@ async fn main() {
         data.insert::<TrashyScheduler>(Arc::clone(&trashy_scheduler));
         data.insert::<OptOut>(Arc::clone(&opt_out));
         data.insert::<DatabasePool>(async_db_pool);
+        data.insert::<TrashyDispatcher>(trashy_dispatcher);
     }
 
     if let Err(why) = client.start().await {
-        println!("Client error: {:?}", why);
+        error!("Client error: {:?}", why);
     }
 }
 

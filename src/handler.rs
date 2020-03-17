@@ -1,5 +1,6 @@
 use crate::commands::config::Guild;
 use crate::commands::userinfo::UserInfo;
+use crate::dispatch::Event as DispatchEvent;
 use crate::interaction::wait::Action;
 use crate::models::mute::Mute;
 use crate::models::server_config::ServerConfig;
@@ -7,7 +8,6 @@ use crate::models::tag::Tag;
 use crate::DatabasePool;
 use crate::Waiter;
 use chrono::Utc;
-use log::*;
 use serenity::{
     async_trait,
     model::{
@@ -16,6 +16,7 @@ use serenity::{
     },
     prelude::*,
 };
+use tracing::{error, info, instrument};
 
 mod fav;
 mod reaction_roles;
@@ -192,6 +193,25 @@ impl EventHandler for Handler {
     }
 
     async fn reaction_add(&self, ctx: Context, reaction: Reaction) {
+        {
+            let ctx_clone = ctx.clone();
+            if let Some(dispatcher) = ctx.data.read().await.get::<crate::TrashyDispatcher>() {
+                dispatcher
+                    .lock()
+                    .await
+                    .dispatch_event(
+                        ctx_clone,
+                        DispatchEvent::ReactMsg(
+                            reaction.message_id,
+                            reaction.emoji.clone(),
+                            reaction.channel_id,
+                            reaction.user_id,
+                        ),
+                    )
+                    .await;
+            }
+        }
+
         //TODO: refactor old dispatch style into new one using the dispatcher
         match reaction.emoji {
             ReactionType::Unicode(ref s) if s.starts_with("📗") => {

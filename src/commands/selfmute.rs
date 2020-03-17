@@ -6,7 +6,6 @@ use crate::util;
 use crate::DatabasePool;
 use crate::TrashyScheduler;
 use chrono::{Duration, Utc};
-use log::*;
 use serenity::prelude::*;
 use serenity::{
     framework::standard::{macros::command, Args, CommandResult},
@@ -14,6 +13,7 @@ use serenity::{
     model::id::RoleId,
     model::prelude::*,
 };
+use tracing::error;
 
 #[command]
 #[num_args(1)]

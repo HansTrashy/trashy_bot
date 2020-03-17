@@ -1,12 +1,12 @@
 use crate::models::lastfm::Lastfm;
 use crate::DatabasePool;
 use crate::LASTFM_API_KEY;
-use log::*;
 use serenity::prelude::*;
 use serenity::{
     framework::standard::{macros::command, Args, CommandResult},
     model::channel::Message,
 };
+use tracing::info;
 
 #[command]
 #[description = "Link your lastfm account to your discord account"]

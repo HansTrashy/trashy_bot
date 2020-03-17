@@ -1,12 +1,12 @@
 use crate::models::bank::Bank;
 use crate::DatabasePool;
 use chrono::prelude::*;
-use log::*;
 use serenity::prelude::*;
 use serenity::{
     framework::standard::{macros::command, Args, CommandResult},
     model::channel::Message,
 };
+use tracing::{debug, error, info};
 
 #[command]
 #[description = "Create an account if you do not already own one"]

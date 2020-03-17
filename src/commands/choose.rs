@@ -1,13 +1,13 @@
 use rand::prelude::*;
 // use rand::seq::SliceRandom;
 use crate::util::sanitize_for_other_bot_commands;
-use log::*;
 use serenity::prelude::*;
 use serenity::utils::{content_safe, ContentSafeOptions};
 use serenity::{
     framework::standard::{macros::command, Args, CommandResult},
     model::channel::Message,
 };
+use tracing::error;
 
 #[command]
 #[description = "Choose between things"]

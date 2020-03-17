@@ -7,7 +7,6 @@ use crate::Waiter;
 use chrono::prelude::*;
 use itertools::Itertools;
 use lazy_static::lazy_static;
-use log::*;
 use rand::prelude::*;
 use regex::Regex;
 use serenity::model::{channel::Attachment, channel::ReactionType, id::ChannelId};
@@ -17,6 +16,7 @@ use serenity::{
     model::channel::Message,
 };
 use std::iter::FromIterator;
+use tracing::debug;
 
 #[command]
 #[description = "Post a fav"]

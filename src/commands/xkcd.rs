@@ -1,10 +1,10 @@
-use log::*;
 use serde::Deserialize;
 use serenity::prelude::*;
 use serenity::{
     framework::standard::{macros::command, Args, CommandResult},
     model::channel::Message,
 };
+use tracing::error;
 
 #[derive(Debug, Deserialize)]
 pub struct Comic {

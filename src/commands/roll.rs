@@ -1,10 +1,10 @@
-use log::*;
 use rand::prelude::*;
 use serenity::prelude::*;
 use serenity::{
     framework::standard::{macros::command, Args, CommandResult},
     model::channel::Message,
 };
+use tracing::error;
 
 #[command]
 #[description = "Roll x dice with y sides"]

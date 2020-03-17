@@ -2,11 +2,11 @@ use crate::models::reaction_role::ReactionRole;
 use crate::reaction_roles::State;
 use crate::DatabasePool;
 use crate::ReactionRolesState;
-use log::info;
 use serenity::{
     model::{channel::Reaction, channel::ReactionType},
     prelude::*,
 };
+use tracing::info;
 
 pub async fn add_role(ctx: Context, add_reaction: Reaction) {
     let data = ctx.data.read().await;

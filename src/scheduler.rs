@@ -2,13 +2,13 @@ use crate::models::mute::Mute;
 use chrono::{DateTime, Duration, Utc};
 use deadpool_postgres::Pool;
 use futures::future::BoxFuture;
-use log::*;
 use serde::{Deserialize, Serialize};
 use serenity::model::id::{ChannelId, GuildId, RoleId, UserId};
 use serenity::utils::MessageBuilder;
 use serenity::CacheAndHttp;
 use std::sync::{Arc, Mutex};
 use tokio::time::delay_for;
+use tracing::{error, info};
 
 #[derive(PartialEq, Eq, Serialize, Deserialize, Clone)]
 pub enum Task {
