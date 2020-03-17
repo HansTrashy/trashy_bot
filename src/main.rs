@@ -243,15 +243,6 @@ async fn main() {
         .await
         .expect("Err creating client");
 
-    // let db_manager = PostgresConnectionManager::new(
-    //     env::var("DATABASE_URL")
-    //         .expect("no database url specified")
-    //         .parse()
-    //         .expect("could not parse DATABASE_URL as PG CONFIG"),
-    //     NoTls,
-    // );
-    // let db_pool = r2d2::Pool::new(db_manager).expect("Failed to create db pool.");
-
     let waiter = Arc::new(Mutex::new(self::interaction::wait::Wait::new()));
     let rr_state = Arc::new(Mutex::new(self::reaction_roles::State::load_set()));
     let rules_state = Arc::new(Mutex::new(self::rules::State::load()));
