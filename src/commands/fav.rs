@@ -1,3 +1,4 @@
+use crate::dispatch::{Event as DispatchEvent, Listener};
 use crate::interaction::wait::{Action, Event};
 use crate::models::fav::Fav;
 use crate::models::tag::Tag;
@@ -101,7 +102,7 @@ pub async fn post(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandRe
         .await
         .unwrap_or_else(|| "-".to_string());
 
-    let _bot_msg = msg
+    let bot_msg = msg
         .channel_id
         .send_message(&ctx.http, |m| {
             m.embed(|e| {
@@ -137,43 +138,48 @@ pub async fn post(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandRe
         })
         .await;
 
-    // let http = ctx.http.clone();
-    // if let Ok(bot_msg) = bot_msg {
-    //     dispatcher.lock().await.add_listener(
-    //         DispatchEvent::ReactMsg(
-    //             bot_msg.id,
-    //             ReactionType::Unicode("ℹ️".to_string()),
-    //             bot_msg.channel_id,
-    //             msg.author.id,
-    //         ),
-    //         Listener::new(
-    //             std::time::Duration::from_secs(60 * 60),
-    //             Box::new(move |_, event| {
-    //                 Box::new(async move {
-    //                     if let DispatchEvent::ReactMsg(
-    //                         _msg_id,
-    //                         _reaction_type,
-    //                         _channel_id,
-    //                         react_user_id,
-    //                     ) = &event
-    //                     {
-    //                         if let Ok(dm_channel) = react_user_id.create_dm_channel(&http).await {
-    //                             let _ = dm_channel.say(
-    //                                 &http,
-    //                                 format!(
-    //                                     "https://discordapp.com/channels/{}/{}/{}",
-    //                                     chosen_fav.server_id,
-    //                                     chosen_fav.channel_id,
-    //                                     chosen_fav.msg_id,
-    //                                 ),
-    //                             );
-    //                         }
-    //                     }
-    //                 })
-    //             }),
-    //         ),
-    //     );
-    // }
+    let http = ctx.http.clone();
+    if let Ok(bot_msg) = bot_msg {
+        if let Some(dispatcher) = data.get::<crate::TrashyDispatcher>() {
+            dispatcher.lock().await.add_listener(
+                DispatchEvent::ReactMsg(
+                    bot_msg.id,
+                    ReactionType::Unicode("ℹ️".to_string()),
+                    bot_msg.channel_id,
+                    msg.author.id,
+                ),
+                Listener::new(
+                    std::time::Duration::from_secs(60 * 60),
+                    Box::new(move |_, event| {
+                        let http = http.clone();
+                        let chosen_fav = chosen_fav.clone();
+                        Box::pin(async move {
+                            if let DispatchEvent::ReactMsg(
+                                _msg_id,
+                                _reaction_type,
+                                _channel_id,
+                                react_user_id,
+                            ) = &event
+                            {
+                                if let Ok(dm_channel) = react_user_id.create_dm_channel(&http).await
+                                {
+                                    let _ = dm_channel.say(
+                                        &http,
+                                        format!(
+                                            "https://discordapp.com/channels/{}/{}/{}",
+                                            &chosen_fav.server_id,
+                                            &chosen_fav.channel_id,
+                                            &chosen_fav.msg_id,
+                                        ),
+                                    );
+                                }
+                            }
+                        })
+                    }),
+                ),
+            );
+        }
+    }
     Ok(())
 }
 

@@ -149,40 +149,8 @@ pub async fn quote(ctx: &mut Context, msg: &Message, args: Args) -> CommandResul
                 ),
             );
         }
-
-    // let http = ctx.http.clone();
-    // dispatcher.lock().await.add_listener(
-    //     DispatchEvent::ReactMsg(
-    //         bot_msg.id,
-    //         ReactionType::Unicode("ℹ️".to_string()),
-    //         bot_msg.channel_id,
-    //         bot_msg.author.id,
-    //     ),
-    //     Listener::new(
-    //         std::time::Duration::from_secs(60 * 60),
-    //         Box::new(move |_, event| {
-    //             if let DispatchEvent::ReactMsg(
-    //                 _msg_id,
-    //                 _reaction_type,
-    //                 _channel_id,
-    //                 react_user_id,
-    //             ) = &event
-    //             {
-    //                 if let Ok(dm_channel) = react_user_id.create_dm_channel(&http).await {
-    //                     let _ = dm_channel.say(
-    //                         &http,
-    //                         format!(
-    //                             "https://discordapp.com/channels/{}/{}/{}",
-    //                             quote_server_id, quote_channel_id, quote_msg_id,
-    //                         ),
-    //                     );
-    //                 }
-    //             }
-    //         }),
-    //     ),
-    // );
     } else {
-        let _ = msg.reply(&ctx, "Sorry, i can not find this message.");
+        let _ = msg.reply(&ctx, "Sorry, i can not find this message.").await;
         trace!("Could not find quote message");
     }
 

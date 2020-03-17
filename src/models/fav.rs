@@ -2,7 +2,7 @@ use tokio_postgres::{row::Row, Client};
 
 pub type DbError = String;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Fav {
     pub id: i64,
     pub server_id: i64,
