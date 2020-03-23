@@ -10,17 +10,17 @@ pub enum State {
 }
 
 impl State {
-    // pub fn set(channel_id: u64, message_ids: Vec<u64>) -> Self {
-    //     // also save those settings
-    //     let data = serde_json::to_string(&(channel_id, &message_ids))
-    //         .expect("Could not serialize rr state");
-    //     std::fs::write("rr_state.storage", data).expect("coult not write rr state to file");
+    pub fn set(channel_id: u64, message_ids: Vec<u64>) -> Self {
+        // also save those settings
+        let data = serde_json::to_string(&(channel_id, &message_ids))
+            .expect("Could not serialize rr state");
+        std::fs::write("rr_state.storage", data).expect("coult not write rr state to file");
 
-    //     Self::Set {
-    //         channel_id,
-    //         message_ids,
-    //     }
-    // }
+        Self::Set {
+            channel_id,
+            message_ids,
+        }
+    }
 
     pub fn load_set() -> Self {
         match std::fs::read_to_string("rr_state.storage") {

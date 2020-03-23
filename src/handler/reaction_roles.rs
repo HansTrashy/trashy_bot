@@ -51,7 +51,10 @@ pub async fn add_role(ctx: Context, add_reaction: Reaction) {
                         .member(&ctx, add_reaction.user_id)
                         .await
                     {
-                        let _ = member.add_role(&ctx, results[0].role_id as u64);
+                        member
+                            .add_role(&ctx, results[0].role_id as u64)
+                            .await
+                            .unwrap();
                     }
                 }
             }
@@ -102,7 +105,10 @@ pub async fn remove_role(ctx: Context, remove_reaction: Reaction) {
                         .member(&ctx, remove_reaction.user_id)
                         .await
                     {
-                        let _ = member.remove_role(&ctx, results[0].role_id as u64);
+                        member
+                            .remove_role(&ctx, results[0].role_id as u64)
+                            .await
+                            .unwrap();
                     }
                 }
             }

@@ -82,12 +82,12 @@ pub mod greenbook {
 //     pub struct Rules;
 // }
 
-// pub mod roles {
-//     use crate::commands::reaction_roles::*;
-//     use serenity::framework::standard::macros::group;
+pub mod roles {
+    use crate::commands::reaction_roles::*;
+    use serenity::framework::standard::macros::group;
 
-//     #[group]
-//     #[prefix("roles")]
-//     #[commands(list, create, remove, postgroups)]
-//     pub struct Roles;
-// }
+    #[group]
+    #[prefix("roles")]
+    #[commands(list, create, remove, postgroups)]
+    pub struct Roles;
+}
