@@ -14,7 +14,7 @@ use tracing::info;
 #[usage = "*lastfmusername*"]
 #[num_args(1)]
 pub async fn register(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
-    let username = args.single::<String>().await?;
+    let username = args.single::<String>()?;
     let data = ctx.data.write().await;
     let pool = data
         .get::<DatabasePool>()

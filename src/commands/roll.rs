@@ -11,8 +11,8 @@ use tracing::error;
 #[num_args(2)]
 #[example = "1 6"]
 async fn roll(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
-    let amount_of_dice = args.single::<u64>().await?;
-    let number_of_eyes = args.single::<u64>().await?;
+    let amount_of_dice = args.single::<u64>()?;
+    let number_of_eyes = args.single::<u64>()?;
 
     if amount_of_dice > 50 {
         return match msg

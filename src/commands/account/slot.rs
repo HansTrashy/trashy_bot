@@ -18,7 +18,7 @@ pub async fn slot(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandRe
         .ok_or("Could not retrieve the database connection!")?;
     let mut conn = pool.get().await?;
 
-    let amount_to_bet = match args.single::<i64>().await {
+    let amount_to_bet = match args.single::<i64>() {
         Ok(v) if v > 0 => v,
         Ok(_) => {
             // log

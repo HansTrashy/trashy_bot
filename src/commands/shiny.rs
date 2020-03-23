@@ -50,7 +50,7 @@ async fn list(ctx: &mut Context, msg: &Message, _args: Args) -> CommandResult {
 #[only_in("guilds")]
 #[usage("*amount*")]
 async fn shiny(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
-    let amount = args.single::<i64>().await?;
+    let amount = args.single::<i64>()?;
     let data = ctx.data.write().await;
     let pool = data
         .get::<DatabasePool>()
@@ -94,7 +94,7 @@ async fn respond(ctx: &Context, msg: &Message, shiny: Shiny) {
 #[allowed_roles("Mods")]
 #[usage("*amount*")]
 async fn setshiny(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
-    let amount = args.single::<i64>().await?;
+    let amount = args.single::<i64>()?;
     let data = ctx.data.write().await;
     let pool = data
         .get::<DatabasePool>()

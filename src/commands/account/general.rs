@@ -124,7 +124,7 @@ pub async fn transfer(ctx: &mut Context, msg: &Message, mut args: Args) -> Comma
         .ok_or("Could not retrieve the database connection!")?;
     let mut conn = pool.get().await?;
 
-    let amount_to_transfer = match args.single::<i64>().await {
+    let amount_to_transfer = match args.single::<i64>() {
         Ok(v) if v > 0 => v,
         Ok(_) => {
             // log

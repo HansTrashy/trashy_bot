@@ -33,7 +33,7 @@ pub async fn mute(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandRe
         .expect("Expected Scheduler.")
         .clone();
 
-    let duration = util::parse_duration(&args.single::<String>().await?);
+    let duration = util::parse_duration(&args.single::<String>()?);
     let mute_message = args.rest();
 
     if let Some(duration) = duration {

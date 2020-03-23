@@ -34,7 +34,7 @@ pub async fn selfmute(ctx: &mut Context, msg: &Message, mut args: Args) -> Comma
         .expect("Expected Scheduler.")
         .clone();
 
-    let duration = util::parse_duration(&args.single::<String>().await?).unwrap();
+    let duration = util::parse_duration(&args.single::<String>()?).unwrap();
 
     if duration > Duration::hours(24) {
         let _ = msg.reply(&ctx, "You can not mute yourself for more than 24 hours!");

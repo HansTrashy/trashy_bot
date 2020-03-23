@@ -14,7 +14,7 @@ use serenity::{
 #[usage("*duration* *message*")]
 #[min_args(1)]
 pub async fn remindme(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
-    let duration = util::parse_duration(&args.single::<String>().await?);
+    let duration = util::parse_duration(&args.single::<String>()?);
 
     match duration {
         None => {

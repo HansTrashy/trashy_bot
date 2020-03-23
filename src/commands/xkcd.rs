@@ -26,7 +26,7 @@ pub struct Comic {
 #[example = "547"]
 #[num_args(1)]
 pub async fn xkcd(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
-    let xkcd_id = args.single::<u64>().await?;
+    let xkcd_id = args.single::<u64>()?;
 
     let comic: Comic = reqwest::get(&format!("https://xkcd.com/{}/info.0.json", xkcd_id))
         .await?
