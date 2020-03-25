@@ -105,12 +105,11 @@ pub async fn leaderboard(ctx: &mut Context, msg: &Message, _args: Args) -> Comma
         rendered_leaderboard.push_str(&format!("\n{} | {} | {}", i + 1, r.amount, r.user_name));
     }
 
-    let _ = msg
-        .channel_id
+    msg.channel_id
         .send_message(&ctx, |m| {
             m.embed(|e| e.description(&rendered_leaderboard).color((0, 120, 220)))
         })
-        .await;
+        .await?;
     Ok(())
 }
 
@@ -163,22 +162,20 @@ pub async fn transfer(ctx: &mut Context, msg: &Message, mut args: Args) -> Comma
 
             let mentioned_user_names: Vec<String> =
                 msg.mentions.iter().map(|u| u.name.to_owned()).collect();
-            let _ = msg
-                .reply(
-                    &ctx,
-                    &format!(
-                        "Transferred: {}, to: {:?}",
-                        amount_to_transfer, mentioned_user_names
-                    ),
-                )
-                .await;
+            msg.reply(
+                &ctx,
+                &format!(
+                    "Transferred: {}, to: {:?}",
+                    amount_to_transfer, mentioned_user_names
+                ),
+            )
+            .await?;
         } else {
-            let _ = msg
-                .reply(&ctx, "Du hast nicht genügend credits für den Transfer!")
-                .await;
+            msg.reply(&ctx, "Du hast nicht genügend credits für den Transfer!")
+                .await?;
         }
     } else {
-        let _ = msg.reply(&ctx, "Du besitzt noch keine Bank!").await;
+        msg.reply(&ctx, "Du besitzt noch keine Bank!").await?;
     }
     Ok(())
 }

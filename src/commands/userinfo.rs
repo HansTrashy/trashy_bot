@@ -104,21 +104,23 @@ pub async fn userinfo(ctx: &mut Context, msg: &Message, _args: Args) -> CommandR
             .map_or(default.clone(), |m| m.roles.join(", ")),
     );
 
-    let _ = msg.channel_id.send_message(ctx, |m| {
-        m.embed(|e| {
-            e.author(|a| {
-                a.name(&user.name)
-                    .icon_url(&user.static_avatar_url().unwrap_or_default())
-            })
-            .color((0, 120, 220))
-            .description(&information_body)
-            .footer(|f| {
-                f.text(&format!(
-                    "{}#{} | id: {}",
-                    user.name, user.discriminator, &user.id,
-                ))
+    msg.channel_id
+        .send_message(ctx, |m| {
+            m.embed(|e| {
+                e.author(|a| {
+                    a.name(&user.name)
+                        .icon_url(&user.static_avatar_url().unwrap_or_default())
+                })
+                .color((0, 120, 220))
+                .description(&information_body)
+                .footer(|f| {
+                    f.text(&format!(
+                        "{}#{} | id: {}",
+                        user.name, user.discriminator, &user.id,
+                    ))
+                })
             })
         })
-    });
+        .await?;
     Ok(())
 }

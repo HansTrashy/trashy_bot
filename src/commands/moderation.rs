@@ -85,13 +85,12 @@ pub async fn mute(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandRe
                             }
                         }
 
-                        let _ = msg
-                            .react(&ctx, ReactionType::Unicode("✅".to_string()))
+                        msg.react(&ctx, ReactionType::Unicode("✅".to_string()))
                             .await;
                     }
                 }
                 Err(_e) => {
-                    let _ = msg.reply(&ctx, "server config missing").await;
+                    msg.reply(&ctx, "server config missing").await;
                 }
             }
         }
@@ -264,11 +263,12 @@ pub async fn unmute(ctx: &mut Context, msg: &Message, _args: Args) -> CommandRes
                         }
                     }
 
-                    let _ = msg.react(&ctx, ReactionType::Unicode("✅".to_string()));
+                    msg.react(&ctx, ReactionType::Unicode("✅".to_string()))
+                        .await?;
                 }
             }
             Err(_e) => {
-                let _ = msg.reply(&ctx, "server config missing");
+                msg.reply(&ctx, "server config missing").await?;
             }
         }
     }

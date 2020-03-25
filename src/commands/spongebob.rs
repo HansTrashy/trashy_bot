@@ -21,7 +21,7 @@ async fn spongebob(ctx: &mut Context, msg: &Message, args: Args) -> CommandResul
         })
         .collect();
 
-    let _ = msg.channel_id.send_message(&ctx.http, |m| {
+    msg.channel_id.send_message(&ctx.http, |m| {
         m.embed(|e| {
             e.author(|a| {
                 a.name("Spongebob")
@@ -31,9 +31,9 @@ async fn spongebob(ctx: &mut Context, msg: &Message, args: Args) -> CommandResul
             .footer(|f| f.text(&format!("Spongified by: {}", &msg.author.name)))
             .color((0, 120, 220))
         })
-    });
+    }).await?;
 
-    let _ = msg.delete(ctx);
+    msg.delete(ctx).await?;
 
     Ok(())
 }

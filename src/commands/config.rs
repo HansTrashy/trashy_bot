@@ -168,15 +168,14 @@ pub async fn set_userlog(ctx: &mut Context, msg: &Message, args: Args) -> Comman
                 )
                 .await?;
 
-                let _ = msg
-                    .channel_id
+                msg.channel_id
                     .send_message(&ctx.http, |m| {
                         m.embed(|e| {
                             e.description(format!("{:?}", &inserted_config))
                                 .color((0, 120, 220))
                         })
                     })
-                    .await;
+                    .await?;
             }
         }
     }

@@ -35,7 +35,8 @@ pub async fn remindme(ctx: &mut Context, msg: &Message, mut args: Args) -> Comma
                     .clone()
             };
 
-            let _ = msg.react(&ctx, ReactionType::Unicode("✅".to_string()));
+            msg.react(&ctx, ReactionType::Unicode("✅".to_string()))
+                .await?;
             let msg = msg.clone();
 
             let task = Task::reply(*msg.author.id.as_u64(), *msg.channel_id.as_u64(), message);

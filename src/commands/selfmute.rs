@@ -37,7 +37,8 @@ pub async fn selfmute(ctx: &mut Context, msg: &Message, mut args: Args) -> Comma
     let duration = util::parse_duration(&args.single::<String>()?).unwrap();
 
     if duration > Duration::hours(24) {
-        let _ = msg.reply(&ctx, "You can not mute yourself for more than 24 hours!");
+        msg.reply(&ctx, "You can not mute yourself for more than 24 hours!")
+            .await?;
         return Ok(());
     }
 
@@ -68,11 +69,12 @@ pub async fn selfmute(ctx: &mut Context, msg: &Message, mut args: Args) -> Comma
                         Task::remove_mute(*guild_id.as_u64(), *msg.author.id.as_u64(), *mute_role);
                     scheduler.add_task(duration, task);
 
-                    let _ = msg.react(&ctx, ReactionType::Unicode("✅".to_string()));
+                    msg.react(&ctx, ReactionType::Unicode("✅".to_string()))
+                        .await?;
                 }
             }
             Err(_e) => {
-                let _ = msg.reply(&ctx, "server config missing");
+                msg.reply(&ctx, "server config missing").await?;
             }
         }
     }

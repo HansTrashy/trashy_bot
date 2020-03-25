@@ -150,10 +150,10 @@ pub async fn quote(ctx: &mut Context, msg: &Message, args: Args) -> CommandResul
             );
         }
     } else {
-        let _ = msg.reply(&ctx, "Sorry, i can not find this message.").await;
+        msg.reply(&ctx, "Sorry, i can not find this message.").await;
         trace!("Could not find quote message");
     }
 
-    let _ = msg.delete(&ctx);
+    msg.delete(&ctx).await?;
     Ok(())
 }

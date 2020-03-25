@@ -72,7 +72,7 @@ pub async fn en(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
                 .await
                 .ok();
         });
-    let _ = msg.react(&ctx, ReactionType::Unicode("📬".to_string()));
+    msg.react(&ctx, ReactionType::Unicode("📬".to_string())).await?;
     Ok(())
 }
 
@@ -89,7 +89,7 @@ pub async fn setde(ctx: &mut Context, msg: &Message, args: Args) -> CommandResul
         }
     };
     rules.lock().await.set_de(args.rest());
-    let _ = msg.react(&ctx, ReactionType::Unicode("✅".to_string()));
+    msg.react(&ctx, ReactionType::Unicode("✅".to_string())).await?;
     Ok(())
 }
 

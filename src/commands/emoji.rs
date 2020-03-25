@@ -31,9 +31,11 @@ async fn emoji(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
         }
     }
 
-    let _ = msg.channel_id.send_message(&ctx, |m| {
-        m.content("Could not find the emoji you are looking for!")
-    });
+    msg.channel_id
+        .send_message(&ctx, |m| {
+            m.content("Could not find the emoji you are looking for!")
+        })
+        .await?;
 
     Ok(())
 }
