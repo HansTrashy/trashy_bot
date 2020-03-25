@@ -1,7 +1,6 @@
 #![deny(clippy::all)]
 #![warn(clippy::nursery)]
 #![warn(clippy::pedantic)]
-// #![allow(clippy::non_ascii_literal)]
 #![deny(nonstandard_style)]
 #![deny(future_incompatible)]
 #![deny(rust_2018_idioms)]
@@ -184,21 +183,16 @@ async fn dispatch_error(ctx: &mut Context, msg: &Message, error: DispatchError) 
 
 #[tokio::main]
 async fn main() {
-    // load .env file
     dotenv().ok();
-    // setup logging
+
     let subscriber = tracing_subscriber::FmtSubscriber::builder()
         .with_max_level(Level::TRACE)
         .finish();
-
     tracing::subscriber::set_global_default(subscriber).expect("setting default subscriber failed");
 
-    // Configure the client with your Discord bot token in the environment.
     let token = env::var("DISCORD_TOKEN").expect("Expected a discord token in the environment");
-
     let http = Http::new_with_token(&token);
 
-    // We will fetch your bot's owners and id
     let (owners, bot_id) = match http.get_current_application_info().await {
         Ok(info) => {
             let mut owners = HashSet::new();

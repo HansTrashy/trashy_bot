@@ -100,7 +100,7 @@ pub async fn list(ctx: &mut Context, msg: &Message, _args: Args) -> CommandResul
         .send_message(&ctx, |m| {
             m.embed(|e| e.description(&output).color((0, 120, 220)))
         })
-        .await;
+        .await?;
     Ok(())
 }
 
