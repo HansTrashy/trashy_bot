@@ -20,17 +20,17 @@ impl State {
         }
     }
 
-    pub fn set_en(&mut self, en: &str) {
-        let data = serde_json::to_string(&self).expect("Could not serialize rules state");
-        std::fs::write("rules_state.storage", data).expect("coult not write rules state to file");
+    // pub fn set_en(&mut self, en: &str) {
+    //     let data = serde_json::to_string(&self).expect("Could not serialize rules state");
+    //     std::fs::write("rules_state.storage", data).expect("coult not write rules state to file");
 
-        self.en = en.to_string();
-    }
+    //     self.en = en.to_string();
+    // }
 
-    pub fn set_de(&mut self, de: &str) {
-        let data = serde_json::to_string(&self).expect("Could not serialize rules state");
-        std::fs::write("rules_state.storage", data).expect("coult not write rules state to file");
+    // pub fn set_de(&mut self, de: &str) {
+    //     let data = serde_json::to_string(&self).expect("Could not serialize rules state");
+    //     std::fs::write("rules_state.storage", data).expect("coult not write rules state to file");
 
-        self.de = de.to_string();
-    }
+    //     self.de = de.to_string();
+    // }
 }

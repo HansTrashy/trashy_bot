@@ -1,51 +1,53 @@
+use futures::future::BoxFuture;
+use serenity::client::Context;
 use serenity::model::prelude::*;
 use std::collections::HashMap;
 use std::hash::{Hash, Hasher};
 use std::time::{Duration, Instant};
-use serenity::client::Context;
+use tracing::debug;
 
-type ListenerAction = Box<dyn Fn(&Context, &DispatchEvent) + Send + Sync>;
+type Action = Box<dyn Fn(Context, Event) -> BoxFuture<'static, ()> + Sync + Send>;
 
 #[derive(Clone, Debug)]
-pub enum DispatchEvent {
-    React(MessageId, ReactionType, ChannelId, UserId),
+pub enum Event {
+    React(MessageId, ReactionType, ChannelId, UserId), //TODO: check usefulness
     ReactMsg(MessageId, ReactionType, ChannelId, UserId),
-    ReactMsgOwner(MessageId, ReactionType, ChannelId, UserId),
+    ReactMsgOwner(MessageId, ReactionType, ChannelId, UserId), //TODO: check usefulness
 }
 
-impl PartialEq for DispatchEvent {
-    fn eq(&self, other: &DispatchEvent) -> bool {
+impl PartialEq for Event {
+    fn eq(&self, other: &Event) -> bool {
         match (self, other) {
             (
-                DispatchEvent::React(_s_mid, s_rt, _s_cid, _s_uid),
-                DispatchEvent::React(_o_mid, o_rt, _o_cid, _o_uid),
+                Event::React(_s_mid, s_rt, _s_cid, _s_uid),
+                Event::React(_o_mid, o_rt, _o_cid, _o_uid),
             ) => s_rt == o_rt,
             (
-                DispatchEvent::ReactMsg(s_mid, s_rt, _s_cid, _s_uid),
-                DispatchEvent::ReactMsg(o_mid, o_rt, _o_cid, _o_uid),
+                Event::ReactMsg(s_mid, s_rt, _s_cid, _s_uid),
+                Event::ReactMsg(o_mid, o_rt, _o_cid, _o_uid),
             ) => s_mid == o_mid && s_rt == o_rt,
             (
-                DispatchEvent::ReactMsgOwner(s_mid, s_rt, _s_cid, s_uid),
-                DispatchEvent::ReactMsgOwner(o_mid, o_rt, _o_cid, o_uid),
+                Event::ReactMsgOwner(s_mid, s_rt, _s_cid, s_uid),
+                Event::ReactMsgOwner(o_mid, o_rt, _o_cid, o_uid),
             ) => s_mid == o_mid && s_rt == o_rt && s_uid == o_uid,
             _ => false,
         }
     }
 }
 
-impl Eq for DispatchEvent {}
+impl Eq for Event {}
 
-impl Hash for DispatchEvent {
+impl Hash for Event {
     fn hash<H: Hasher>(&self, state: &mut H) {
         match self {
-            DispatchEvent::React(_msg_id, reaction_type, _channeld_id, _user_id) => {
+            Event::React(_msg_id, reaction_type, _channeld_id, _user_id) => {
                 reaction_type.hash(state);
             }
-            DispatchEvent::ReactMsg(msg_id, reaction_type, _channeld_id, _user_id) => {
+            Event::ReactMsg(msg_id, reaction_type, _channeld_id, _user_id) => {
                 msg_id.hash(state);
                 reaction_type.hash(state);
             }
-            DispatchEvent::ReactMsgOwner(msg_id, reaction_type, _channeld_id, user_id) => {
+            Event::ReactMsgOwner(msg_id, reaction_type, _channeld_id, user_id) => {
                 msg_id.hash(state);
                 reaction_type.hash(state);
                 user_id.hash(state);
@@ -55,12 +57,12 @@ impl Hash for DispatchEvent {
 }
 
 pub struct Listener {
-    action: ListenerAction,
+    action: Action,
     expiration: Instant,
 }
 
 impl Listener {
-    pub fn new(duration: Duration, action: ListenerAction) -> Self {
+    pub fn new(duration: Duration, action: Action) -> Self {
         Self {
             action,
             expiration: Instant::now() + duration,
@@ -69,7 +71,7 @@ impl Listener {
 }
 
 pub struct Dispatcher {
-    listener: HashMap<DispatchEvent, Vec<Listener>>,
+    listener: HashMap<Event, Vec<Listener>>,
 }
 
 impl Dispatcher {
@@ -79,49 +81,25 @@ impl Dispatcher {
         }
     }
 
-    pub fn add_listener(&mut self, id: DispatchEvent, listener: Listener) {
+    pub fn add_listener(&mut self, id: Event, listener: Listener) {
         let entry = self.listener.entry(id).or_default();
         entry.push(listener);
     }
 
-    pub fn dispatch_event(&self, ctx: &Context, id: &DispatchEvent) {
-        if let Some(listener) = self.listener.get(id) {
+    pub async fn dispatch_event(&self, ctx: Context, id: Event) {
+        debug!(event = ?id, "Dispatching event");
+        if let Some(listener) = self.listener.get(&id) {
+            let mut futures = Vec::new();
             for l in listener {
-                (l.action)(ctx, id)
+                futures.push((l.action)(ctx.clone(), id.clone()));
             }
+            futures::future::join_all(futures).await;
         }
     }
 
     pub fn check_expiration(&mut self) {
-        for (_, listener) in self.listener.iter_mut() {
+        for listener in self.listener.values_mut() {
             listener.retain(|l| Instant::now() < l.expiration);
         }
     }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    // #[test]
-    // fn test_listener() {
-    //     let mut dispatcher = Dispatcher::new();
-
-    //     dispatcher.add_listener(
-    //         DispatchEvent::React(
-    //             MessageId::default(),
-    //             ReactionType::from("📗"),
-    //             ChannelId::default(),
-    //             UserId::default(),
-    //         ),
-    //         Listener::new(Duration::from_secs(100), Box::new(|_| println!("Test"))),
-    //     );
-
-    //     dispatcher.dispatch_event(Context::default(), &DispatchEvent::React(
-    //         MessageId::default(),
-    //         ReactionType::from("📗"),
-    //         ChannelId::default(),
-    //         UserId::default(),
-    //     ));
-    // }
 }

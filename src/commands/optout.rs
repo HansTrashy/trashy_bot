@@ -1,5 +1,4 @@
 use crate::OptOut;
-use log::*;
 use serenity::prelude::*;
 use serenity::{
     framework::standard::{macros::command, Args, CommandResult},
@@ -8,8 +7,8 @@ use serenity::{
 
 #[command]
 #[description = "Opt out of the fav/quote features"]
-pub fn optout(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
-    let data = ctx.data.read();
+pub async fn optout(ctx: &mut Context, msg: &Message, _args: Args) -> CommandResult {
+    let data = ctx.data.read().await;
     let opt_out = match data.get::<OptOut>() {
         Some(v) => v,
         None => {
@@ -18,7 +17,7 @@ pub fn optout(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult
         }
     };
 
-    let mut lock = opt_out.lock();
+    let mut lock = opt_out.lock().await;
     let id = *msg.author.id.as_u64();
 
     if !lock.set.insert(id) {

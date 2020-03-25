@@ -1,10 +1,10 @@
 use crate::models::shiny::Shiny;
-use crate::DatabaseConnection;
-use serenity::utils::{content_safe, ContentSafeOptions, MessageBuilder};
+use crate::DatabasePool;
 use serenity::{
     framework::standard::{macros::command, Args, CommandResult},
     model::prelude::*,
     prelude::*,
+    utils::MessageBuilder,
 };
 
 //TODO: this need some rework too, shinies are updated by their user_ids across servers, so every server creates probably a new entry and then updates all of them
@@ -13,10 +13,10 @@ use serenity::{
 #[description = "Lists Shiny counts"]
 #[example("")]
 #[only_in("guilds")]
-fn list(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
-    let mut data = ctx.data.write();
-    let mut conn = match data.get::<DatabaseConnection>() {
-        Some(v) => v.get().unwrap(),
+async fn list(ctx: &mut Context, msg: &Message, _args: Args) -> CommandResult {
+    let data = ctx.data.write().await;
+    let mut conn = match data.get::<DatabasePool>() {
+        Some(v) => v.get().await.unwrap(),
         None => {
             let _ = msg.reply(&ctx, "Could not retrieve the database connection!");
             return Ok(());
@@ -24,7 +24,7 @@ fn list(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
     };
 
     if let Some(server_id) = msg.guild_id {
-        let shinys = Shiny::list(&mut *conn, *server_id.as_u64() as i64)?;
+        let shinys = Shiny::list(&mut *conn, *server_id.as_u64() as i64).await?;
 
         let mut content = MessageBuilder::new();
         content.push_line("Shinys Tracked");
@@ -33,9 +33,12 @@ fn list(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
             content.push_line(format!("{}: {}", s.username, s.amount));
         }
 
-        let _ = msg.channel_id.send_message(&ctx, |m| {
-            m.embed(|e| e.description(content.build()).color((0, 120, 220)))
-        });
+        let _ = msg
+            .channel_id
+            .send_message(&ctx, |m| {
+                m.embed(|e| e.description(content.build()).color((0, 120, 220)))
+            })
+            .await;
     }
 
     Ok(())
@@ -46,44 +49,42 @@ fn list(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
 #[example("1000")]
 #[only_in("guilds")]
 #[usage("*amount*")]
-fn shiny(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
+async fn shiny(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
     let amount = args.single::<i64>()?;
-    let mut data = ctx.data.write();
-    let mut conn = data
-        .get::<DatabaseConnection>()
-        .map(|v| v.get().expect("pool error"))
+    let data = ctx.data.write().await;
+    let pool = data
+        .get::<DatabasePool>()
         .ok_or("Could not retrieve the database connection!")?;
+    let mut conn = pool.get().await?;
 
-    let respond = |shiny: Shiny| {
-        msg.reply(&ctx, format!("Shiny value: {}", shiny.amount))
-            .expect("Could not answer");
-    };
-
-    // check if user has an entry already
-    if let Ok(user_shiny) = Shiny::get(&mut *conn, *msg.author.id.as_u64() as i64) {
+    if let Ok(user_shiny) = Shiny::get(&mut *conn, *msg.author.id.as_u64() as i64).await {
         let updated_shiny = Shiny::update(
             &mut *conn,
             *msg.author.id.as_u64() as i64,
             user_shiny.amount + amount,
-        )?;
+        )
+        .await?;
 
-        respond(updated_shiny);
-    } else {
-        // insert new entry
-
-        if let Some(server_id) = msg.guild_id {
-            let new_shiny = Shiny::create(
-                &mut *conn,
-                *server_id.as_u64() as i64,
-                *msg.author.id.as_u64() as i64,
-                msg.author.name.to_string(),
-                amount,
-            )?;
-            respond(new_shiny);
-        }
+        respond(&ctx, msg, updated_shiny).await;
+    } else if let Some(server_id) = msg.guild_id {
+        let new_shiny = Shiny::create(
+            &mut *conn,
+            *server_id.as_u64() as i64,
+            *msg.author.id.as_u64() as i64,
+            msg.author.name.to_string(),
+            amount,
+        )
+        .await?;
+        respond(&ctx, msg, new_shiny).await;
     }
 
     Ok(())
+}
+
+async fn respond(ctx: &Context, msg: &Message, shiny: Shiny) {
+    msg.reply(ctx, format!("Shiny value: {}", shiny.amount))
+        .await
+        .expect("Could not answer");
 }
 
 #[command]
@@ -92,20 +93,20 @@ fn shiny(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
 #[only_in("guilds")]
 #[allowed_roles("Mods")]
 #[usage("*amount*")]
-fn setshiny(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
+async fn setshiny(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
     let amount = args.single::<i64>()?;
-    let data = ctx.data.write();
-    let mut conn = data
-        .get::<DatabaseConnection>()
-        .map(|v| v.get().expect("pool error"))
+    let data = ctx.data.write().await;
+    let pool = data
+        .get::<DatabasePool>()
         .ok_or("Could not retrieve the database connection!")?;
+    let mut conn = pool.get().await?;
 
     let mut response = Vec::new();
 
     for user in &msg.mentions {
         // check if user has an entry already
-        if let Ok(_user_shiny) = Shiny::get(&mut *conn, *user.id.as_u64() as i64) {
-            let updated_shiny = Shiny::update(&mut *conn, *user.id.as_u64() as i64, amount)?;
+        if let Ok(_user_shiny) = Shiny::get(&mut *conn, *user.id.as_u64() as i64).await {
+            let updated_shiny = Shiny::update(&mut *conn, *user.id.as_u64() as i64, amount).await?;
 
             response.push(format!("{}: {}", user.name, updated_shiny.amount));
         } else {
@@ -118,7 +119,8 @@ fn setshiny(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
                     *user.id.as_u64() as i64,
                     user.name.to_string(),
                     amount,
-                )?;
+                )
+                .await?;
 
                 response.push(format!("{}: {}", user.name, new_shiny.amount));
             }
@@ -126,6 +128,7 @@ fn setshiny(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
     }
 
     msg.reply(&ctx, response.join("\n"))
+        .await
         .expect("Could not answer");
 
     Ok(())
@@ -137,23 +140,24 @@ fn setshiny(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
 #[only_in("guilds")]
 #[allowed_roles("Mods")]
 #[usage("*user1* *user2*")]
-fn removeshiny(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
-    let data = ctx.data.write();
-    let mut conn = data
-        .get::<DatabaseConnection>()
-        .map(|v| v.get().expect("pool error"))
+async fn removeshiny(ctx: &mut Context, msg: &Message, _args: Args) -> CommandResult {
+    let data = ctx.data.write().await;
+    let pool = data
+        .get::<DatabasePool>()
         .ok_or("Could not retrieve the database connection!")?;
+    let mut conn = pool.get().await?;
 
     let mut response = Vec::new();
 
     for user in &msg.mentions {
         // check if user has an entry already
-        let updated_shiny = Shiny::delete(&mut *conn, *user.id.as_u64() as i64)?;
+        let _updated_shiny = Shiny::delete(&mut *conn, *user.id.as_u64() as i64).await?;
 
         response.push(format!("Removed shinys for {}", user.name));
     }
 
     msg.reply(&ctx, response.join("\n"))
+        .await
         .expect("Could not answer");
 
     Ok(())

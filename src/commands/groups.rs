@@ -3,7 +3,7 @@ pub mod general {
         about::*, choose::*, emoji::*, quote::*, remindme::*, roll::*, selfmute::*, spongebob::*,
         userinfo::*, xkcd::*,
     };
-    use serenity::framework::standard::macros::{check, command, group, help};
+    use serenity::framework::standard::macros::group;
 
     #[group]
     #[commands(
@@ -14,7 +14,7 @@ pub mod general {
 
 pub mod lastfm {
     use crate::commands::lastfm::*;
-    use serenity::framework::standard::macros::{check, command, group, help};
+    use serenity::framework::standard::macros::group;
 
     #[group]
     #[prefix("lastfm")]
@@ -24,7 +24,7 @@ pub mod lastfm {
 
 pub mod misc {
     use crate::commands::{copypasta::*, emoji::*, optout::*, shiny::*};
-    use serenity::framework::standard::macros::{check, command, group, help};
+    use serenity::framework::standard::macros::group;
 
     #[group]
     #[prefix("misc")]
@@ -34,7 +34,7 @@ pub mod misc {
 
 pub mod config {
     use crate::commands::config::*;
-    use serenity::framework::standard::macros::{check, command, group, help};
+    use serenity::framework::standard::macros::group;
 
     #[group]
     #[prefix("cfg")]
@@ -44,7 +44,7 @@ pub mod config {
 
 pub mod moderation {
     use crate::commands::moderation::*;
-    use serenity::framework::standard::macros::{check, command, group, help};
+    use serenity::framework::standard::macros::group;
     #[group]
     #[prefix("mod")]
     #[commands(mute, unmute, kick, ban)]
@@ -53,7 +53,7 @@ pub mod moderation {
 
 pub mod account {
     use crate::commands::account::{general::*, slot::*};
-    use serenity::framework::standard::macros::{check, command, group, help};
+    use serenity::framework::standard::macros::group;
 
     #[group]
     #[prefix("acc")]
@@ -63,7 +63,7 @@ pub mod account {
 
 pub mod greenbook {
     use crate::commands::fav::*;
-    use serenity::framework::standard::macros::{check, command, group, help};
+    use serenity::framework::standard::macros::group;
 
     #[group]
     #[prefix("fav")]
@@ -72,19 +72,19 @@ pub mod greenbook {
     pub struct Greenbook;
 }
 
-pub mod rules {
-    use crate::commands::rules::*;
-    use serenity::framework::standard::macros::{check, command, group, help};
+// pub mod rules {
+//     use crate::commands::rules::*;
+//     use serenity::framework::standard::macros::group;
 
-    #[group]
-    #[prefix("rules")]
-    #[commands(de, en, setde, addde, seten, adden, post)]
-    pub struct Rules;
-}
+//     #[group]
+//     #[prefix("rules")]
+//     #[commands(de, en, setde, addde, seten, adden, post)]
+//     pub struct Rules;
+// }
 
 pub mod roles {
     use crate::commands::reaction_roles::*;
-    use serenity::framework::standard::macros::{check, command, group, help};
+    use serenity::framework::standard::macros::group;
 
     #[group]
     #[prefix("roles")]

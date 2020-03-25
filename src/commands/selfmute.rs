@@ -3,22 +3,17 @@ use crate::models::mute::Mute;
 use crate::models::server_config::ServerConfig;
 use crate::scheduler::Task;
 use crate::util;
-use crate::DatabaseConnection;
+use crate::DatabasePool;
 use crate::TrashyScheduler;
-use chrono::Duration;
-use chrono::{DateTime, Utc};
-use log::*;
-use serde::{Deserialize, Serialize};
-use serenity::model::gateway::Activity;
-use serenity::model::user::OnlineStatus;
+use chrono::{Duration, Utc};
 use serenity::prelude::*;
 use serenity::{
     framework::standard::{macros::command, Args, CommandResult},
     model::channel::Message,
-    model::id::ChannelId,
     model::id::RoleId,
     model::prelude::*,
 };
+use tracing::error;
 
 #[command]
 #[num_args(1)]
@@ -26,12 +21,13 @@ use serenity::{
 #[usage = "*duration*"]
 #[example = "1h"]
 #[only_in("guilds")]
-pub fn selfmute(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
-    let mut data = ctx.data.write();
+pub async fn selfmute(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
+    let mut data = ctx.data.write().await;
     let mut conn = data
-        .get::<DatabaseConnection>()
-        .map(|v| v.get().expect("pool error"))
-        .ok_or("Could not retrieve the database connection!")?;
+        .get::<DatabasePool>()
+        .ok_or("Could not retrieve the database connection!")?
+        .get()
+        .await?;
 
     let scheduler = data
         .get_mut::<TrashyScheduler>()
@@ -46,12 +42,12 @@ pub fn selfmute(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResu
     }
 
     if let Some(guild_id) = msg.guild_id {
-        match ServerConfig::get(&mut *conn, *guild_id.as_u64() as i64) {
+        match ServerConfig::get(&mut *conn, *guild_id.as_u64() as i64).await {
             Ok(server_config) => {
                 let guild_config: Guild = serde_json::from_value(server_config.config).unwrap();
 
                 if let Some(mute_role) = &guild_config.mute_role {
-                    match guild_id.member(&ctx, msg.author.id) {
+                    match guild_id.member(&ctx, msg.author.id).await {
                         Ok(mut member) => {
                             let _ = member.add_role(&ctx, RoleId(*mute_role));
                         }
@@ -65,7 +61,8 @@ pub fn selfmute(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResu
                         *guild_id.as_u64() as i64,
                         *msg.author.id.as_u64() as i64,
                         end_time,
-                    )?;
+                    )
+                    .await?;
 
                     let task =
                         Task::remove_mute(*guild_id.as_u64(), *msg.author.id.as_u64(), *mute_role);

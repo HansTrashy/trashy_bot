@@ -1,5 +1,3 @@
-use log::*;
-use serde::Deserialize;
 use serenity::prelude::*;
 use serenity::{
     framework::standard::{macros::command, Args, CommandResult},
@@ -9,7 +7,7 @@ use serenity::{
 #[command]
 #[description = "Let spongebob say something"]
 #[aliases("sponge")]
-fn spongebob(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
+async fn spongebob(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
     let spongify_this: String = args
         .rest()
         .chars()

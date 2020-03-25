@@ -2,13 +2,13 @@ use crate::models::mute::Mute;
 use chrono::{DateTime, Duration, Utc};
 use deadpool_postgres::Pool;
 use futures::future::BoxFuture;
-use log::*;
 use serde::{Deserialize, Serialize};
 use serenity::model::id::{ChannelId, GuildId, RoleId, UserId};
 use serenity::utils::MessageBuilder;
 use serenity::CacheAndHttp;
 use std::sync::{Arc, Mutex};
 use tokio::time::delay_for;
+use tracing::{error, info};
 
 #[derive(PartialEq, Eq, Serialize, Deserialize, Clone)]
 pub enum Task {
@@ -28,19 +28,14 @@ impl<'a> Task {
     fn execute(self, cache_and_http: Arc<CacheAndHttp>, db_pool: Pool) -> BoxFuture<'a, ()> {
         match self {
             Self::Reply { user, channel, msg } => Box::pin(async move {
-                tokio::task::spawn_blocking(move || {
-                    let _ = ChannelId(channel).send_message(&*cache_and_http.http, |m| {
-                        m.content(
-                            MessageBuilder::new()
-                                .mention(&UserId(user))
-                                .push(" ")
-                                .push(&msg)
-                                .build(),
-                        )
-                    });
-                })
-                .await
-                .expect("could not send message")
+                let message = MessageBuilder::new()
+                    .mention(&UserId(user))
+                    .await
+                    .push(" ")
+                    .push(&msg)
+                    .build();
+                let _ =
+                    ChannelId(channel).send_message(&*cache_and_http.http, |m| m.content(message));
             }),
             Self::RemoveMute {
                 guild_id,
@@ -49,18 +44,17 @@ impl<'a> Task {
             } => Box::pin(async move {
                 let mut conn = db_pool.get().await.expect("could not get database conn");
 
-                tokio::task::spawn_blocking(move || {
-                    match GuildId(guild_id).member(&*cache_and_http.http, UserId(user)) {
-                        Ok(mut member) => {
-                            let _ = member.remove_role(&*cache_and_http.http, RoleId(mute_role));
-                        }
-                        Err(e) => error!("could not get member: {:?}", e),
-                    };
-                })
-                .await
-                .expect("could not remove role");
+                match GuildId(guild_id)
+                    .member(&*cache_and_http.http, UserId(user))
+                    .await
+                {
+                    Ok(mut member) => {
+                        let _ = member.remove_role(&*cache_and_http.http, RoleId(mute_role));
+                    }
+                    Err(e) => error!("could not get member: {:?}", e),
+                };
 
-                Mute::async_delete(&mut *conn, guild_id as i64, user as i64)
+                Mute::delete(&mut *conn, guild_id as i64, user as i64)
                     .await
                     .expect("could not delete mute");
             }),

@@ -14,8 +14,8 @@ use std::iter::FromIterator;
 #[description = "Sends you the Rules in German"]
 #[num_args(0)]
 #[only_in("guilds")]
-pub fn de(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
-    let rules = match ctx.data.read().get::<RulesState>() {
+pub async fn de(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
+    let rules = match ctx.data.read().await.get::<RulesState>() {
         Some(v) => v.clone(),
         None => {
             let _ = msg.reply(&ctx, "Could not retrieve the database connection!");
@@ -26,6 +26,7 @@ pub fn de(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
 
     rules
         .lock()
+        .await
         .de
         .chars()
         .chunks(1_500)
@@ -33,12 +34,9 @@ pub fn de(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
         .for_each(|chunk| {
             msg.author
                 .dm(&ctx, |m| {
-                    m.content(content_safe(
-                        &ctx.cache,
-                        &String::from_iter(chunk),
-                        &settings,
-                    ))
+                    m.content(content_safe(&ctx.cache, &String::from_iter(chunk), &settings).await)
                 })
+                .await
                 .ok();
         });
     let _ = msg.react(&ctx, ReactionType::Unicode("📬".to_string()));
@@ -49,8 +47,8 @@ pub fn de(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
 #[description = "Sends you the rules in english"]
 #[num_args(0)]
 #[only_in("guilds")]
-pub fn en(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
-    let rules = match ctx.data.read().get::<RulesState>() {
+pub async fn en(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
+    let rules = match ctx.data.read().await.get::<RulesState>() {
         Some(v) => v.clone(),
         None => {
             let _ = msg.reply(&ctx, "Could not retrieve the database connection!");
@@ -61,6 +59,7 @@ pub fn en(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
 
     rules
         .lock()
+        .await
         .en
         .chars()
         .chunks(1_500)
@@ -68,12 +67,9 @@ pub fn en(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
         .for_each(|chunk| {
             msg.author
                 .dm(&ctx, |m| {
-                    m.content(content_safe(
-                        &ctx.cache,
-                        &String::from_iter(chunk),
-                        &settings,
-                    ))
+                    m.content(content_safe(&ctx.cache, &String::from_iter(chunk), &settings).await)
                 })
+                .await
                 .ok();
         });
     let _ = msg.react(&ctx, ReactionType::Unicode("📬".to_string()));
@@ -84,15 +80,15 @@ pub fn en(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
 #[allowed_roles("Mods")]
 #[description = "Sets the rules"]
 #[only_in("guilds")]
-pub fn setde(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
-    let rules = match ctx.data.read().get::<RulesState>() {
+pub async fn setde(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
+    let rules = match ctx.data.read().await.get::<RulesState>() {
         Some(v) => v.clone(),
         None => {
             let _ = msg.reply(&ctx, "Could not retrieve the database connection!");
             return Ok(());
         }
     };
-    rules.lock().set_de(args.rest());
+    rules.lock().await.set_de(args.rest());
     let _ = msg.react(&ctx, ReactionType::Unicode("✅".to_string()));
     Ok(())
 }
@@ -101,16 +97,16 @@ pub fn setde(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
 #[allowed_roles("Mods")]
 #[description = "Adds to the rules"]
 #[only_in("guilds")]
-pub fn addde(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
-    let rules = match ctx.data.read().get::<RulesState>() {
+pub async fn addde(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
+    let rules = match ctx.data.read().await.get::<RulesState>() {
         Some(v) => v.clone(),
         None => {
             let _ = msg.reply(&ctx, "Could not retrieve the database connection!");
             return Ok(());
         }
     };
-    let new_rules = format!("{}\n\n{}", rules.lock().de, &args.rest());
-    rules.lock().set_de(&new_rules);
+    let new_rules = format!("{}\n\n{}", rules.lock().await.de, &args.rest());
+    rules.lock().await.set_de(&new_rules);
     let _ = msg.react(&ctx, ReactionType::Unicode("✅".to_string()));
     Ok(())
 }
@@ -119,15 +115,15 @@ pub fn addde(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
 #[allowed_roles("Mods")]
 #[description = "Sets the rules"]
 #[only_in("guilds")]
-pub fn seten(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
-    let rules = match ctx.data.read().get::<RulesState>() {
+pub async fn seten(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
+    let rules = match ctx.data.read().await.get::<RulesState>() {
         Some(v) => v.clone(),
         None => {
             let _ = msg.reply(&ctx, "Could not retrieve the database connection!");
             return Ok(());
         }
     };
-    rules.lock().set_en(&args.rest());
+    rules.lock().await.set_en(&args.rest());
     let _ = msg.react(&ctx, ReactionType::Unicode("✅".to_string()));
     Ok(())
 }
@@ -136,16 +132,16 @@ pub fn seten(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
 #[allowed_roles("Mods")]
 #[description = "Adds to the rules"]
 #[only_in("guilds")]
-pub fn adden(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
-    let rules = match ctx.data.read().get::<RulesState>() {
+pub async fn adden(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
+    let rules = match ctx.data.read().await.get::<RulesState>() {
         Some(v) => v.clone(),
         None => {
             let _ = msg.reply(&ctx, "Could not retrieve the database connection!");
             return Ok(());
         }
     };
-    let new_rules = format!("{}\n\n{}", rules.lock().en, &args.rest());
-    rules.lock().set_en(&new_rules);
+    let new_rules = format!("{}\n\n{}", rules.lock().await.en, &args.rest());
+    rules.lock().await.set_en(&new_rules);
     let _ = msg.react(&ctx, ReactionType::Unicode("✅".to_string()));
     Ok(())
 }
@@ -156,9 +152,9 @@ pub fn adden(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
 #[num_args(1)]
 #[example = "de"]
 #[only_in("guilds")]
-pub fn post(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
-    let lang = args.single::<String>()?;
-    let rules = match ctx.data.read().get::<RulesState>() {
+pub async fn post(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
+    let lang = args.single::<String>().await?;
+    let rules = match ctx.data.read().await.get::<RulesState>() {
         Some(v) => v.clone(),
         None => {
             let _ = msg.reply(&ctx, "Could not retrieve the database connection!");
@@ -166,7 +162,7 @@ pub fn post(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
         }
     };
     let settings = ContentSafeOptions::default().clean_channel(false);
-    let lock = rules.lock();
+    let lock = rules.lock().await;
 
     let rules_text = match lang.as_str() {
         "en" => &lock.en,
@@ -181,8 +177,9 @@ pub fn post(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
             msg.channel_id
                 .say(
                     &ctx,
-                    content_safe(&ctx.cache, &String::from_iter(chunk), &settings),
+                    content_safe(&ctx.cache, &String::from_iter(chunk), &settings).await,
                 )
+                .await
                 .ok();
         });
     Ok(())

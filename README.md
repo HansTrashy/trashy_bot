@@ -2,10 +2,7 @@
 
 ## Requirements
 
-Postgres installation [PostgreSQL](https://www.postgresql.org/download/) with pg/bin in PATH
-Voice depends on:
-    - ffmpeg: https://ffmpeg.zeranoe.com/builds/
-    - youtube-dl https://ytdl-org.github.io/youtube-dl/download.html
+No external dependencies (at least until voice is implemented again?)
 
 *Remember to do a `cargo clean` and check that the env vars are  updated*
 
@@ -16,16 +13,12 @@ Create a `.env` file after the following example in the project root:
     DISCORD_TOKEN=****
     DATABASE_URL=postgres://{pguser}:{pgpw}@{host}:{port}
     TWITCH_TOKEN=****
+    PG_HOST=localhost
+    PG_USER=*user*
+    PG_PASSWORD=*pw*
+    PG_DBNAME=trashy_bot
+    PG_POOL.MAX_SIZE=4
+    PG_POOL.TIMEOUTS.WAIT.SECS=5
+    PG_POOL.TIMEOUTS.WAIT.NANOS=0
 
-
-## Getting the Database up & running
-
-Simply use `diesel database setup` for first time setup.
-
-## Doing things with the Database
-
-- `diesel database reset` < When you fucked up
-- `diesel migration generate {create_xy}` < When you want to create a new migration
-- `diesel migration run` < When you want to run your migration
-- `diesel migration redo` < When your fuckup was not as big
 

@@ -1,40 +1,42 @@
 use crate::models::lastfm::Lastfm;
-use crate::DatabaseConnection;
+use crate::DatabasePool;
 use crate::LASTFM_API_KEY;
-use log::*;
 use serenity::prelude::*;
 use serenity::{
     framework::standard::{macros::command, Args, CommandResult},
     model::channel::Message,
 };
+use tracing::info;
 
 #[command]
 #[description = "Link your lastfm account to your discord account"]
 #[example = "HansTrashy"]
 #[usage = "*lastfmusername*"]
 #[num_args(1)]
-pub fn register(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
+pub async fn register(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
     let username = args.single::<String>()?;
-    let data = ctx.data.write();
-    let mut conn = data
-        .get::<DatabaseConnection>()
-        .map(|v| v.get().expect("pool error"))
+    let data = ctx.data.write().await;
+    let pool = data
+        .get::<DatabasePool>()
         .ok_or("Could not retrieve the database connection!")?;
+    let mut conn = pool.get().await?;
 
-    if let Ok(user) = Lastfm::get(&mut *conn, *msg.author.id.as_u64() as i64) {
-        let lastfm = Lastfm::update(&mut *conn, user.id, username)?;
+    if let Ok(user) = Lastfm::get(&mut *conn, *msg.author.id.as_u64() as i64).await {
+        let lastfm = Lastfm::update(&mut *conn, user.id, username).await?;
 
         msg.reply(
             &ctx,
             format!("Updated your lastfm username to {}", lastfm.username),
-        )?;
+        )
+        .await?;
     } else {
-        let lastfm = Lastfm::create(&mut *conn, *msg.author.id.as_u64() as i64, username)?;
+        let lastfm = Lastfm::create(&mut *conn, *msg.author.id.as_u64() as i64, username).await?;
 
         msg.reply(
             &ctx,
             format!("added {} as your lastfm username!", lastfm.username),
-        )?;
+        )
+        .await?;
     }
 
     Ok(())
@@ -44,21 +46,21 @@ pub fn register(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResu
 #[description = "Show your currently playing track"]
 #[num_args(0)]
 #[bucket = "lastfm"]
-pub fn now(ctx: &mut Context, msg: &Message, _args: Args) -> CommandResult {
-    let data = ctx.data.write();
-    let mut conn = data
-        .get::<DatabaseConnection>()
-        .map(|v| v.get().expect("pool error"))
+pub async fn now(ctx: &mut Context, msg: &Message, _args: Args) -> CommandResult {
+    let data = ctx.data.write().await;
+    let pool = data
+        .get::<DatabasePool>()
         .ok_or("Could not retrieve the database connection!")?;
+    let mut conn = pool.get().await?;
 
-    let lastfm = Lastfm::get(&mut *conn, *msg.author.id.as_u64() as i64)?;
+    let lastfm = Lastfm::get(&mut *conn, *msg.author.id.as_u64() as i64).await?;
 
     // prepare for the lastfm api
     let url = format!("http://ws.audioscrobbler.com/2.0/?method=user.getrecenttracks&user={}&api_key={}&format=json",
             lastfm.username,
             *LASTFM_API_KEY);
 
-    let res: serde_json::Value = reqwest::blocking::get(&url)?.json()?;
+    let res: serde_json::Value = reqwest::get(&url).await?.json().await?;
 
     // ignore the case where users only played a single title and there is no array
     if let Some(tracks) = res
@@ -82,7 +84,9 @@ pub fn now(ctx: &mut Context, msg: &Message, _args: Args) -> CommandResult {
                         .unwrap_or("Unknown Title")
                 );
 
-                msg.channel_id.send_message(&ctx, |m| m.content(&content))?;
+                msg.channel_id
+                    .send_message(&ctx, |m| m.content(&content))
+                    .await?;
             }
         }
     }
@@ -94,21 +98,21 @@ pub fn now(ctx: &mut Context, msg: &Message, _args: Args) -> CommandResult {
 #[description = "Show your recent tracks"]
 #[num_args(0)]
 #[bucket = "lastfm"]
-pub fn recent(ctx: &mut Context, msg: &Message, _args: Args) -> CommandResult {
-    let data = ctx.data.write();
-    let mut conn = data
-        .get::<DatabaseConnection>()
-        .map(|v| v.get().expect("pool error"))
+pub async fn recent(ctx: &mut Context, msg: &Message, _args: Args) -> CommandResult {
+    let data = ctx.data.write().await;
+    let pool = data
+        .get::<DatabasePool>()
         .ok_or("Could not retrieve the database connection!")?;
+    let mut conn = pool.get().await?;
 
-    let lastfm = Lastfm::get(&mut *conn, *msg.author.id.as_u64() as i64)?;
+    let lastfm = Lastfm::get(&mut *conn, *msg.author.id.as_u64() as i64).await?;
 
     // prepare for the lastfm api
     let url = format!("http://ws.audioscrobbler.com/2.0/?method=user.getrecenttracks&user={}&api_key={}&format=json&limit=10",
             lastfm.username,
             *LASTFM_API_KEY);
 
-    let res: serde_json::Value = reqwest::blocking::get(&url)?.json()?;
+    let res: serde_json::Value = reqwest::get(&url).await?.json().await?;
 
     let mut content = String::new();
 
@@ -130,7 +134,9 @@ pub fn recent(ctx: &mut Context, msg: &Message, _args: Args) -> CommandResult {
         }
     }
 
-    msg.channel_id.send_message(&ctx, |m| m.content(&content))?;
+    msg.channel_id
+        .send_message(&ctx, |m| m.content(&content))
+        .await?;
 
     Ok(())
 }
@@ -142,7 +148,7 @@ pub fn recent(ctx: &mut Context, msg: &Message, _args: Args) -> CommandResult {
 #[min_args(0)]
 #[max_args(1)]
 #[bucket = "lastfm"]
-pub fn artists(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
+pub async fn artists(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
     let period = match args.rest() {
         "all" => "overall",
         "7d" => "7day",
@@ -153,13 +159,13 @@ pub fn artists(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
         _ => "overall",
     };
 
-    let data = ctx.data.write();
-    let mut conn = data
-        .get::<DatabaseConnection>()
-        .map(|v| v.get().expect("pool error"))
+    let data = ctx.data.write().await;
+    let pool = data
+        .get::<DatabasePool>()
         .ok_or("Could not retrieve the database connection!")?;
+    let mut conn = pool.get().await?;
 
-    let lastfm = Lastfm::get(&mut *conn, *msg.author.id.as_u64() as i64)?;
+    let lastfm = Lastfm::get(&mut *conn, *msg.author.id.as_u64() as i64).await?;
 
     // prepare for the lastfm api
     let url = format!("http://ws.audioscrobbler.com/2.0/?method=user.gettopartists&user={}&api_key={}&format=json&limit=10&period={}",
@@ -167,7 +173,7 @@ pub fn artists(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
             *LASTFM_API_KEY,
             period);
 
-    let res: serde_json::Value = reqwest::blocking::get(&url)?.json()?;
+    let res: serde_json::Value = reqwest::get(&url).await?.json().await?;
 
     let mut content = String::new();
 
@@ -185,7 +191,9 @@ pub fn artists(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
         }
     }
 
-    msg.channel_id.send_message(&ctx, |m| m.content(&content))?;
+    msg.channel_id
+        .send_message(&ctx, |m| m.content(&content))
+        .await?;
 
     Ok(())
 }
@@ -197,7 +205,7 @@ pub fn artists(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
 #[min_args(0)]
 #[max_args(1)]
 #[bucket = "lastfm"]
-pub fn albums(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
+pub async fn albums(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
     let period = match args.rest() {
         "all" => "overall",
         "7d" => "7day",
@@ -208,13 +216,13 @@ pub fn albums(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
         _ => "overall",
     };
 
-    let data = ctx.data.write();
-    let mut conn = data
-        .get::<DatabaseConnection>()
-        .map(|v| v.get().expect("pool error"))
+    let data = ctx.data.write().await;
+    let pool = data
+        .get::<DatabasePool>()
         .ok_or("Could not retrieve the database connection!")?;
+    let mut conn = pool.get().await?;
 
-    let lastfm = Lastfm::get(&mut *conn, *msg.author.id.as_u64() as i64)?;
+    let lastfm = Lastfm::get(&mut *conn, *msg.author.id.as_u64() as i64).await?;
 
     // prepare for the lastfm api
     let url = format!("http://ws.audioscrobbler.com/2.0/?method=user.gettopalbums&user={}&api_key={}&format=json&limit=10&period={}",
@@ -222,7 +230,7 @@ pub fn albums(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
             *LASTFM_API_KEY,
             period);
 
-    let res: serde_json::Value = reqwest::blocking::get(&url)?.json()?;
+    let res: serde_json::Value = reqwest::get(&url).await?.json().await?;
 
     let mut content = String::new();
 
@@ -240,7 +248,9 @@ pub fn albums(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
         }
     }
 
-    msg.channel_id.send_message(&ctx, |m| m.content(&content))?;
+    msg.channel_id
+        .send_message(&ctx, |m| m.content(&content))
+        .await?;
 
     Ok(())
 }
@@ -252,7 +262,7 @@ pub fn albums(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
 #[min_args(0)]
 #[max_args(1)]
 #[bucket = "lastfm"]
-pub fn tracks(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
+pub async fn tracks(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
     let period = match args.rest() {
         "all" => "overall",
         "7d" => "7day",
@@ -265,13 +275,13 @@ pub fn tracks(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
 
     info!("period: {:?}", period);
 
-    let data = ctx.data.write();
-    let mut conn = data
-        .get::<DatabaseConnection>()
-        .map(|v| v.get().expect("pool error"))
+    let data = ctx.data.write().await;
+    let pool = data
+        .get::<DatabasePool>()
         .ok_or("Could not retrieve the database connection!")?;
+    let mut conn = pool.get().await?;
 
-    let lastfm = Lastfm::get(&mut *conn, *msg.author.id.as_u64() as i64)?;
+    let lastfm = Lastfm::get(&mut *conn, *msg.author.id.as_u64() as i64).await?;
 
     // prepare for the lastfm api
     let url = format!("http://ws.audioscrobbler.com/2.0/?method=user.gettoptracks&user={}&api_key={}&format=json&limit=10&period={}",
@@ -279,7 +289,7 @@ pub fn tracks(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
             *LASTFM_API_KEY,
             period);
 
-    let res: serde_json::Value = reqwest::blocking::get(&url)?.json()?;
+    let res: serde_json::Value = reqwest::get(&url).await?.json().await?;
 
     let mut content = String::new();
 
@@ -303,7 +313,9 @@ pub fn tracks(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
         }
     }
 
-    msg.channel_id.send_message(&ctx, |m| m.content(&content))?;
+    msg.channel_id
+        .send_message(&ctx, |m| m.content(&content))
+        .await?;
 
     Ok(())
 }

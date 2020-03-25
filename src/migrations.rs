@@ -1,4 +1,4 @@
-use postgres::Client;
+use tokio_postgres::Client;
 
 mod embedded {
     use refinery::embed_migrations;
@@ -7,7 +7,7 @@ mod embedded {
 
 pub type DbError = Box<dyn std::error::Error>;
 
-pub fn run(conn: &mut Client) -> Result<(), DbError> {
-    embedded::migrations::runner().run(&mut *conn)?;
+pub async fn run(conn: &mut Client) -> Result<(), DbError> {
+    embedded::migrations::runner().run_async(&mut *conn).await?;
     Ok(())
 }

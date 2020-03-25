@@ -1,21 +1,21 @@
 use crate::models::reaction_role::ReactionRole;
 use crate::reaction_roles::State;
-use crate::DatabaseConnection;
+use crate::DatabasePool;
 use crate::ReactionRolesState;
-use log::info;
 use serenity::{
     model::{channel::Reaction, channel::ReactionType},
     prelude::*,
 };
+use tracing::info;
 
-pub fn add_role(ctx: Context, add_reaction: Reaction) {
-    let data = ctx.data.read();
-    let mut conn = match data.get::<DatabaseConnection>() {
-        Some(v) => v.get().unwrap(),
+pub async fn add_role(ctx: Context, add_reaction: Reaction) {
+    let data = ctx.data.read().await;
+    let mut conn = match data.get::<DatabasePool>() {
+        Some(v) => v.get().await.unwrap(),
         None => return,
     };
     let (rr_channel_id, rr_message_ids) = match data.get::<ReactionRolesState>() {
-        Some(v) => match *v.lock() {
+        Some(v) => match *v.lock().await {
             State::Set {
                 ref channel_id,
                 ref message_ids,
@@ -31,20 +31,30 @@ pub fn add_role(ctx: Context, add_reaction: Reaction) {
         info!("On correct message reacted!");
         if let ReactionType::Unicode(ref s) = add_reaction.emoji {
             // check if rr registered for this emoji
-            let results =
-                ReactionRole::list_by_emoji(&mut *conn, s).expect("could not get by emojis");
+            let results = ReactionRole::list_by_emoji(&mut *conn, s)
+                .await
+                .expect("could not get by emojis");
 
             if !results.is_empty() {
                 info!("Found role for this emoji!");
                 if let Some(guild) = add_reaction
                     .channel_id
                     .to_channel(&ctx)
+                    .await
                     .ok()
                     .and_then(|c| c.guild())
                 {
-                    if let Ok(mut member) = guild.read().guild_id.member(&ctx, add_reaction.user_id)
+                    if let Ok(mut member) = guild
+                        .read()
+                        .await
+                        .guild_id
+                        .member(&ctx, add_reaction.user_id)
+                        .await
                     {
-                        let _ = member.add_role(&ctx, results[0].role_id as u64);
+                        member
+                            .add_role(&ctx, results[0].role_id as u64)
+                            .await
+                            .unwrap();
                     }
                 }
             }
@@ -52,14 +62,14 @@ pub fn add_role(ctx: Context, add_reaction: Reaction) {
     }
 }
 
-pub fn remove_role(ctx: Context, remove_reaction: Reaction) {
-    let data = ctx.data.read();
-    let mut conn = match data.get::<DatabaseConnection>() {
-        Some(v) => v.get().unwrap(),
+pub async fn remove_role(ctx: Context, remove_reaction: Reaction) {
+    let data = ctx.data.read().await;
+    let mut conn = match data.get::<DatabasePool>() {
+        Some(v) => v.get().await.unwrap(),
         None => return,
     };
     let (rr_channel_id, rr_message_ids) = match data.get::<ReactionRolesState>() {
-        Some(v) => match *v.lock() {
+        Some(v) => match *v.lock().await {
             State::Set {
                 ref channel_id,
                 ref message_ids,
@@ -75,21 +85,30 @@ pub fn remove_role(ctx: Context, remove_reaction: Reaction) {
         info!("On correct message reacted!");
         if let ReactionType::Unicode(ref s) = remove_reaction.emoji {
             // check if rr registered for this emoji
-            let results =
-                ReactionRole::list_by_emoji(&mut *conn, s).expect("could not get by emojis");
+            let results = ReactionRole::list_by_emoji(&mut *conn, s)
+                .await
+                .expect("could not get by emojis");
 
             if !results.is_empty() {
                 info!("Found role for this emoji!");
                 if let Some(guild) = remove_reaction
                     .channel_id
                     .to_channel(&ctx)
+                    .await
                     .ok()
                     .and_then(|c| c.guild())
                 {
-                    if let Ok(mut member) =
-                        guild.read().guild_id.member(&ctx, remove_reaction.user_id)
+                    if let Ok(mut member) = guild
+                        .read()
+                        .await
+                        .guild_id
+                        .member(&ctx, remove_reaction.user_id)
+                        .await
                     {
-                        let _ = member.remove_role(&ctx, results[0].role_id as u64);
+                        member
+                            .remove_role(&ctx, results[0].role_id as u64)
+                            .await
+                            .unwrap();
                     }
                 }
             }

@@ -13,7 +13,7 @@ pub mod quote;
 pub mod reaction_roles;
 pub mod remindme;
 pub mod roll;
-pub mod rules;
+// pub mod rules;
 pub mod selfmute;
 pub mod shiny;
 pub mod spongebob;

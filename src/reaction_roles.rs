@@ -1,5 +1,6 @@
 /// Setting the `ChannelId` and `MessageId's` for the reaction messages
 
+#[warn(dead_code)]
 pub enum State {
     NotSet,
     Set {
