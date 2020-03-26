@@ -137,7 +137,7 @@ pub async fn quote(ctx: &mut Context, msg: &Message, args: Args) -> CommandResul
                                 if let Ok(dm_channel) =
                                     react_user_id.create_dm_channel(&http.clone()).await
                                 {
-                                    let _ = dm_channel
+                                    dm_channel
                                         .say(
                                             &http,
                                             format!(

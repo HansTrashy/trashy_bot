@@ -163,15 +163,17 @@ pub async fn post(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandRe
                             {
                                 if let Ok(dm_channel) = react_user_id.create_dm_channel(&http).await
                                 {
-                                    let _ = dm_channel.say(
-                                        &http,
-                                        format!(
-                                            "https://discordapp.com/channels/{}/{}/{}",
-                                            &chosen_fav.server_id,
-                                            &chosen_fav.channel_id,
-                                            &chosen_fav.msg_id,
-                                        ),
-                                    );
+                                    dm_channel
+                                        .say(
+                                            &http,
+                                            format!(
+                                                "https://discordapp.com/channels/{}/{}/{}",
+                                                &chosen_fav.server_id,
+                                                &chosen_fav.channel_id,
+                                                &chosen_fav.msg_id,
+                                            ),
+                                        )
+                                        .await?;
                                 }
                             }
                         })
