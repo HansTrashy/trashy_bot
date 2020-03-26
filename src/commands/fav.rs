@@ -61,7 +61,7 @@ pub async fn post(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandRe
         .await
         .expect("no fav message exists for this id");
 
-    let _ = msg.delete(&ctx);
+    msg.delete(&ctx).await?;
 
     if opt_out
         .lock()

@@ -49,7 +49,10 @@ impl<'a> Task {
                     .await
                 {
                     Ok(mut member) => {
-                        let _ = member.remove_role(&*cache_and_http.http, RoleId(mute_role));
+                        member
+                            .remove_role(&*cache_and_http.http, RoleId(mute_role))
+                            .await
+                            .expect("could not remove role");
                     }
                     Err(e) => error!("could not get member: {:?}", e),
                 };

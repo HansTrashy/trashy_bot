@@ -170,7 +170,8 @@ impl EventHandler for Handler {
                     let mut conn = if let Some(v) = data.get::<DatabasePool>() {
                         v.get().await.unwrap()
                     } else {
-                        let _ = msg.reply(&ctx, "Could not retrieve the database connection!");
+                        msg.reply(&ctx, "Could not retrieve the database connection!")
+                            .await;
                         return;
                     };
 
@@ -186,7 +187,7 @@ impl EventHandler for Handler {
                         *msg.author.id.as_u64(),
                         vec![Action::DeleteFav, Action::ReqTags, Action::AddTags],
                     );
-                    let _ = msg.reply(&ctx, "added the tags!");
+                    msg.reply(&ctx, "added the tags!").await;
                 }
             }
         }

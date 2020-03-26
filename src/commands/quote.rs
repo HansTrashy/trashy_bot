@@ -28,10 +28,12 @@ pub async fn quote(ctx: &mut Context, msg: &Message, args: Args) -> CommandResul
         .set
         .contains(msg.author.id.as_u64())
     {
-        let _ = msg.channel_id.send_message(&ctx.http, |m| {
-            m.content("You have opted out of the quote functionality")
-        });
-        let _ = msg.delete(&ctx);
+        msg.channel_id
+            .send_message(&ctx.http, |m| {
+                m.content("You have opted out of the quote functionality")
+            })
+            .await?;
+        msg.delete(&ctx).await?;
         return Ok(());
     }
 
@@ -60,10 +62,12 @@ pub async fn quote(ctx: &mut Context, msg: &Message, args: Args) -> CommandResul
             .set
             .contains(quoted_msg.author.id.as_u64())
         {
-            let _ = msg.channel_id.send_message(&ctx.http, |m| {
-                m.content("The user does not want to be quoted")
-            });
-            let _ = msg.delete(&ctx);
+            msg.channel_id
+                .send_message(&ctx.http, |m| {
+                    m.content("The user does not want to be quoted")
+                })
+                .await?;
+            msg.delete(&ctx).await?;
             return Ok(());
         }
 
@@ -150,7 +154,8 @@ pub async fn quote(ctx: &mut Context, msg: &Message, args: Args) -> CommandResul
             );
         }
     } else {
-        msg.reply(&ctx, "Sorry, i can not find this message.").await;
+        msg.reply(&ctx, "Sorry, i can not find this message.")
+            .await?;
         trace!("Could not find quote message");
     }
 
