@@ -173,7 +173,7 @@ pub async fn post(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandRe
                                                 &chosen_fav.msg_id,
                                             ),
                                         )
-                                        .await?;
+                                        .await;
                                 }
                             }
                         })
