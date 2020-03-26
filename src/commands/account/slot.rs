@@ -62,17 +62,23 @@ pub async fn slot(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandRe
             Bank::update(&mut *conn, bank.user_id, updated_amount, bank.last_payday).await?;
 
             let slot_machine_output = display_reels(&full_reels, payout, updated_amount);
-            let _ = msg.channel_id.send_message(&ctx, |m| {
-                m.embed(|e| e.description(&slot_machine_output).color((0, 120, 220)))
-            });
+            msg.channel_id
+                .send_message(&ctx, |m| {
+                    m.embed(|e| e.description(&slot_machine_output).color((0, 120, 220)))
+                })
+                .await?;
         } else {
-            let _ = msg.channel_id.say(
-                &ctx,
-                "You are missing the necessary credits for this action!",
-            );
+            msg.channel_id
+                .say(
+                    &ctx,
+                    "You are missing the necessary credits for this action!",
+                )
+                .await?;
         }
     } else {
-        let _ = msg.channel_id.say(&ctx, "Create your own bank first");
+        msg.channel_id
+            .say(&ctx, "Create your own bank first")
+            .await?;
     }
 
     Ok(())
