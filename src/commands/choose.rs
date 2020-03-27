@@ -11,6 +11,7 @@ use tracing::error;
 
 #[command]
 #[description = "Choose between things"]
+#[aliases("ch00se")]
 #[min_args(2)]
 pub async fn choose(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
     let settings = ContentSafeOptions::default().clean_channel(false);
