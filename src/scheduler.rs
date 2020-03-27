@@ -34,8 +34,9 @@ impl<'a> Task {
                     .push(" ")
                     .push(&msg)
                     .build();
-                let _ =
-                    ChannelId(channel).send_message(&*cache_and_http.http, |m| m.content(message));
+                let _ = ChannelId(channel)
+                    .send_message(&*cache_and_http.http, |m| m.content(message))
+                    .await;
             }),
             Self::RemoveMute {
                 guild_id,
