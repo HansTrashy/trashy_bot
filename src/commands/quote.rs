@@ -124,7 +124,7 @@ pub async fn quote(ctx: &mut Context, msg: &Message, args: Args) -> CommandResul
                 Listener::new(
                     std::time::Duration::from_secs(60 * 60),
                     Box::new(move |_, event| {
-                        info!(event = ?event, "executing futures reaction");
+                        trace!(event = ?event, "building future for event");
                         let http = http.clone();
                         Box::pin(async move {
                             if let DispatchEvent::ReactMsg(
@@ -137,7 +137,8 @@ pub async fn quote(ctx: &mut Context, msg: &Message, args: Args) -> CommandResul
                                 if let Ok(dm_channel) =
                                     react_user_id.create_dm_channel(&http.clone()).await
                                 {
-                                    dm_channel
+                                    trace!("sending user info source for quote");
+                                    let _ = dm_channel
                                         .say(
                                             &http,
                                             format!(

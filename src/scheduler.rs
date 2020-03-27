@@ -108,7 +108,7 @@ impl Scheduler {
                     rt.spawn(async move {
                         delay_for(duration_until.to_std().unwrap()).await;
                         task_list_clone.lock().unwrap().retain(|(_, t)| t != &task);
-                        task.execute(cache_and_http_clone, db_pool_clone);
+                        task.execute(cache_and_http_clone, db_pool_clone).await;
                     });
                 }
             }

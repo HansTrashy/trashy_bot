@@ -17,7 +17,7 @@ use serenity::{
     model::channel::Message,
 };
 use std::iter::FromIterator;
-use tracing::debug;
+use tracing::{debug, trace};
 
 #[command]
 #[description = "Post a fav"]
@@ -54,12 +54,11 @@ pub async fn post(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandRe
     let chosen_fav = results
         .into_iter()
         .choose(&mut rand::thread_rng())
-        .expect("possible favs are empty");
+        .ok_or("possible favs empty")?;
 
     let fav_msg = ChannelId(chosen_fav.channel_id as u64)
         .message(&ctx.http, chosen_fav.msg_id as u64)
-        .await
-        .expect("no fav message exists for this id");
+        .await?;
 
     msg.delete(&ctx).await?;
 
@@ -151,6 +150,7 @@ pub async fn post(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandRe
                 Listener::new(
                     std::time::Duration::from_secs(60 * 60),
                     Box::new(move |_, event| {
+                        trace!("creating listener for fav info source");
                         let http = http.clone();
                         let chosen_fav = chosen_fav.clone();
                         Box::pin(async move {
@@ -163,7 +163,8 @@ pub async fn post(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandRe
                             {
                                 if let Ok(dm_channel) = react_user_id.create_dm_channel(&http).await
                                 {
-                                    dm_channel
+                                    trace!("sending user source message link");
+                                    let _ = dm_channel
                                         .say(
                                             &http,
                                             format!(
