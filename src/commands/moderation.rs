@@ -344,23 +344,27 @@ pub async fn ban(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult 
                 let mut found_members = Vec::new();
                 for user in &msg.mentions {
                     let member = guild_id.member(&ctx, user).await?;
-                    let _ = member.ban(&ctx, &(0, ban_msg));
+                    let _ = member.ban(&ctx, &(0, ban_msg)).await;
                     found_members.push(member);
                 }
 
                 if let Some(modlog_channel) = &guild_config.modlog_channel {
                     if !found_members.is_empty() {
                         let description = create_ban_message(&found_members, ban_msg).await;
-                        let _ = ChannelId(*modlog_channel).send_message(&ctx, |m| {
-                            m.embed(|e| e.description(description).color((0, 120, 220)))
-                        });
+                        let _ = ChannelId(*modlog_channel)
+                            .send_message(&ctx, |m| {
+                                m.embed(|e| e.description(description).color((0, 120, 220)))
+                            })
+                            .await;
                     }
                 }
 
-                let _ = msg.react(&ctx, ReactionType::Unicode("✅".to_string()));
+                let _ = msg
+                    .react(&ctx, ReactionType::Unicode("✅".to_string()))
+                    .await;
             }
             Err(_e) => {
-                let _ = msg.reply(&ctx, "server config missing");
+                let _ = msg.reply(&ctx, "server config missing").await;
             }
         }
     }
