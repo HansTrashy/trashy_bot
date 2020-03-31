@@ -34,7 +34,7 @@ pub async fn selfmute(ctx: &mut Context, msg: &Message, mut args: Args) -> Comma
         .expect("Expected Scheduler.")
         .clone();
 
-    let duration = util::parse_duration(&args.single::<String>()?).unwrap();
+    let duration = util::parse_duration(&args.single::<String>()?).expect("invalid duration");
 
     if duration > Duration::hours(24) {
         msg.reply(&ctx, "You can not mute yourself for more than 24 hours!")
@@ -50,7 +50,7 @@ pub async fn selfmute(ctx: &mut Context, msg: &Message, mut args: Args) -> Comma
                 if let Some(mute_role) = &guild_config.mute_role {
                     match guild_id.member(&ctx, msg.author.id).await {
                         Ok(mut member) => {
-                            let _ = member.add_role(&ctx, RoleId(*mute_role));
+                            member.add_role(&ctx, RoleId(*mute_role)).await?;
                         }
                         Err(e) => error!("could not get member: {:?}", e),
                     };
