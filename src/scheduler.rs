@@ -136,7 +136,7 @@ impl Scheduler {
         let db_pool = self.db_pool.clone();
         let task_list_clone = Arc::clone(&self.task_list);
         let f = async move {
-            delay_for(duration.to_std().unwrap()).await;
+            delay_for(duration.to_std().expect("failed duration to std")).await;
             task_list_clone.lock().unwrap().retain(|(_, t)| t != &task);
             let executable_f = task.execute(cache_and_http, db_pool);
             executable_f.await;
