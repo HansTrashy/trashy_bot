@@ -4,7 +4,7 @@ use serenity::model::prelude::*;
 use std::collections::HashMap;
 use std::hash::{Hash, Hasher};
 use std::time::{Duration, Instant};
-use tracing::debug;
+use tracing::trace;
 
 type Action = Box<dyn Fn(Context, Event) -> BoxFuture<'static, ()> + Sync + Send>;
 
@@ -87,7 +87,7 @@ impl Dispatcher {
     }
 
     pub async fn dispatch_event(&self, ctx: Context, id: Event) {
-        debug!(event = ?id, "Dispatching event");
+        trace!(event = ?id, "Dispatching event");
         if let Some(listener) = self.listener.get(&id) {
             let mut futures = Vec::new();
             for l in listener {
