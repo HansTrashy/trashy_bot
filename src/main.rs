@@ -235,10 +235,12 @@ async fn main() {
         .group(&commands::groups::moderation::MODERATION_GROUP)
         .group(&commands::groups::misc::MISC_GROUP)
         .group(&commands::groups::lastfm::LASTFM_GROUP);
+    debug!("Framework created");
 
     let mut client = Client::new_with_framework(&token, handler::Handler, framework)
         .await
         .expect("Err creating client");
+    debug!("Client created");
 
     let waiter = Arc::new(Mutex::new(self::interaction::wait::Wait::new()));
     let rr_state = Arc::new(Mutex::new(self::reaction_roles::State::load_set()));
@@ -255,8 +257,9 @@ async fn main() {
             .await
             .expect("could not run migrations");
     }
+    debug!("Database pool created");
 
-    let rt = Arc::new(tokio::runtime::Runtime::new().unwrap());
+    let rt = Arc::new(tokio::runtime::Handle::current());
     let trashy_scheduler = Arc::new(scheduler::Scheduler::new(
         Arc::clone(&rt),
         Arc::clone(&client.cache_and_http),

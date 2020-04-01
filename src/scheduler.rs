@@ -81,7 +81,7 @@ impl<'a> Task {
 type ScheduledTask = (DateTime<Utc>, Task);
 
 pub struct Scheduler {
-    runtime: Arc<tokio::runtime::Runtime>,
+    runtime: Arc<tokio::runtime::Handle>,
     cache_and_http: Arc<CacheAndHttp>,
     db_pool: Pool,
     task_list: Arc<Mutex<Vec<ScheduledTask>>>,
@@ -89,7 +89,7 @@ pub struct Scheduler {
 
 impl Scheduler {
     pub fn new(
-        rt: Arc<tokio::runtime::Runtime>,
+        rt: Arc<tokio::runtime::Handle>,
         cache_and_http: Arc<CacheAndHttp>,
         db_pool: Pool,
     ) -> Self {
