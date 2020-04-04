@@ -1,6 +1,6 @@
 use tokio_postgres::{row::Row, Client};
 
-pub type DbError = String;
+pub type DbError = Box<dyn std::error::Error + Send + Sync>;
 
 #[derive(Debug)]
 pub struct ServerConfig {
@@ -17,8 +17,7 @@ impl ServerConfig {
                     "SELECT * FROM server_configs WHERE server_id = $1",
                     &[&server_id],
                 )
-                .await
-                .map_err(|e| e.to_string())?,
+                .await?,
         )?)
     }
 
@@ -33,8 +32,7 @@ impl ServerConfig {
                     "INSERT INTO (server_id, config) server_configs VALUES ($1, $2) RETURNING *",
                     &[&server_id, &config],
                 )
-                .await
-                .map_err(|e| e.to_string())?,
+                .await?,
         )?)
     }
 
@@ -49,8 +47,7 @@ impl ServerConfig {
                     "UPDATE server_configs SET config = $2 WHERE server_id = $1",
                     &[&server_id, &config],
                 )
-                .await
-                .map_err(|e| e.to_string())?,
+                .await?,
         )?)
     }
 

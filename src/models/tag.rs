@@ -1,6 +1,6 @@
 use tokio_postgres::{row::Row, Client};
 
-pub type DbError = String;
+pub type DbError = Box<dyn std::error::Error + Send + Sync>;
 
 #[derive(Debug)]
 pub struct Tag {
@@ -17,21 +17,19 @@ impl Tag {
                     "INSERT INTO tags (fav_id, label) VALUES ($1, $2) RETURNING *",
                     &[&fav_id, &label],
                 )
-                .await
-                .map_err(|e| e.to_string())?,
+                .await?,
         )?)
     }
 
     pub async fn delete(client: &mut Client, fav_id: i64) -> Result<u64, DbError> {
         Ok(client
             .execute("DELETE FROM tags WHERE fav_id = $1", &[&fav_id])
-            .await
-            .map_err(|e| e.to_string())?)
+            .await?)
     }
 
     pub async fn of_user(client: &mut Client, user_id: i64) -> Result<Vec<Self>, DbError> {
         Ok(client.query("SELECT tags.id, tags.fav_id, tags.label FROM tags INNER JOIN favs ON tags.fav_id = favs.id WHERE favs.user_id = $1",
-            &[&user_id]).await.map_err(|e| e.to_string())?.into_iter().map(Self::from_row).collect::<Result<Vec<_>, DbError>>()?)
+            &[&user_id]).await?.into_iter().map(Self::from_row).collect::<Result<Vec<_>, DbError>>()?)
     }
 
     fn from_row(row: Row) -> Result<Self, DbError> {

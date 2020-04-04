@@ -1,6 +1,6 @@
 use tokio_postgres::{row::Row, Client};
 
-pub type DbError = String;
+pub type DbError = Box<dyn std::error::Error + Send + Sync>;
 
 #[derive(Debug)]
 pub struct Shiny {
@@ -16,16 +16,14 @@ impl Shiny {
         Ok(Self::from_row(
             client
                 .query_one("SELECT * FROM shinys WHERE user_id = $1", &[&user_id])
-                .await
-                .map_err(|e| e.to_string())?,
+                .await?, // .map_err(|e| e.to_string())?,
         )?)
     }
 
     pub async fn list(client: &mut Client, server_id: i64) -> Result<Vec<Self>, DbError> {
         Ok(client
             .query("SELECT * FROM shinys WHERE server_id = $1", &[&server_id])
-            .await
-            .map_err(|e| e.to_string())?
+            .await?
             .into_iter()
             .map(Self::from_row)
             .collect::<Result<Vec<_>, DbError>>()?)
@@ -41,7 +39,7 @@ impl Shiny {
         Ok(Self::from_row(client.query_one(
             "INSERT INTO shinys (server_id, user_id, username, amount) VALUES ($1, $2, $3, $4) RETURNING *",
             &[&server_id, &user_id, &username, &amount],
-        ).await.map_err(|e| e.to_string())?)?)
+        ).await?)?)
     }
 
     pub async fn update(client: &mut Client, user_id: i64, amount: i64) -> Result<Self, DbError> {
@@ -51,16 +49,14 @@ impl Shiny {
                     "UPDATE shinys SET amount = $2 WHERE user_id = $1",
                     &[&user_id, &amount],
                 )
-                .await
-                .map_err(|e| e.to_string())?,
+                .await?,
         )?)
     }
 
     pub async fn delete(client: &mut Client, user_id: i64) -> Result<u64, DbError> {
         Ok(client
             .execute("DELETE FROM shinys WHERE user_id = $2", &[&user_id])
-            .await
-            .map_err(|e| e.to_string())?)
+            .await?)
     }
 
     fn from_row(row: Row) -> Result<Self, DbError> {

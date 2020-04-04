@@ -1,7 +1,7 @@
 use chrono::NaiveDateTime;
 use tokio_postgres::{row::Row, Client};
 
-pub type DbError = String;
+pub type DbError = Box<dyn std::error::Error + Send + Sync>;
 
 #[derive(Debug)]
 pub struct Bank {
@@ -17,16 +17,14 @@ impl Bank {
         Ok(Self::from_row(
             client
                 .query_one("SELECT * FROM banks WHERE user_id = $1", &[&user_id])
-                .await
-                .map_err(|e| e.to_string())?,
+                .await?,
         )?)
     }
 
     pub async fn top10(client: &mut Client) -> Result<Vec<Self>, DbError> {
         Ok(client
             .query("SELECT * FROM banks ORDER BY amount DESC LIMIT 10", &[])
-            .await
-            .map_err(|e| e.to_string())?
+            .await?
             .into_iter()
             .map(Self::from_row)
             .collect::<Result<Vec<_>, DbError>>()?)
@@ -42,7 +40,7 @@ impl Bank {
         Ok(Self::from_row(client.query_one(
             "INSERT INTO banks (user_id, user_name, amount, last_payday) VALUES ($1, $2, $3, $4) RETURNING *",
             &[&user_id, &user_name, &amount, &last_payday],
-        ).await.map_err(|e| e.to_string())?)?)
+        ).await?)?)
     }
 
     pub async fn update(
@@ -54,7 +52,7 @@ impl Bank {
         Ok(Self::from_row(client.query_one(
             "UPDATE banks SET (amount, last_payday) = ($2, $3) WHERE user_id = $1 RETURNING *",
             &[&user_id, &amount, &last_payday],
-        ).await.map_err(|e| e.to_string())?)?)
+        ).await?)?)
     }
 
     fn from_row(row: Row) -> Result<Self, DbError> {

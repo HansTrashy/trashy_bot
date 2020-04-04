@@ -1,6 +1,6 @@
 use tokio_postgres::{row::Row, Client};
 
-pub type DbError = String;
+pub type DbError = Box<dyn std::error::Error + Send + Sync>;
 
 #[derive(Debug)]
 pub struct Lastfm {
@@ -15,8 +15,7 @@ impl Lastfm {
         Ok(Self::from_row(
             client
                 .query_one("SELECT * FROM lastfms WHERE user_id = $1", &[&user_id])
-                .await
-                .map_err(|e| e.to_string())?,
+                .await?,
         )?)
     }
 
@@ -28,7 +27,7 @@ impl Lastfm {
         Ok(Self::from_row(client.query_one(
             "INSERT INTO lastfms (server_id, user_id, username) VALUES (0, $1, $2) RETURNING *",
             &[&user_id, &username],
-        ).await.map_err(|e| e.to_string())?)?)
+        ).await?)?)
     }
 
     pub async fn update(
@@ -42,8 +41,7 @@ impl Lastfm {
                     "UPDATE lastfms SET username = $2 WHERE user_id = $1",
                     &[&user_id, &username],
                 )
-                .await
-                .map_err(|e| e.to_string())?,
+                .await?,
         )?)
     }
 

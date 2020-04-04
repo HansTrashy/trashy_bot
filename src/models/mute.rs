@@ -1,7 +1,7 @@
 use chrono::{DateTime, Utc};
 use tokio_postgres::{row::Row, Client};
 
-pub type DbError = String;
+pub type DbError = Box<dyn std::error::Error + Send + Sync>;
 
 #[derive(Debug)]
 pub struct Mute {
@@ -19,8 +19,7 @@ impl Mute {
                     "SELECT * FROM mutes WHERE user_id = $1 AND server_id = $2",
                     &[&user_id, &server_id],
                 )
-                .await
-                .map_err(|e| e.to_string())?,
+                .await?,
         )?)
     }
 
@@ -33,7 +32,7 @@ impl Mute {
         Ok(Self::from_row(client.query_one(
             "INSERT INTO mutes (server_id, user_id, end_time) VALUES ($1, $2, $3) RETURNING *",
             &[&server_id, &user_id, &end_time],
-        ).await.map_err(|e| e.to_string())?)?)
+        ).await?)?)
     }
 
     // pub async fn update(
@@ -59,8 +58,7 @@ impl Mute {
                 "DELETE FROM mutes WHERE server_id = $1 AND user_id = $2",
                 &[&server_id, &user_id],
             )
-            .await
-            .map_err(|e| e.to_string())?)
+            .await?)
     }
 
     fn from_row(row: Row) -> Result<Self, DbError> {
