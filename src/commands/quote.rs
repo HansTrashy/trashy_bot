@@ -1,15 +1,15 @@
-use crate::dispatch::{Event as DispatchEvent, Listener};
 use crate::OptOut;
-use crate::TrashyDispatcher;
 use lazy_static::lazy_static;
 use regex::Regex;
+use serenity::collector::reaction_collector::ReactionCollectorBuilder;
 use serenity::model::channel::Attachment;
 use serenity::model::id::ChannelId;
 use serenity::prelude::*;
 use serenity::{
     framework::standard::{macros::command, Args, CommandResult},
-    model::channel::{Message, ReactionType},
+    model::prelude::*,
 };
+use std::time::Duration;
 use tracing::{info, trace};
 
 #[command]
@@ -112,48 +112,36 @@ pub async fn quote(ctx: &mut Context, msg: &Message, args: Args) -> CommandResul
             })
             .await?;
 
+        let mut collector = ReactionCollectorBuilder::new(&ctx)
+            .message_id(bot_msg.id)
+            .timeout(Duration::from_secs(5))
+            .await;
+
         let http = ctx.http.clone();
-        if let Some(dispatcher) = data.get::<TrashyDispatcher>() {
-            dispatcher.lock().await.add_listener(
-                DispatchEvent::ReactMsg(
-                    bot_msg.id,
-                    ReactionType::Unicode("ℹ️".to_string()),
-                    bot_msg.channel_id,
-                    bot_msg.author.id,
-                ),
-                Listener::new(
-                    std::time::Duration::from_secs(60 * 60),
-                    Box::new(move |_, event| {
-                        trace!(event = ?event, "building future for event");
-                        let http = http.clone();
-                        Box::pin(async move {
-                            if let DispatchEvent::ReactMsg(
-                                _msg_id,
-                                _reaction_type,
-                                _channel_id,
-                                react_user_id,
-                            ) = &event
-                            {
-                                if let Ok(dm_channel) =
-                                    react_user_id.create_dm_channel(&http.clone()).await
-                                {
-                                    trace!("sending user info source for quote");
-                                    let _ = dm_channel
-                                        .say(
-                                            &http,
-                                            format!(
-                                                "https://discordapp.com/channels/{}/{}/{}",
-                                                quote_server_id, quote_channel_id, quote_msg_id,
-                                            ),
-                                        )
-                                        .await;
-                                }
-                            }
-                        })
-                    }),
-                ),
-            );
-        }
+        let _ = tokio::time::timeout(Duration::from_secs(60 * 60_u64), async move {
+            loop {
+                if let Some(reaction) = collector.receive_one().await {
+                    if let Ok(dm_channel) = reaction
+                        .as_inner_ref()
+                        .user_id
+                        .create_dm_channel(&http.clone())
+                        .await
+                    {
+                        trace!(user = ?reaction.as_inner_ref().user_id, "sending user info source for quote");
+                        let _ = dm_channel
+                            .say(
+                                &http.clone(),
+                                format!(
+                                    "https://discordapp.com/channels/{}/{}/{}",
+                                    quote_server_id, quote_channel_id, quote_msg_id,
+                                ),
+                            )
+                            .await;
+                    }
+                }
+            }
+        })
+        .await;
     } else {
         msg.reply(&ctx, "Sorry, i can not find this message.")
             .await?;
