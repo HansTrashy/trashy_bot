@@ -30,29 +30,52 @@ pub async fn choose(ctx: &mut Context, msg: &Message, mut args: Args) -> Command
         };
     }
 
-    let chosen = args
+    let args = args
         .iter::<String>()
-        .choose(&mut rand::thread_rng())
-        .unwrap()
-        .unwrap();
+        .collect::<Result<Vec<_>, _>>()
+        .expect("could not parse args");
 
-    match msg
-        .channel_id
-        .say(
-            &ctx.http,
-            content_safe(
-                &ctx.cache,
-                &sanitize_for_other_bot_commands(&chosen),
-                &settings,
+    if args.windows(2).all(|w| w[0] == w[1]) {
+        return match msg
+            .channel_id
+            .say(
+                &ctx.http,
+                "You do not want to deceive me, the consequences would be dire",
             )
-            .await,
-        )
-        .await
-    {
-        Ok(_) => Ok(()),
-        Err(e) => {
-            error!("Failure sending message: {:?}", e);
-            Err(e.into())
+            .await
+        {
+            Ok(_) => Ok(()),
+            Err(e) => {
+                error!("Failure sending message: {:?}", e);
+                Err(e.into())
+            }
+        };
+    }
+
+    let chosen = args.choose(&mut rand::thread_rng());
+
+    if let Some(chosen) = chosen {
+        match msg
+            .channel_id
+            .say(
+                &ctx.http,
+                content_safe(
+                    &ctx.cache,
+                    &sanitize_for_other_bot_commands(chosen),
+                    &settings,
+                )
+                .await,
+            )
+            .await
+        {
+            Ok(_) => Ok(()),
+            Err(e) => {
+                error!("Failure sending message: {:?}", e);
+                Err(e.into())
+            }
         }
+    } else {
+        error!("nothing was chosen");
+        Ok(())
     }
 }
