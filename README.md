@@ -11,7 +11,6 @@ No external dependencies (at least until voice is implemented again?)
 Create a `.env` file after the following example in the project root:
 
     DISCORD_TOKEN=****
-    DATABASE_URL=postgres://{pguser}:{pgpw}@{host}:{port}
     TWITCH_TOKEN=****
     PG_HOST=localhost
     PG_USER=*user*
@@ -20,5 +19,4 @@ Create a `.env` file after the following example in the project root:
     PG_POOL.MAX_SIZE=4
     PG_POOL.TIMEOUTS.WAIT.SECS=5
     PG_POOL.TIMEOUTS.WAIT.NANOS=0
-
 
