@@ -170,18 +170,19 @@ impl EventHandler for Handler {
                     let mut conn = if let Some(v) = data.get::<DatabasePool>() {
                         v.get().await.unwrap()
                     } else {
-                        msg.reply(&ctx, "Could not retrieve the database connection!")
+                        let _ = msg
+                            .reply(&ctx, "Could not retrieve the database connection!")
                             .await;
                         return;
                     };
 
                     // clear old tags for this fav
-                    let _ = Tag::delete(&mut *conn, waited_fav_id);
+                    let _ = Tag::delete(&mut *conn, waited_fav_id).await;
 
                     // TODO: make this a single statement
-                    msg.content.split(' ').for_each(|tag| {
-                        let _ = Tag::create(&mut *conn, waited_fav_id, tag);
-                    });
+                    for tag in msg.content.split(' ') {
+                        let _ = Tag::create(&mut *conn, waited_fav_id, tag).await;
+                    }
 
                     wait.purge(
                         *msg.author.id.as_u64(),
