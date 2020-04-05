@@ -8,7 +8,7 @@ use serenity::{
 async fn katzer(ctx: &mut Context, msg: &Message, _args: Args) -> CommandResult {
     let _ = msg.channel_id.send_message(&ctx, |m| {
         m.embed(|e| e.image("https://cdn.discordapp.com/attachments/217015995385118721/632308780477972480/sinnbild.png"))
-    });
+    }).await;
 
     Ok(())
 }
@@ -25,7 +25,8 @@ async fn emoji(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
             if e.name == emoji_name {
                 let _ = msg
                     .channel_id
-                    .send_message(&ctx, |m| m.content(format!("{}", e)));
+                    .send_message(&ctx, |m| m.content(format!("{}", e)))
+                    .await;
                 return Ok(());
             }
         }
