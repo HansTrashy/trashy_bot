@@ -10,7 +10,7 @@ use serenity::{
     model::prelude::*,
 };
 use std::time::Duration;
-use tracing::{info, trace};
+use tracing::{debug, trace};
 
 #[command]
 #[description = "Quote a message"]
@@ -116,6 +116,11 @@ pub async fn quote(ctx: &mut Context, msg: &Message, args: Args) -> CommandResul
             })
             .await?;
 
+        match msg.delete(&ctx).await {
+            Ok(_) => (),
+            Err(_) => debug!("deleting in dms is not supported"),
+        }
+
         let mut collector = ReactionCollectorBuilder::new(&ctx)
             .message_id(bot_msg.id)
             .timeout(Duration::from_secs(5))
@@ -152,6 +157,5 @@ pub async fn quote(ctx: &mut Context, msg: &Message, args: Args) -> CommandResul
         trace!("Could not find quote message");
     }
 
-    msg.delete(&ctx).await?;
     Ok(())
 }
