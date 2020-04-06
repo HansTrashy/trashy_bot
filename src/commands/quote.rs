@@ -18,9 +18,10 @@ use tracing::{info, trace};
 #[example = "https://discordapp.com/channels/_/_/_"]
 #[only_in("guilds")]
 pub async fn quote(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
-    let data = ctx.data.write().await;
-
-    if data
+    if ctx
+        .data
+        .write()
+        .await
         .get::<OptOut>()
         .expect("expected optout")
         .lock()
@@ -54,7 +55,10 @@ pub async fn quote(ctx: &mut Context, msg: &Message, args: Args) -> CommandResul
         .message(&ctx.http, quote_msg_id)
         .await
     {
-        if data
+        if ctx
+            .data
+            .read()
+            .await
             .get::<OptOut>()
             .expect("expected optout")
             .lock()
