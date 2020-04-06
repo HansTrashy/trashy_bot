@@ -60,7 +60,10 @@ pub async fn post(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandRe
         .message(&ctx.http, chosen_fav.msg_id as u64)
         .await?;
 
-    msg.delete(&ctx).await?;
+    match msg.delete(&ctx).await {
+        Ok(_) => (),
+        Err(_) => debug!("Deletion is not supported in DMs"),
+    }
 
     if opt_out
         .lock()
