@@ -121,36 +121,37 @@ pub async fn quote(ctx: &mut Context, msg: &Message, args: Args) -> CommandResul
             Err(_) => debug!("deleting in dms is not supported"),
         }
 
-        let mut collector = ReactionCollectorBuilder::new(&ctx)
-            .message_id(bot_msg.id)
-            .timeout(Duration::from_secs(5))
-            .await;
+    //TODO: implement this when the collector support for this is done
+    // let mut collector = ReactionCollectorBuilder::new(&ctx)
+    //     .message_id(bot_msg.id)
+    //     .timeout(Duration::from_secs(5))
+    //     .await;
 
-        let http = ctx.http.clone();
-        let _ = tokio::time::timeout(Duration::from_secs(60 * 60_u64), async move {
-            loop {
-                if let Some(reaction) = collector.receive_one().await {
-                    if let Ok(dm_channel) = reaction
-                        .as_inner_ref()
-                        .user_id
-                        .create_dm_channel(&http.clone())
-                        .await
-                    {
-                        trace!(user = ?reaction.as_inner_ref().user_id, "sending user info source for quote");
-                        let _ = dm_channel
-                            .say(
-                                &http.clone(),
-                                format!(
-                                    "https://discordapp.com/channels/{}/{}/{}",
-                                    quote_server_id, quote_channel_id, quote_msg_id,
-                                ),
-                            )
-                            .await;
-                    }
-                }
-            }
-        })
-        .await;
+    // let http = ctx.http.clone();
+    // let _ = tokio::time::timeout(Duration::from_secs(60 * 60_u64), async move {
+    //     loop {
+    //         if let Some(reaction) = collector.receive_one().await {
+    //             if let Ok(dm_channel) = reaction
+    //                 .as_inner_ref()
+    //                 .user_id
+    //                 .create_dm_channel(&http.clone())
+    //                 .await
+    //             {
+    //                 trace!(user = ?reaction.as_inner_ref().user_id, "sending user info source for quote");
+    //                 let _ = dm_channel
+    //                     .say(
+    //                         &http.clone(),
+    //                         format!(
+    //                             "https://discordapp.com/channels/{}/{}/{}",
+    //                             quote_server_id, quote_channel_id, quote_msg_id,
+    //                         ),
+    //                     )
+    //                     .await;
+    //             }
+    //         }
+    //     }
+    // })
+    // .await;
     } else {
         msg.reply(&ctx, "Sorry, i can not find this message.")
             .await?;
