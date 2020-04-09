@@ -17,7 +17,7 @@ async fn roll(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult
     if amount_of_dice > 50 {
         return match msg
             .channel_id
-            .say(&ctx.http, "Only < 50 dice allowed")
+            .say(&ctx.http, "Only <= 50 dice allowed")
             .await
         {
             Ok(_) => Ok(()),
@@ -33,7 +33,7 @@ async fn roll(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult
         // prevent rng to be held across an await point
         let mut rng = rand::thread_rng();
         for _ in 0..amount_of_dice {
-            dice_rolls.push(rng.gen_range(0, number_of_eyes));
+            dice_rolls.push(rng.gen_range(1, number_of_eyes + 1));
         }
     }
 
