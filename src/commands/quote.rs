@@ -12,42 +12,24 @@ use serenity::{
 use std::time::Duration;
 use tracing::{debug, trace};
 
+lazy_static! {
+    static ref QUOTE_LINK_REGEX: Regex =
+        Regex::new(r#"https://discordapp.com/channels/(\d+)/(\d+)/(\d+)"#)
+            .expect("could not compile quote link regex");
+}
+
 #[command]
 #[description = "Quote a message"]
 #[usage = "command message-link"]
 #[example = "https://discordapp.com/channels/_/_/_"]
 #[only_in("guilds")]
 pub async fn quote(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
-    if ctx
-        .data
-        .write()
-        .await
-        .get::<OptOut>()
-        .expect("expected optout")
-        .lock()
-        .await
-        .set
-        .contains(msg.author.id.as_u64())
-    {
-        msg.channel_id
-            .send_message(&ctx.http, |m| {
-                m.content("You have opted out of the quote functionality")
-            })
-            .await?;
-        msg.delete(&ctx).await?;
-        return Ok(());
-    }
+    check_optout(ctx, msg, msg.author.id.as_u64()).await?;
 
-    lazy_static! {
-        static ref QUOTE_LINK_REGEX: Regex =
-            Regex::new(r#"https://discordapp.com/channels/(\d+)/(\d+)/(\d+)"#)
-                .expect("could not compile quote link regex");
-    }
-    // for caps in QUOTE_LINK_REGEX.captures_iter(args.rest()) {
     let caps = QUOTE_LINK_REGEX
         .captures(args.rest())
         .ok_or("No captures, invalid link?")?;
-    let quote_server_id = caps.get(1).map_or("", |m| m.as_str()).parse::<u64>()?;
+    let _quote_server_id = caps.get(1).map_or("", |m| m.as_str()).parse::<u64>()?;
     let quote_channel_id = caps.get(2).map_or("", |m| m.as_str()).parse::<u64>()?;
     let quote_msg_id = caps.get(3).map_or("", |m| m.as_str()).parse::<u64>()?;
 
@@ -55,25 +37,7 @@ pub async fn quote(ctx: &mut Context, msg: &Message, args: Args) -> CommandResul
         .message(&ctx.http, quote_msg_id)
         .await
     {
-        if ctx
-            .data
-            .read()
-            .await
-            .get::<OptOut>()
-            .expect("expected optout")
-            .lock()
-            .await
-            .set
-            .contains(quoted_msg.author.id.as_u64())
-        {
-            msg.channel_id
-                .send_message(&ctx.http, |m| {
-                    m.content("The user does not want to be quoted")
-                })
-                .await?;
-            msg.delete(&ctx).await?;
-            return Ok(());
-        }
+        check_optout(ctx, msg, quoted_msg.author.id.as_u64()).await?;
 
         let channel_name = quoted_msg
             .channel_id
@@ -122,6 +86,7 @@ pub async fn quote(ctx: &mut Context, msg: &Message, args: Args) -> CommandResul
         }
 
     //TODO: implement this when the collector support for this is done
+
     // let mut collector = ReactionCollectorBuilder::new(&ctx)
     //     .message_id(bot_msg.id)
     //     .timeout(Duration::from_secs(5))
@@ -159,4 +124,29 @@ pub async fn quote(ctx: &mut Context, msg: &Message, args: Args) -> CommandResul
     }
 
     Ok(())
+}
+
+async fn check_optout(ctx: &mut Context, msg: &Message, id: &u64) -> CommandResult {
+    if ctx
+        .data
+        .read()
+        .await
+        .get::<OptOut>()
+        .expect("expected optout")
+        .lock()
+        .await
+        .set
+        .contains(id)
+    {
+        msg.channel_id
+            .send_message(&ctx.http, |m| {
+                m.content("OptOut is used by you or the quoted")
+            })
+            .await?;
+        msg.delete(&ctx).await?;
+        Ok(())
+    } else {
+        debug!("OptOut check unsuccessful");
+        Err("Fav/Quote OptOut is active".into())
+    }
 }
