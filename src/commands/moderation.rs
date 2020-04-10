@@ -47,7 +47,7 @@ pub async fn mute(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandRe
                         for user in &msg.mentions {
                             match guild_id.member(&ctx, user).await {
                                 Ok(mut member) => {
-                                    let _ = member.add_role(&ctx, RoleId(*mute_role));
+                                    let _ = member.add_role(&ctx, RoleId(*mute_role)).await;
                                     found_members.push(member);
                                 }
                                 Err(e) => error!("could not get member: {:?}", e),
