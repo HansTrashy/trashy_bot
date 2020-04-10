@@ -79,9 +79,11 @@ pub async fn mute(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandRe
                                 let description =
                                     create_mute_message(&found_members, &duration, &mute_message)
                                         .await;
-                                let _ = ChannelId(*modlog_channel).send_message(&ctx, |m| {
-                                    m.embed(|e| e.description(description).color((0, 120, 220)))
-                                });
+                                let _ = ChannelId(*modlog_channel)
+                                    .send_message(&ctx, |m| {
+                                        m.embed(|e| e.description(description).color((0, 120, 220)))
+                                    })
+                                    .await;
                             }
                         }
 
