@@ -92,16 +92,15 @@ pub async fn quote(ctx: &mut Context, msg: &Message, args: Args) -> CommandResul
             .timeout(Duration::from_secs(60 * 60_u64))
             .await
             .for_each(|reaction| {
-                let http = http.clone();
+                let http = &http;
                 async move {
                     // ignore add/remove reaction difference
                     let reaction = reaction.as_inner_ref();
-                    if let Ok(dm_channel) = reaction.user_id.create_dm_channel(&http.clone()).await
-                    {
+                    if let Ok(dm_channel) = reaction.user_id.create_dm_channel(http).await {
                         trace!(user = ?reaction.user_id, "sending info source for quote");
                         let _ = dm_channel
                             .say(
-                                &http.clone(),
+                                http,
                                 format!(
                                     "https://discordapp.com/channels/{}/{}/{}",
                                     quote_server_id, quote_channel_id, quote_msg_id,
