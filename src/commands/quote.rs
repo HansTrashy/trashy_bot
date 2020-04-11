@@ -2,6 +2,7 @@ use crate::OptOut;
 use lazy_static::lazy_static;
 use regex::Regex;
 use serenity::collector::reaction_collector::ReactionCollectorBuilder;
+use serenity::futures::stream::StreamExt;
 use serenity::model::channel::Attachment;
 use serenity::model::id::ChannelId;
 use serenity::prelude::*;
@@ -29,7 +30,7 @@ pub async fn quote(ctx: &mut Context, msg: &Message, args: Args) -> CommandResul
     let caps = QUOTE_LINK_REGEX
         .captures(args.rest())
         .ok_or("No captures, invalid link?")?;
-    let _quote_server_id = caps.get(1).map_or("", |m| m.as_str()).parse::<u64>()?;
+    let quote_server_id = caps.get(1).map_or("", |m| m.as_str()).parse::<u64>()?;
     let quote_channel_id = caps.get(2).map_or("", |m| m.as_str()).parse::<u64>()?;
     let quote_msg_id = caps.get(3).map_or("", |m| m.as_str()).parse::<u64>()?;
 
@@ -85,38 +86,32 @@ pub async fn quote(ctx: &mut Context, msg: &Message, args: Args) -> CommandResul
             Err(_) => debug!("deleting in dms is not supported"),
         }
 
-    //TODO: implement this when the collector support for this is done
-
-    // let mut collector = ReactionCollectorBuilder::new(&ctx)
-    //     .message_id(bot_msg.id)
-    //     .timeout(Duration::from_secs(5))
-    //     .await;
-
-    // let http = ctx.http.clone();
-    // let _ = tokio::time::timeout(Duration::from_secs(60 * 60_u64), async move {
-    //     loop {
-    //         if let Some(reaction) = collector.receive_one().await {
-    //             if let Ok(dm_channel) = reaction
-    //                 .as_inner_ref()
-    //                 .user_id
-    //                 .create_dm_channel(&http.clone())
-    //                 .await
-    //             {
-    //                 trace!(user = ?reaction.as_inner_ref().user_id, "sending user info source for quote");
-    //                 let _ = dm_channel
-    //                     .say(
-    //                         &http.clone(),
-    //                         format!(
-    //                             "https://discordapp.com/channels/{}/{}/{}",
-    //                             quote_server_id, quote_channel_id, quote_msg_id,
-    //                         ),
-    //                     )
-    //                     .await;
-    //             }
-    //         }
-    //     }
-    // })
-    // .await;
+        let http = ctx.http.clone();
+        let _ = bot_msg
+            .await_reactions(&ctx)
+            .timeout(Duration::from_secs(60 * 60_u64))
+            .await
+            .for_each(|reaction| {
+                let http = http.clone();
+                async move {
+                    // ignore add/remove reaction difference
+                    let reaction = reaction.as_inner_ref();
+                    if let Ok(dm_channel) = reaction.user_id.create_dm_channel(&http.clone()).await
+                    {
+                        trace!(user = ?reaction.user_id, "sending info source for quote");
+                        let _ = dm_channel
+                            .say(
+                                &http.clone(),
+                                format!(
+                                    "https://discordapp.com/channels/{}/{}/{}",
+                                    quote_server_id, quote_channel_id, quote_msg_id,
+                                ),
+                            )
+                            .await;
+                    }
+                }
+            })
+            .await;
     } else {
         msg.reply(&ctx, "Sorry, i can not find this message.")
             .await?;
@@ -138,15 +133,17 @@ async fn check_optout(ctx: &mut Context, msg: &Message, id: &u64) -> CommandResu
         .set
         .contains(id)
     {
-        msg.channel_id
+        let _ = msg
+            .channel_id
             .send_message(&ctx.http, |m| {
                 m.content("OptOut is used by you or the quoted")
             })
             .await?;
         msg.delete(&ctx).await?;
-        Ok(())
-    } else {
         debug!("OptOut check unsuccessful");
         Err("Fav/Quote OptOut is active".into())
+    } else {
+        trace!("user id not contained in optout set");
+        Ok(())
     }
 }
