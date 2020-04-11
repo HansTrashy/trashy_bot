@@ -24,6 +24,11 @@ async fn poll(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult
         .filter_map(|a| a.map(Some).unwrap_or(None))
         .collect::<Vec<String>>();
 
+    if answers.len() > 9 {
+        return Err("Only up to 9 answers are allowed".into());
+    }
+
+    //TODO: react with all possible answer reactions
     let question_msg = msg
         .channel_id
         .say(&ctx, ask_question(&msg.author, &question, &answers).await)
