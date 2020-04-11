@@ -93,7 +93,7 @@ impl OptOutStore {
                 serde_json::from_str::<Self>(&data).expect("could not deserialize rules state")
             }
             Err(e) => {
-                warn!("OptOutp loading error: {}", e);
+                warn!("OptOut loading error: {}", e);
                 Self {
                     set: HashSet::new(),
                 }

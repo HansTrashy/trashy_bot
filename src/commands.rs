@@ -14,6 +14,7 @@ pub mod reaction_roles;
 pub mod remindme;
 pub mod roll;
 // pub mod rules;
+pub mod poll;
 pub mod selfmute;
 pub mod shiny;
 pub mod spongebob;
