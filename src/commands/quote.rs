@@ -90,6 +90,10 @@ pub async fn quote(ctx: &mut Context, msg: &Message, args: Args) -> CommandResul
         let _ = bot_msg
             .await_reactions(&ctx)
             .timeout(Duration::from_secs(60 * 60_u64))
+            .filter(|reaction| match reaction.emoji {
+                ReactionType::Unicode(ref value) if value == "ℹ\u{fe0f}" => true,
+                _ => false,
+            })
             .await
             .for_each(|reaction| {
                 let http = &http;
