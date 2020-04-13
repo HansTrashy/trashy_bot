@@ -138,22 +138,24 @@ impl EventHandler for Handler {
                 );
 
                 if let Some(userlog_channel) = g_cfg.userlog_channel {
-                    let _ = ChannelId(userlog_channel).send_message(&ctx, |m| {
-                        m.embed(|e| {
-                            e.author(|a| {
-                                a.name(&user.name)
-                                    .icon_url(&user.static_avatar_url().unwrap_or_default())
-                            })
-                            .color((220, 0, 0))
-                            .description(&information_body)
-                            .footer(|f| {
-                                f.text(&format!(
-                                    "{}#{} | id: {}",
-                                    user.name, user.discriminator, &user.id,
-                                ))
+                    let _ = ChannelId(userlog_channel)
+                        .send_message(&ctx, |m| {
+                            m.embed(|e| {
+                                e.author(|a| {
+                                    a.name(&user.name)
+                                        .icon_url(&user.static_avatar_url().unwrap_or_default())
+                                })
+                                .color((220, 0, 0))
+                                .description(&information_body)
+                                .footer(|f| {
+                                    f.text(&format!(
+                                        "{}#{} | id: {}",
+                                        user.name, user.discriminator, &user.id,
+                                    ))
+                                })
                             })
                         })
-                    });
+                        .await;
                 }
             }
         }
