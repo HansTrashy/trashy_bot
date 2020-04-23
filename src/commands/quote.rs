@@ -1,7 +1,6 @@
 use crate::OptOut;
 use lazy_static::lazy_static;
 use regex::Regex;
-use serenity::collector::reaction_collector::ReactionCollectorBuilder;
 use serenity::futures::stream::StreamExt;
 use serenity::model::channel::Attachment;
 use serenity::model::id::ChannelId;
@@ -25,7 +24,7 @@ lazy_static! {
 #[example = "https://discordapp.com/channels/_/_/_"]
 #[only_in("guilds")]
 pub async fn quote(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
-    check_optout(ctx, msg, msg.author.id.as_u64()).await?;
+    check_optout(ctx, msg, *msg.author.id.as_u64()).await?;
 
     let caps = QUOTE_LINK_REGEX
         .captures(args.rest())
@@ -38,7 +37,7 @@ pub async fn quote(ctx: &mut Context, msg: &Message, args: Args) -> CommandResul
         .message(&ctx.http, quote_msg_id)
         .await
     {
-        check_optout(ctx, msg, quoted_msg.author.id.as_u64()).await?;
+        check_optout(ctx, msg, *quoted_msg.author.id.as_u64()).await?;
 
         let channel_name = quoted_msg
             .channel_id
@@ -124,7 +123,7 @@ pub async fn quote(ctx: &mut Context, msg: &Message, args: Args) -> CommandResul
     Ok(())
 }
 
-async fn check_optout(ctx: &mut Context, msg: &Message, id: &u64) -> CommandResult {
+async fn check_optout(ctx: &mut Context, msg: &Message, id: u64) -> CommandResult {
     if ctx
         .data
         .read()
@@ -134,7 +133,7 @@ async fn check_optout(ctx: &mut Context, msg: &Message, id: &u64) -> CommandResu
         .lock()
         .await
         .set
-        .contains(id)
+        .contains(&id)
     {
         let _ = msg
             .channel_id

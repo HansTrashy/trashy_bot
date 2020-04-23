@@ -1,4 +1,3 @@
-use crate::dispatch::{Event as DispatchEvent, Listener};
 use crate::interaction::wait::{Action, Event};
 use crate::models::fav::Fav;
 use crate::models::tag::Tag;
@@ -10,6 +9,7 @@ use itertools::Itertools;
 use lazy_static::lazy_static;
 use rand::prelude::*;
 use regex::Regex;
+use serenity::futures::stream::StreamExt;
 use serenity::model::{channel::Attachment, channel::ReactionType, id::ChannelId};
 use serenity::prelude::*;
 use serenity::{
@@ -17,6 +17,7 @@ use serenity::{
     model::channel::Message,
 };
 use std::iter::FromIterator;
+use std::time::Duration;
 use tracing::{debug, trace};
 
 #[command]
@@ -138,54 +139,39 @@ pub async fn post(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandRe
                 embed
             })
         })
-        .await;
+        .await?;
 
     let http = ctx.http.clone();
-    if let Ok(bot_msg) = bot_msg {
-        if let Some(dispatcher) = data.get::<crate::TrashyDispatcher>() {
-            dispatcher.lock().await.add_listener(
-                DispatchEvent::ReactMsg(
-                    bot_msg.id,
-                    ReactionType::Unicode("ℹ️".to_string()),
-                    bot_msg.channel_id,
-                    msg.author.id,
-                ),
-                Listener::new(
-                    std::time::Duration::from_secs(60 * 60),
-                    Box::new(move |_, event| {
-                        trace!("creating listener for fav info source");
-                        let http = http.clone();
-                        let chosen_fav = chosen_fav.clone();
-                        Box::pin(async move {
-                            if let DispatchEvent::ReactMsg(
-                                _msg_id,
-                                _reaction_type,
-                                _channel_id,
-                                react_user_id,
-                            ) = &event
-                            {
-                                if let Ok(dm_channel) = react_user_id.create_dm_channel(&http).await
-                                {
-                                    trace!("sending user source message link");
-                                    let _ = dm_channel
-                                        .say(
-                                            &http,
-                                            format!(
-                                                "https://discordapp.com/channels/{}/{}/{}",
-                                                &chosen_fav.server_id,
-                                                &chosen_fav.channel_id,
-                                                &chosen_fav.msg_id,
-                                            ),
-                                        )
-                                        .await;
-                                }
-                            }
-                        })
-                    }),
-                ),
-            );
-        }
-    }
+    let _ = bot_msg
+        .await_reactions(&ctx)
+        .timeout(Duration::from_secs(60 * 60_u64))
+        .filter(|reaction| match reaction.emoji {
+            ReactionType::Unicode(ref value) if value == "ℹ\u{fe0f}" => true,
+            _ => false,
+        })
+        .await
+        .for_each(|reaction| {
+            let http = &http;
+            let chosen_fav = chosen_fav.clone();
+            async move {
+                // ignore add/remove reaction difference
+                let reaction = reaction.as_inner_ref();
+                if let Ok(dm_channel) = reaction.user_id.create_dm_channel(http).await {
+                    trace!(user = ?reaction.user_id, "sending info source for quote");
+                    let _ = dm_channel
+                        .say(
+                            http,
+                            format!(
+                                "https://discordapp.com/channels/{}/{}/{}",
+                                &chosen_fav.server_id, &chosen_fav.channel_id, &chosen_fav.msg_id,
+                            ),
+                        )
+                        .await;
+                }
+            }
+        })
+        .await;
+
     Ok(())
 }
 
