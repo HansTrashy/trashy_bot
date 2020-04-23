@@ -14,7 +14,7 @@ itertools = "0.9.0"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 reqwest = { version = "0.10", features = ["json"] }
-tokio = { version = "=0.2.13", features = ["full"] } # fixed tokio version to check if this impacts oom kill
+tokio = { version = "0.2", features = ["full"] } # fixed tokio version to check if this impacts oom kill
 futures = "0.3"
 tokio-postgres = { version = "0.5", features = ["with-serde_json-1", "with-chrono-0_4"] }
 deadpool-postgres = "0.5.4"
