@@ -110,7 +110,7 @@ async fn create_mute_message(users: &[Member], duration: &Duration, mute_message
 
     let users = stream::iter(users.iter())
         .map(|u| async move {
-            let user = u.user.read().await;
+            let user = &u.user;
             if let Some(nick) = &u.nick {
                 format!("{} ({}#{})", nick, user.name, user.discriminator)
             } else {
@@ -144,7 +144,7 @@ async fn create_ban_message(users: &[Member], ban_message: &str) -> String {
     };
     let users = stream::iter(users.iter())
         .map(|u| async move {
-            let user = u.user.read().await;
+            let user = &u.user;
             if let Some(nick) = &u.nick {
                 format!("{} ({}#{})", nick, user.name, user.discriminator)
             } else {
@@ -172,7 +172,7 @@ async fn create_kick_message(users: &[Member], kick_message: &str) -> String {
     };
     let users = stream::iter(users.iter())
         .map(|u| async move {
-            let user = u.user.read().await;
+            let user = &u.user;
             if let Some(nick) = &u.nick {
                 format!("{} ({}#{})", nick, user.name, user.discriminator)
             } else {
@@ -200,7 +200,7 @@ async fn create_unmute_message(users: &[Member]) -> String {
     };
     let users = stream::iter(users.iter())
         .map(|u| async move {
-            let user = u.user.read().await;
+            let user = &u.user;
             if let Some(nick) = &u.nick {
                 format!("{} ({}#{})", nick, user.name, user.discriminator)
             } else {

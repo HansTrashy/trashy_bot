@@ -30,7 +30,6 @@ impl<'a> Task {
             Self::Reply { user, channel, msg } => Box::pin(async move {
                 let message = MessageBuilder::new()
                     .mention(&UserId(user))
-                    .await
                     .push(" ")
                     .push(&msg)
                     .build();

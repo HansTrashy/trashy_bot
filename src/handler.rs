@@ -50,13 +50,11 @@ impl EventHandler for Handler {
             let user_info = UserInfo {
                 created_at: new_member
                     .user
-                    .read()
-                    .await
                     .created_at()
                     .format("%d.%m.%Y %H:%M:%S")
                     .to_string(),
                 created_at_ago: Utc::now()
-                    .signed_duration_since(new_member.user.read().await.created_at())
+                    .signed_duration_since(new_member.user.created_at())
                     .num_days(),
                 member: None,
             };
@@ -66,14 +64,12 @@ impl EventHandler for Handler {
                 user_info.created_at, user_info.created_at_ago,
             );
 
-            let member_id = new_member.user.read().await.id;
+            let member_id = new_member.user.id;
             if let Some(userlog_channel) = g_cfg.userlog_channel {
-                let member_name = new_member.user.read().await.name.to_string();
-                let member_discriminator = new_member.user.read().await.discriminator;
+                let member_name = new_member.user.name.to_string();
+                let member_discriminator = new_member.user.discriminator;
                 let member_avatar = new_member
                     .user
-                    .read()
-                    .await
                     .static_avatar_url()
                     .unwrap_or_default();
                 let _ = ChannelId(userlog_channel)

@@ -44,8 +44,6 @@ pub async fn add_role(ctx: Context, add_reaction: Reaction) {
                     .and_then(|c| c.guild())
                 {
                     if let Ok(mut member) = guild
-                        .read()
-                        .await
                         .guild_id
                         .member(&ctx, add_reaction.user_id)
                         .await
@@ -97,8 +95,6 @@ pub async fn remove_role(ctx: Context, remove_reaction: Reaction) {
                     .and_then(|c| c.guild())
                 {
                     if let Ok(mut member) = guild
-                        .read()
-                        .await
                         .guild_id
                         .member(&ctx, remove_reaction.user_id)
                         .await

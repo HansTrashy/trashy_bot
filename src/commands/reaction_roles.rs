@@ -32,8 +32,6 @@ pub async fn create(ctx: &mut Context, msg: &Message, mut args: Args) -> Command
                     .ok_or("no channel")?
                     .guild()
                     .ok_or("no guild")?
-                    .read()
-                    .await
                     .guild_id
                     .as_u64() as i64,
                 *role.id.as_u64() as i64,
