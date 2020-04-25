@@ -24,14 +24,14 @@ use tracing::{debug, trace};
 #[description = "Post a fav"]
 #[example = "taishi wichsen"]
 pub async fn post(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
-    let data = ctx.data.write().await;
-    let pool = data
+    let pool = ctx.data.read().await
         .get::<DatabasePool>()
+        .map(|p| p.clone())
         .ok_or("Could not retrieve the database connection!")?;
     let mut conn = pool.get().await?;
 
-    let opt_out = if let Some(v) = data.get::<OptOut>() {
-        v
+    let opt_out = if let Some(v) = ctx.data.read().await.get::<OptOut>() {
+        v.clone()
     } else {
         let _ = msg.reply(&ctx, "OptOut list not available").await;
         panic!("no optout");
@@ -40,7 +40,7 @@ pub async fn post(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandRe
     if opt_out.lock().await.set.contains(msg.author.id.as_u64()) {
         let _ = msg.channel_id.send_message(&ctx.http, |m| {
             m.content("You have opted out of the quote functionality")
-        });
+        }).await;
         return Ok(());
     }
 
@@ -78,7 +78,7 @@ pub async fn post(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandRe
         return Ok(());
     }
 
-    if let Some(waiter) = data.get::<Waiter>() {
+    if let Some(waiter) = ctx.data.read().await.get::<Waiter>() {
         let mut wait = waiter.lock().await;
 
         //first remove all other waits for this user and these actions
