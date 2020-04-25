@@ -15,9 +15,9 @@ use tracing::info;
 #[num_args(1)]
 pub async fn register(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
     let username = args.single::<String>()?;
-    let data = ctx.data.write().await;
-    let pool = data
+    let pool = ctx.data.read().await
         .get::<DatabasePool>()
+        .map(|p| p.clone())
         .ok_or("Could not retrieve the database connection!")?;
     let mut conn = pool.get().await?;
 
@@ -47,9 +47,9 @@ pub async fn register(ctx: &mut Context, msg: &Message, mut args: Args) -> Comma
 #[num_args(0)]
 #[bucket = "lastfm"]
 pub async fn now(ctx: &mut Context, msg: &Message, _args: Args) -> CommandResult {
-    let data = ctx.data.write().await;
-    let pool = data
+    let pool = ctx.data.read().await
         .get::<DatabasePool>()
+        .map(|p| p.clone())
         .ok_or("Could not retrieve the database connection!")?;
     let mut conn = pool.get().await?;
 
@@ -99,9 +99,9 @@ pub async fn now(ctx: &mut Context, msg: &Message, _args: Args) -> CommandResult
 #[num_args(0)]
 #[bucket = "lastfm"]
 pub async fn recent(ctx: &mut Context, msg: &Message, _args: Args) -> CommandResult {
-    let data = ctx.data.write().await;
-    let pool = data
+    let pool = ctx.data.read().await
         .get::<DatabasePool>()
+        .map(|p| p.clone())
         .ok_or("Could not retrieve the database connection!")?;
     let mut conn = pool.get().await?;
 
@@ -159,9 +159,9 @@ pub async fn artists(ctx: &mut Context, msg: &Message, args: Args) -> CommandRes
         _ => "overall",
     };
 
-    let data = ctx.data.write().await;
-    let pool = data
+    let pool = ctx.data.read().await
         .get::<DatabasePool>()
+        .map(|p| p.clone())
         .ok_or("Could not retrieve the database connection!")?;
     let mut conn = pool.get().await?;
 
@@ -216,9 +216,9 @@ pub async fn albums(ctx: &mut Context, msg: &Message, args: Args) -> CommandResu
         _ => "overall",
     };
 
-    let data = ctx.data.write().await;
-    let pool = data
+    let pool = ctx.data.read().await
         .get::<DatabasePool>()
+        .map(|p| p.clone())
         .ok_or("Could not retrieve the database connection!")?;
     let mut conn = pool.get().await?;
 
@@ -275,9 +275,9 @@ pub async fn tracks(ctx: &mut Context, msg: &Message, args: Args) -> CommandResu
 
     info!("period: {:?}", period);
 
-    let data = ctx.data.write().await;
-    let pool = data
+    let pool = ctx.data.read().await
         .get::<DatabasePool>()
+        .map(|p| p.clone())
         .ok_or("Could not retrieve the database connection!")?;
     let mut conn = pool.get().await?;
 

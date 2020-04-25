@@ -30,9 +30,9 @@ pub struct Guild {
 #[num_args(0)]
 #[allowed_roles("Mods")]
 pub async fn show_config(ctx: &mut Context, msg: &Message, _args: Args) -> CommandResult {
-    let data = ctx.data.write().await;
-    let pool = data
+    let pool = ctx.data.read().await
         .get::<DatabasePool>()
+        .map(|p| p.clone())
         .ok_or("Could not retrieve the database connection!")?;
     let mut conn = pool.get().await?;
 
@@ -64,9 +64,9 @@ pub async fn show_config(ctx: &mut Context, msg: &Message, _args: Args) -> Comma
 #[allowed_roles("Mods")]
 pub async fn set_modlog(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
     let modlog_channel = args.parse::<u64>()?;
-    let data = ctx.data.write().await;
-    let pool = data
+    let pool = ctx.data.read().await
         .get::<DatabasePool>()
+        .map(|p| p.clone())
         .ok_or("Could not retrieve the database connection!")?;
     let mut conn = pool.get().await?;
 
@@ -125,9 +125,9 @@ pub async fn set_modlog(ctx: &mut Context, msg: &Message, args: Args) -> Command
 #[allowed_roles("Mods")]
 pub async fn set_userlog(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
     let userlog_channel = args.parse::<u64>()?;
-    let data = ctx.data.write().await;
-    let pool = data
+    let pool = ctx.data.read().await
         .get::<DatabasePool>()
+        .map(|p| p.clone())
         .ok_or("Could not retrieve the database connection!")?;
     let mut conn = pool.get().await?;
 
@@ -188,9 +188,9 @@ pub async fn set_userlog(ctx: &mut Context, msg: &Message, args: Args) -> Comman
 #[allowed_roles("Mods")]
 pub async fn set_muterole(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
     let mute_role = args.parse::<u64>()?;
-    let data = ctx.data.write().await;
-    let pool = data
+    let pool = ctx.data.read().await
         .get::<DatabasePool>()
+        .map(|p| p.clone())
         .ok_or("Could not retrieve the database connection!")?;
     let mut conn = pool.get().await?;
 

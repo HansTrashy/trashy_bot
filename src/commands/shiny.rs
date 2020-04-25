@@ -14,8 +14,7 @@ use serenity::{
 #[example("")]
 #[only_in("guilds")]
 async fn list(ctx: &mut Context, msg: &Message, _args: Args) -> CommandResult {
-    let data = ctx.data.write().await;
-    let mut conn = match data.get::<DatabasePool>() {
+    let mut conn = match ctx.data.read().await.get::<DatabasePool>() {
         Some(v) => v.get().await.unwrap(),
         None => {
             let _ = msg.reply(&ctx, "Could not retrieve the database connection!");
@@ -51,9 +50,9 @@ async fn list(ctx: &mut Context, msg: &Message, _args: Args) -> CommandResult {
 #[usage("*amount*")]
 async fn shiny(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
     let amount = args.single::<i64>()?;
-    let data = ctx.data.write().await;
-    let pool = data
+    let pool = ctx.data.read().await
         .get::<DatabasePool>()
+        .map(|p| p.clone())
         .ok_or("Could not retrieve the database connection!")?;
     let mut conn = pool.get().await?;
 
@@ -95,9 +94,10 @@ async fn respond(ctx: &Context, msg: &Message, shiny: Shiny) {
 #[usage("*amount*")]
 async fn setshiny(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
     let amount = args.single::<i64>()?;
-    let data = ctx.data.write().await;
-    let pool = data
+
+    let pool = ctx.data.read().await
         .get::<DatabasePool>()
+        .map(|p| p.clone())
         .ok_or("Could not retrieve the database connection!")?;
     let mut conn = pool.get().await?;
 
@@ -141,9 +141,9 @@ async fn setshiny(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandRe
 #[allowed_roles("Mods")]
 #[usage("*user1* *user2*")]
 async fn removeshiny(ctx: &mut Context, msg: &Message, _args: Args) -> CommandResult {
-    let data = ctx.data.write().await;
-    let pool = data
+    let pool = ctx.data.read().await
         .get::<DatabasePool>()
+        .map(|p| p.clone())
         .ok_or("Could not retrieve the database connection!")?;
     let mut conn = pool.get().await?;
 

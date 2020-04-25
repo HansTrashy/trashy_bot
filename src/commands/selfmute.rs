@@ -22,14 +22,14 @@ use tracing::error;
 #[example = "1h"]
 #[only_in("guilds")]
 pub async fn selfmute(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
-    let mut data = ctx.data.write().await;
-    let mut conn = data
+    let mut conn = ctx.data.read().await
         .get::<DatabasePool>()
+        .map(|p| p.clone())
         .ok_or("Could not retrieve the database connection!")?
         .get()
         .await?;
 
-    let scheduler = data
+    let scheduler = ctx.data.write().await
         .get_mut::<TrashyScheduler>()
         .expect("Expected Scheduler.")
         .clone();

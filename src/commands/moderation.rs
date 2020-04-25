@@ -22,13 +22,13 @@ use tracing::error;
 #[only_in("guilds")]
 #[allowed_roles("Mods")]
 pub async fn mute(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
-    let mut data = ctx.data.write().await;
-    let pool = data
+    let pool = ctx.data.read().await
         .get::<DatabasePool>()
+        .map(|p| p.clone())
         .ok_or("Could not retrieve the database connection!")?;
     let mut conn = pool.get().await?;
 
-    let scheduler = data
+    let scheduler = ctx.data.write().await
         .get_mut::<TrashyScheduler>()
         .expect("Expected Scheduler.")
         .clone();
@@ -224,9 +224,9 @@ async fn create_unmute_message(users: &[Member]) -> String {
 #[only_in("guilds")]
 #[allowed_roles("Mods")]
 pub async fn unmute(ctx: &mut Context, msg: &Message, _args: Args) -> CommandResult {
-    let data = ctx.data.write().await;
-    let pool = data
+    let pool = ctx.data.read().await
         .get::<DatabasePool>()
+        .map(|p| p.clone())
         .ok_or("Could not retrieve the database connection!")?;
     let mut conn = pool.get().await?;
 
@@ -282,9 +282,9 @@ pub async fn unmute(ctx: &mut Context, msg: &Message, _args: Args) -> CommandRes
 #[aliases("yeet")]
 #[allowed_roles("Mods")]
 pub async fn kick(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
-    let data = ctx.data.write().await;
-    let pool = data
+    let pool = ctx.data.read().await
         .get::<DatabasePool>()
+        .map(|p| p.clone())
         .ok_or("Could not retrieve the database connection!")?;
     let mut conn = pool.get().await?;
 
@@ -330,9 +330,9 @@ pub async fn kick(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult
 #[only_in("guilds")]
 #[allowed_roles("Mods")]
 pub async fn ban(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
-    let data = ctx.data.write().await;
-    let pool = data
+    let pool = ctx.data.read().await
         .get::<DatabasePool>()
+        .map(|p| p.clone())
         .ok_or("Could not retrieve the database connection!")?;
     let mut conn = pool.get().await?;
 

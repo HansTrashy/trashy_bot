@@ -16,8 +16,7 @@ use tracing::debug;
 #[description = "Creates a new reaction role"]
 #[example = "🧀 group_name role_name"]
 pub async fn create(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
-    let data = ctx.data.read().await;
-    let pool = data.get::<DatabasePool>().ok_or("Failed to get Pool")?;
+    let pool = ctx.data.read().await.get::<DatabasePool>().map(|p| p.clone()).ok_or("Failed to get Pool")?;
     let mut conn = pool.get().await?;
 
     let emoji_arg = args.single::<String>()?;
@@ -54,8 +53,7 @@ pub async fn create(ctx: &mut Context, msg: &Message, mut args: Args) -> Command
 #[description = "Removes a reaction role"]
 #[example = "🧀 role_name"]
 pub async fn remove(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
-    let data = ctx.data.read().await;
-    let pool = data.get::<DatabasePool>().ok_or("Failed to get Pool")?;
+    let pool = ctx.data.read().await.get::<DatabasePool>().map(|p| p.clone()).ok_or("Failed to get Pool")?;
     let mut conn = pool.get().await?;
 
     let emoji_arg = args.single::<String>()?;
@@ -82,8 +80,7 @@ pub async fn remove(ctx: &mut Context, msg: &Message, mut args: Args) -> Command
 #[allowed_roles("Mods")]
 #[description = "Lists all reaction roles"]
 pub async fn list(ctx: &mut Context, msg: &Message, _args: Args) -> CommandResult {
-    let data = ctx.data.read().await;
-    let pool = data.get::<DatabasePool>().ok_or("Failed to get Pool")?;
+    let pool = ctx.data.read().await.get::<DatabasePool>().map(|p| p.clone()).ok_or("Failed to get Pool")?;
     let mut conn = pool.get().await?;
 
     let results = ReactionRole::list(&mut *conn).await?;
@@ -108,8 +105,7 @@ pub async fn list(ctx: &mut Context, msg: &Message, _args: Args) -> CommandResul
 #[allowed_roles("Mods")]
 #[description = "Posts the reaction role groups"]
 pub async fn postgroups(ctx: &mut Context, msg: &Message, _args: Args) -> CommandResult {
-    let data = ctx.data.read().await;
-    let pool = data.get::<DatabasePool>().ok_or("Failed to get Pool")?;
+    let pool = ctx.data.read().await.get::<DatabasePool>().map(|p| p.clone()).ok_or("Failed to get Pool")?;
     let mut conn = pool.get().await?;
 
     let mut results = ReactionRole::list(&mut *conn).await?;
@@ -152,7 +148,7 @@ pub async fn postgroups(ctx: &mut Context, msg: &Message, _args: Args) -> Comman
 
     // set the corresponding rr state
 
-    match data.get::<ReactionRolesState>() {
+    match ctx.data.read().await.get::<ReactionRolesState>() {
         Some(v) => {
             *v.lock().await = RRState::set(*msg.channel_id.as_u64(), rr_message_ids);
         }

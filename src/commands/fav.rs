@@ -180,14 +180,14 @@ pub async fn post(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandRe
 #[only_in("dms")]
 #[num_args(0)]
 pub async fn untagged(ctx: &mut Context, msg: &Message, _args: Args) -> CommandResult {
-    let data = ctx.data.read().await;
-    let pool = data
+    let pool = ctx.data.read().await
         .get::<DatabasePool>()
+        .map(|p| p.clone())
         .ok_or("Could not retrieve the database connection!")?;
     let mut conn = pool.get().await?;
 
-    let opt_out = match data.get::<OptOut>() {
-        Some(v) => v,
+    let opt_out = match ctx.data.read().await.get::<OptOut>() {
+        Some(v) => v.clone(),
         None => {
             let _ = msg.reply(&ctx, "OptOut list not available");
             panic!("no optout");
@@ -217,7 +217,7 @@ pub async fn untagged(ctx: &mut Context, msg: &Message, _args: Args) -> CommandR
             return Ok(());
         }
 
-        if let Some(waiter) = data.get::<Waiter>() {
+        if let Some(waiter) = ctx.data.read().await.get::<Waiter>() {
             let mut wait = waiter.lock().await;
 
             wait.purge(
@@ -282,7 +282,6 @@ pub async fn untagged(ctx: &mut Context, msg: &Message, _args: Args) -> CommandR
 #[description = "Add a fav per link to the message"]
 #[num_args(1)]
 pub async fn add(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
-    let data = ctx.data.read().await;
     lazy_static! {
         static ref FAV_LINK_REGEX: Regex =
             Regex::new(r#"https://discordapp.com/channels/(\d+)/(\d+)/(\d+)"#)
@@ -300,7 +299,7 @@ pub async fn add(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult 
         .await
         .expect("cannot find this message");
 
-    if let Some(pool) = data.get::<DatabasePool>() {
+    if let Some(pool) = ctx.data.read().await.get::<DatabasePool>() {
         let mut conn = pool.get().await?;
         Fav::create(
             &mut *conn,
@@ -325,9 +324,9 @@ pub async fn add(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult 
 #[description = "Shows your used tags so you do not have to remember them all"]
 #[num_args(0)]
 pub async fn tags(ctx: &mut Context, msg: &Message, _args: Args) -> CommandResult {
-    let data = ctx.data.read().await;
-    let pool = data
+    let pool = ctx.data.read().await
         .get::<DatabasePool>()
+        .map(|p| p.clone())
         .ok_or("Could not retrieve the database connection!")?;
     let mut conn = pool.get().await?;
 

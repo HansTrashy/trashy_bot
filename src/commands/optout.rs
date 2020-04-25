@@ -8,9 +8,8 @@ use serenity::{
 #[command]
 #[description = "Opt out of the fav/quote features"]
 pub async fn optout(ctx: &mut Context, msg: &Message, _args: Args) -> CommandResult {
-    let data = ctx.data.read().await;
-    let opt_out = match data.get::<OptOut>() {
-        Some(v) => v,
+    let opt_out = match ctx.data.read().await.get::<OptOut>() {
+        Some(v) => v.clone(),
         None => {
             let _ = msg.reply(&ctx, "OptOut list not available");
             panic!("no optout");

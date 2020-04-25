@@ -115,9 +115,7 @@ impl EventHandler for Handler {
         user: User,
         _old_member: Option<Member>,
     ) {
-        let data = ctx.data.write().await;
-
-        if let Some(pool) = data.get::<DatabasePool>() {
+        if let Some(pool) = ctx.data.read().await.get::<DatabasePool>() {
             let mut conn = pool.get().await.unwrap();
 
             if let Ok(mut config) = ServerConfig::get(&mut *conn, *guild_id.as_u64() as i64).await {

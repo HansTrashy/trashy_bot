@@ -9,12 +9,11 @@ use serenity::{
 use tracing::info;
 
 pub async fn add_role(ctx: Context, add_reaction: Reaction) {
-    let data = ctx.data.read().await;
-    let mut conn = match data.get::<DatabasePool>() {
-        Some(v) => v.get().await.unwrap(),
+    let mut conn = match ctx.data.read().await.get::<DatabasePool>() {
+        Some(v) => v.get().await.expect("could not get conn from pool"),
         None => return,
     };
-    let (rr_channel_id, rr_message_ids) = match data.get::<ReactionRolesState>() {
+    let (rr_channel_id, rr_message_ids) = match ctx.data.read().await.get::<ReactionRolesState>() {
         Some(v) => match *v.lock().await {
             State::Set {
                 ref channel_id,
@@ -63,12 +62,11 @@ pub async fn add_role(ctx: Context, add_reaction: Reaction) {
 }
 
 pub async fn remove_role(ctx: Context, remove_reaction: Reaction) {
-    let data = ctx.data.read().await;
-    let mut conn = match data.get::<DatabasePool>() {
-        Some(v) => v.get().await.unwrap(),
+    let mut conn = match ctx.data.read().await.get::<DatabasePool>() {
+        Some(v) => v.get().await.expect("could not retrieve conn from pool"),
         None => return,
     };
-    let (rr_channel_id, rr_message_ids) = match data.get::<ReactionRolesState>() {
+    let (rr_channel_id, rr_message_ids) = match ctx.data.read().await.get::<ReactionRolesState>() {
         Some(v) => match *v.lock().await {
             State::Set {
                 ref channel_id,
