@@ -173,7 +173,7 @@ dependencies = [
 [[package]]
 name = "command_attr"
 version = "0.2.0"
-source = "git+https://github.com/Lakelezz/serenity.git?branch=await#756c856a0fab773dc69088d45ea27a57439c24a9"
+source = "git+https://github.com/Lakelezz/serenity.git?branch=await#28171107433dd44b90d28dbb2fd51cd36ff0f4a3"
 dependencies = [
  "futures 0.3.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "proc-macro2 1.0.10 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1360,7 +1360,7 @@ dependencies = [
 [[package]]
 name = "serenity"
 version = "0.8.4"
-source = "git+https://github.com/Lakelezz/serenity.git?branch=await#756c856a0fab773dc69088d45ea27a57439c24a9"
+source = "git+https://github.com/Lakelezz/serenity.git?branch=await#28171107433dd44b90d28dbb2fd51cd36ff0f4a3"
 dependencies = [
  "async-tls 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "async-trait 0.1.30 (registry+https://github.com/rust-lang/crates.io-index)",
