@@ -1,10 +1,8 @@
 use super::config::Guild;
 use crate::models::mute::Mute;
 use crate::models::server_config::ServerConfig;
-use crate::scheduler::Task;
 use crate::util;
 use crate::DatabasePool;
-use crate::TrashyScheduler;
 use chrono::{Duration, Utc};
 use serenity::prelude::*;
 use serenity::{
@@ -13,6 +11,7 @@ use serenity::{
     model::id::RoleId,
     model::prelude::*,
 };
+use tokio::time::delay_for;
 use tracing::error;
 
 #[command]
@@ -22,17 +21,15 @@ use tracing::error;
 #[example = "1h"]
 #[only_in("guilds")]
 pub async fn selfmute(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
-    let mut conn = ctx.data.read().await
+    let mut conn = ctx
+        .data
+        .read()
+        .await
         .get::<DatabasePool>()
         .map(|p| p.clone())
         .ok_or("Could not retrieve the database connection!")?
         .get()
         .await?;
-
-    let scheduler = ctx.data.write().await
-        .get_mut::<TrashyScheduler>()
-        .expect("Expected Scheduler.")
-        .clone();
 
     let duration = util::parse_duration(&args.single::<String>()?).expect("invalid duration");
 
@@ -65,12 +62,38 @@ pub async fn selfmute(ctx: &mut Context, msg: &Message, mut args: Args) -> Comma
                     )
                     .await?;
 
-                    let task =
-                        Task::remove_mute(*guild_id.as_u64(), *msg.author.id.as_u64(), *mute_role);
-                    scheduler.add_task(duration, task);
-
                     msg.react(&ctx, ReactionType::Unicode("✅".to_string()))
                         .await?;
+
+                    delay_for(duration.to_std()?).await;
+
+                    let mut conn = ctx
+                        .data
+                        .read()
+                        .await
+                        .get::<DatabasePool>()
+                        .map(|p| p.clone())
+                        .ok_or("Could not retrieve the database connection!")?
+                        .get()
+                        .await
+                        .expect("could not get database conn");
+
+                    match guild_id.member(&ctx, msg.author.id).await {
+                        Ok(mut member) => {
+                            member
+                                .remove_role(&ctx, RoleId(*mute_role))
+                                .await
+                                .expect("could not remove role");
+                        }
+                        Err(e) => error!("could not get member: {:?}", e),
+                    };
+
+                    Mute::delete(
+                        &mut *conn,
+                        *guild_id.as_u64() as i64,
+                        *msg.author.id.as_u64() as i64,
+                    )
+                    .await?;
                 }
             }
             Err(_e) => {

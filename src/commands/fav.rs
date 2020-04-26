@@ -24,7 +24,10 @@ use tracing::{debug, trace};
 #[description = "Post a fav"]
 #[example = "taishi wichsen"]
 pub async fn post(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
-    let pool = ctx.data.read().await
+    let pool = ctx
+        .data
+        .read()
+        .await
         .get::<DatabasePool>()
         .map(|p| p.clone())
         .ok_or("Could not retrieve the database connection!")?;
@@ -38,9 +41,12 @@ pub async fn post(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandRe
     };
 
     if opt_out.lock().await.set.contains(msg.author.id.as_u64()) {
-        let _ = msg.channel_id.send_message(&ctx.http, |m| {
-            m.content("You have opted out of the quote functionality")
-        }).await;
+        let _ = msg
+            .channel_id
+            .send_message(&ctx.http, |m| {
+                m.content("You have opted out of the quote functionality")
+            })
+            .await;
         return Ok(());
     }
 
@@ -180,7 +186,10 @@ pub async fn post(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandRe
 #[only_in("dms")]
 #[num_args(0)]
 pub async fn untagged(ctx: &mut Context, msg: &Message, _args: Args) -> CommandResult {
-    let pool = ctx.data.read().await
+    let pool = ctx
+        .data
+        .read()
+        .await
         .get::<DatabasePool>()
         .map(|p| p.clone())
         .ok_or("Could not retrieve the database connection!")?;
@@ -268,9 +277,8 @@ pub async fn untagged(ctx: &mut Context, msg: &Message, _args: Args) -> CommandR
                     embed
                 })
             })
-            .await;
+            .await?;
 
-        let sent_msg = sent_msg.unwrap();
         let _ = sent_msg.react(&ctx, ReactionType::Unicode("🗑".to_string()));
         let _ = sent_msg.react(&ctx, ReactionType::Unicode("🏷".to_string()));
     }
@@ -324,7 +332,10 @@ pub async fn add(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult 
 #[description = "Shows your used tags so you do not have to remember them all"]
 #[num_args(0)]
 pub async fn tags(ctx: &mut Context, msg: &Message, _args: Args) -> CommandResult {
-    let pool = ctx.data.read().await
+    let pool = ctx
+        .data
+        .read()
+        .await
         .get::<DatabasePool>()
         .map(|p| p.clone())
         .ok_or("Could not retrieve the database connection!")?;

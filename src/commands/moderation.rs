@@ -1,11 +1,10 @@
 use super::config::Guild;
 use crate::models::mute::Mute;
 use crate::models::server_config::ServerConfig;
-use crate::scheduler::Task;
 use crate::util;
 use crate::DatabasePool;
-use crate::TrashyScheduler;
 use chrono::{Duration, Utc};
+use futures::future::join_all;
 use futures::{stream, StreamExt};
 use serenity::prelude::*;
 use serenity::{
@@ -16,22 +15,21 @@ use serenity::{
     model::id::RoleId,
     model::prelude::*,
 };
+use tokio::time::delay_for;
 use tracing::error;
 
 #[command]
 #[only_in("guilds")]
 #[allowed_roles("Mods")]
 pub async fn mute(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
-    let pool = ctx.data.read().await
+    let pool = ctx
+        .data
+        .read()
+        .await
         .get::<DatabasePool>()
         .map(|p| p.clone())
         .ok_or("Could not retrieve the database connection!")?;
     let mut conn = pool.get().await?;
-
-    let scheduler = ctx.data.write().await
-        .get_mut::<TrashyScheduler>()
-        .expect("Expected Scheduler.")
-        .clone();
 
     let duration = util::parse_duration(&args.single::<String>()?);
     let mute_message = args.rest();
@@ -65,14 +63,23 @@ pub async fn mute(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandRe
                             .await;
                         }
 
-                        for user in &msg.mentions {
-                            let task = Task::remove_mute(
-                                *guild_id.as_u64(),
-                                *user.id.as_u64(),
-                                *mute_role,
-                            );
-                            scheduler.add_task(duration, task);
-                        }
+                        let mutes = msg
+                            .mentions
+                            .iter()
+                            .map(|user| {
+                                let ctx = ctx.clone();
+                                remove_mute(
+                                    ctx,
+                                    pool.clone(),
+                                    guild_id,
+                                    *user.id.as_u64(),
+                                    duration,
+                                    *mute_role,
+                                )
+                            })
+                            .collect::<Vec<_>>();
+
+                        join_all(mutes).await;
 
                         if let Some(modlog_channel) = &guild_config.modlog_channel {
                             if !found_members.is_empty() {
@@ -97,6 +104,36 @@ pub async fn mute(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandRe
             }
         }
     }
+
+    Ok(())
+}
+
+async fn remove_mute(
+    ctx: Context,
+    pool: deadpool_postgres::Pool,
+    guild_id: GuildId,
+    user_id: u64,
+    duration: chrono::Duration,
+    mute_role: u64,
+) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    delay_for(duration.to_std()?).await;
+
+    match guild_id.member(&ctx, user_id).await {
+        Ok(mut member) => {
+            member
+                .remove_role(&ctx, RoleId(mute_role))
+                .await
+                .expect("could not remove role");
+        }
+        Err(e) => error!("could not get member: {:?}", e),
+    };
+
+    Mute::delete(
+        &mut *pool.get().await?,
+        *guild_id.as_u64() as i64,
+        user_id as i64,
+    )
+    .await?;
 
     Ok(())
 }
@@ -224,7 +261,10 @@ async fn create_unmute_message(users: &[Member]) -> String {
 #[only_in("guilds")]
 #[allowed_roles("Mods")]
 pub async fn unmute(ctx: &mut Context, msg: &Message, _args: Args) -> CommandResult {
-    let pool = ctx.data.read().await
+    let pool = ctx
+        .data
+        .read()
+        .await
         .get::<DatabasePool>()
         .map(|p| p.clone())
         .ok_or("Could not retrieve the database connection!")?;
@@ -282,7 +322,10 @@ pub async fn unmute(ctx: &mut Context, msg: &Message, _args: Args) -> CommandRes
 #[aliases("yeet")]
 #[allowed_roles("Mods")]
 pub async fn kick(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
-    let pool = ctx.data.read().await
+    let pool = ctx
+        .data
+        .read()
+        .await
         .get::<DatabasePool>()
         .map(|p| p.clone())
         .ok_or("Could not retrieve the database connection!")?;
@@ -330,7 +373,10 @@ pub async fn kick(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult
 #[only_in("guilds")]
 #[allowed_roles("Mods")]
 pub async fn ban(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
-    let pool = ctx.data.read().await
+    let pool = ctx
+        .data
+        .read()
+        .await
         .get::<DatabasePool>()
         .map(|p| p.clone())
         .ok_or("Could not retrieve the database connection!")?;

@@ -46,9 +46,12 @@ pub async fn create(ctx: &mut Context, msg: &Message, _args: Args) -> CommandRes
 #[num_args(0)]
 pub async fn payday(ctx: &mut Context, msg: &Message, _args: Args) -> CommandResult {
     // check if user has a bank & last payday was over 24h ago
-    let data = ctx.data.read().await;
-    let pool = data
+    let pool = ctx
+        .data
+        .read()
+        .await
         .get::<DatabasePool>()
+        .map(|p| p.clone())
         .ok_or("Could not retrieve the database connection!")?;
     let mut conn = pool.get().await?;
 
@@ -92,9 +95,12 @@ pub async fn payday(ctx: &mut Context, msg: &Message, _args: Args) -> CommandRes
 #[description = "Lists the leading players"]
 #[num_args(0)]
 pub async fn leaderboard(ctx: &mut Context, msg: &Message, _args: Args) -> CommandResult {
-    let data = ctx.data.read().await;
-    let pool = data
+    let pool = ctx
+        .data
+        .read()
+        .await
         .get::<DatabasePool>()
+        .map(|p| p.clone())
         .ok_or("Could not retrieve the database connection!")?;
     let mut conn = pool.get().await?;
 
@@ -117,9 +123,12 @@ pub async fn leaderboard(ctx: &mut Context, msg: &Message, _args: Args) -> Comma
 #[description = "Transfers amount x to all listed users"]
 #[example = "1000 @user1 @user2"]
 pub async fn transfer(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
-    let data = ctx.data.read().await;
-    let pool = data
+    let pool = ctx
+        .data
+        .read()
+        .await
         .get::<DatabasePool>()
+        .map(|p| p.clone())
         .ok_or("Could not retrieve the database connection!")?;
     let mut conn = pool.get().await?;
 

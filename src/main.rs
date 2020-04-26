@@ -37,7 +37,6 @@ mod migrations;
 mod models;
 mod reaction_roles;
 mod rules;
-mod scheduler;
 mod util;
 
 struct ShardManagerContainer;
@@ -63,11 +62,6 @@ impl TypeMapKey for ReactionRolesState {
 struct RulesState;
 impl TypeMapKey for RulesState {
     type Value = Arc<Mutex<self::rules::State>>;
-}
-
-struct TrashyScheduler;
-impl TypeMapKey for TrashyScheduler {
-    type Value = Arc<scheduler::Scheduler>;
 }
 
 struct OptOut;
@@ -253,13 +247,6 @@ async fn main() {
     }
     debug!("Database pool created");
 
-    let rt = Arc::new(tokio::runtime::Handle::current());
-    let trashy_scheduler = Arc::new(scheduler::Scheduler::new(
-        Arc::clone(&rt),
-        Arc::clone(&client.cache_and_http),
-        async_db_pool.clone(),
-    ));
-
     let opt_out = Arc::new(Mutex::new(OptOutStore::load_or_init()));
 
     {
@@ -269,7 +256,6 @@ async fn main() {
         data.insert::<Waiter>(waiter);
         data.insert::<ReactionRolesState>(rr_state);
         data.insert::<RulesState>(rules_state);
-        data.insert::<TrashyScheduler>(Arc::clone(&trashy_scheduler));
         data.insert::<OptOut>(Arc::clone(&opt_out));
         data.insert::<DatabasePool>(async_db_pool);
     }

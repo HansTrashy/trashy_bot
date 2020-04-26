@@ -1,12 +1,11 @@
-use crate::scheduler::Task;
 use crate::util;
-use crate::TrashyScheduler;
 use serenity::utils::{content_safe, ContentSafeOptions};
 use serenity::{
     framework::standard::{macros::command, Args, CommandResult},
     model::prelude::*,
     prelude::*,
 };
+use tokio::time::delay_for;
 
 #[command]
 #[description = "Reminds you after the given time with the given text. Allows (w, d, h, m, s)"]
@@ -21,28 +20,18 @@ pub async fn remindme(ctx: &mut Context, msg: &Message, mut args: Args) -> Comma
             let _ = msg
                 .reply(&ctx, "Unknown time unit. Allowed units are: s,m,h,d,w")
                 .await;
-            Ok(())
         }
         Some(duration) => {
             let defaults = ContentSafeOptions::default();
             let message = content_safe(&ctx, args.rest().to_string(), &defaults).await;
 
-            let scheduler = {
-                let mut context = ctx.data.write().await;
-                context
-                    .get_mut::<TrashyScheduler>()
-                    .expect("could not get scheduler")
-                    .clone()
-            };
-
             msg.react(&ctx, ReactionType::Unicode("✅".to_string()))
                 .await?;
-            let msg = msg.clone();
 
-            let task = Task::reply(*msg.author.id.as_u64(), *msg.channel_id.as_u64(), message);
-            scheduler.add_task(duration, task);
+            delay_for(duration.to_std()?).await;
 
-            Ok(())
+            let _ = msg.reply(ctx, message).await;
         }
     }
+    Ok(())
 }
