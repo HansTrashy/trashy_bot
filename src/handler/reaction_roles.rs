@@ -9,10 +9,6 @@ use serenity::{
 use tracing::info;
 
 pub async fn add_role(ctx: Context, add_reaction: Reaction) {
-    let mut conn = match ctx.data.read().await.get::<DatabasePool>() {
-        Some(v) => v.get().await.expect("could not get conn from pool"),
-        None => return,
-    };
     let (rr_channel_id, rr_message_ids) = match ctx.data.read().await.get::<ReactionRolesState>() {
         Some(v) => match *v.lock().await {
             State::Set {
@@ -30,9 +26,21 @@ pub async fn add_role(ctx: Context, add_reaction: Reaction) {
         info!("On correct message reacted!");
         if let ReactionType::Unicode(ref s) = add_reaction.emoji {
             // check if rr registered for this emoji
-            let results = ReactionRole::list_by_emoji(&mut *conn, s)
-                .await
-                .expect("could not get by emojis");
+            let results = ReactionRole::list_by_emoji(
+                &mut *ctx
+                    .data
+                    .read()
+                    .await
+                    .get::<DatabasePool>()
+                    .ok_or("Failed to get Pool")
+                    .unwrap()
+                    .get()
+                    .await
+                    .unwrap(),
+                s,
+            )
+            .await
+            .expect("could not get by emojis");
 
             if !results.is_empty() {
                 info!("Found role for this emoji!");
@@ -43,10 +51,7 @@ pub async fn add_role(ctx: Context, add_reaction: Reaction) {
                     .ok()
                     .and_then(|c| c.guild())
                 {
-                    if let Ok(mut member) = guild
-                        .guild_id
-                        .member(&ctx, add_reaction.user_id)
-                        .await
+                    if let Ok(mut member) = guild.guild_id.member(&ctx, add_reaction.user_id).await
                     {
                         member
                             .add_role(&ctx, results[0].role_id as u64)
@@ -60,10 +65,6 @@ pub async fn add_role(ctx: Context, add_reaction: Reaction) {
 }
 
 pub async fn remove_role(ctx: Context, remove_reaction: Reaction) {
-    let mut conn = match ctx.data.read().await.get::<DatabasePool>() {
-        Some(v) => v.get().await.expect("could not retrieve conn from pool"),
-        None => return,
-    };
     let (rr_channel_id, rr_message_ids) = match ctx.data.read().await.get::<ReactionRolesState>() {
         Some(v) => match *v.lock().await {
             State::Set {
@@ -81,9 +82,21 @@ pub async fn remove_role(ctx: Context, remove_reaction: Reaction) {
         info!("On correct message reacted!");
         if let ReactionType::Unicode(ref s) = remove_reaction.emoji {
             // check if rr registered for this emoji
-            let results = ReactionRole::list_by_emoji(&mut *conn, s)
-                .await
-                .expect("could not get by emojis");
+            let results = ReactionRole::list_by_emoji(
+                &mut *ctx
+                    .data
+                    .read()
+                    .await
+                    .get::<DatabasePool>()
+                    .ok_or("Failed to get Pool")
+                    .unwrap()
+                    .get()
+                    .await
+                    .unwrap(),
+                s,
+            )
+            .await
+            .expect("could not get by emojis");
 
             if !results.is_empty() {
                 info!("Found role for this emoji!");
@@ -94,10 +107,8 @@ pub async fn remove_role(ctx: Context, remove_reaction: Reaction) {
                     .ok()
                     .and_then(|c| c.guild())
                 {
-                    if let Ok(mut member) = guild
-                        .guild_id
-                        .member(&ctx, remove_reaction.user_id)
-                        .await
+                    if let Ok(mut member) =
+                        guild.guild_id.member(&ctx, remove_reaction.user_id).await
                     {
                         member
                             .remove_role(&ctx, results[0].role_id as u64)

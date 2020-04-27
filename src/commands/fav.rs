@@ -24,15 +24,6 @@ use tracing::{debug, trace};
 #[description = "Post a fav"]
 #[example = "taishi wichsen"]
 pub async fn post(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
-    let pool = ctx
-        .data
-        .read()
-        .await
-        .get::<DatabasePool>()
-        .map(|p| p.clone())
-        .ok_or("Could not retrieve the database connection!")?;
-    let mut conn = pool.get().await?;
-
     let opt_out = if let Some(v) = ctx.data.read().await.get::<OptOut>() {
         v.clone()
     } else {
@@ -53,9 +44,32 @@ pub async fn post(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandRe
     let labels: Vec<String> = args.iter::<String>().filter_map(Result::ok).collect();
 
     let results = if labels.is_empty() {
-        Fav::list(&mut *conn, *msg.author.id.as_u64() as i64).await?
+        Fav::list(
+            &mut *ctx
+                .data
+                .read()
+                .await
+                .get::<DatabasePool>()
+                .ok_or("Failed to get Pool")?
+                .get()
+                .await?,
+            *msg.author.id.as_u64() as i64,
+        )
+        .await?
     } else {
-        Fav::tagged_with(&mut *conn, *msg.author.id.as_u64() as i64, labels).await?
+        Fav::tagged_with(
+            &mut *ctx
+                .data
+                .read()
+                .await
+                .get::<DatabasePool>()
+                .ok_or("Failed to get Pool")?
+                .get()
+                .await?,
+            *msg.author.id.as_u64() as i64,
+            labels,
+        )
+        .await?
     };
 
     let chosen_fav = results
@@ -186,15 +200,6 @@ pub async fn post(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandRe
 #[only_in("dms")]
 #[num_args(0)]
 pub async fn untagged(ctx: &mut Context, msg: &Message, _args: Args) -> CommandResult {
-    let pool = ctx
-        .data
-        .read()
-        .await
-        .get::<DatabasePool>()
-        .map(|p| p.clone())
-        .ok_or("Could not retrieve the database connection!")?;
-    let mut conn = pool.get().await?;
-
     let opt_out = match ctx.data.read().await.get::<OptOut>() {
         Some(v) => v.clone(),
         None => {
@@ -203,7 +208,18 @@ pub async fn untagged(ctx: &mut Context, msg: &Message, _args: Args) -> CommandR
         }
     };
 
-    let results = Fav::untagged(&mut *conn, *msg.author.id.as_u64() as i64).await?;
+    let results = Fav::untagged(
+        &mut *ctx
+            .data
+            .read()
+            .await
+            .get::<DatabasePool>()
+            .ok_or("Failed to get Pool")?
+            .get()
+            .await?,
+        *msg.author.id.as_u64() as i64,
+    )
+    .await?;
 
     if results.is_empty() {
         let _ = msg.reply(&ctx, "Du hat keine untagged Favs!").await;
@@ -308,9 +324,16 @@ pub async fn add(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult 
         .expect("cannot find this message");
 
     if let Some(pool) = ctx.data.read().await.get::<DatabasePool>() {
-        let mut conn = pool.get().await?;
         Fav::create(
-            &mut *conn,
+            &mut *ctx
+                .data
+                .read()
+                .await
+                .get::<DatabasePool>()
+                .map(|p| p.clone())
+                .ok_or("Failed to get Pool")?
+                .get()
+                .await?,
             fav_server_id as i64,
             fav_channel_id as i64,
             fav_msg_id as i64,
@@ -332,18 +355,20 @@ pub async fn add(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult 
 #[description = "Shows your used tags so you do not have to remember them all"]
 #[num_args(0)]
 pub async fn tags(ctx: &mut Context, msg: &Message, _args: Args) -> CommandResult {
-    let pool = ctx
-        .data
-        .read()
-        .await
-        .get::<DatabasePool>()
-        .map(|p| p.clone())
-        .ok_or("Could not retrieve the database connection!")?;
-    let mut conn = pool.get().await?;
-
     let mut messages = Vec::new();
     {
-        let mut fav_tags = Tag::of_user(&mut *conn, *msg.author.id.as_u64() as i64).await?;
+        let mut fav_tags = Tag::of_user(
+            &mut *ctx
+                .data
+                .read()
+                .await
+                .get::<DatabasePool>()
+                .ok_or("Failed to get Pool")?
+                .get()
+                .await?,
+            *msg.author.id.as_u64() as i64,
+        )
+        .await?;
 
         fav_tags.sort_unstable_by(|a, b| a.label.partial_cmp(&b.label).unwrap());
         let mut message_content = String::new();

@@ -21,16 +21,6 @@ use tracing::error;
 #[example = "1h"]
 #[only_in("guilds")]
 pub async fn selfmute(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
-    let mut conn = ctx
-        .data
-        .read()
-        .await
-        .get::<DatabasePool>()
-        .map(|p| p.clone())
-        .ok_or("Could not retrieve the database connection!")?
-        .get()
-        .await?;
-
     let duration = util::parse_duration(&args.single::<String>()?).expect("invalid duration");
 
     if duration > Duration::hours(24) {
@@ -40,7 +30,19 @@ pub async fn selfmute(ctx: &mut Context, msg: &Message, mut args: Args) -> Comma
     }
 
     if let Some(guild_id) = msg.guild_id {
-        match ServerConfig::get(&mut *conn, *guild_id.as_u64() as i64).await {
+        match ServerConfig::get(
+            &mut *ctx
+                .data
+                .read()
+                .await
+                .get::<DatabasePool>()
+                .ok_or("Failed to get Pool")?
+                .get()
+                .await?,
+            *guild_id.as_u64() as i64,
+        )
+        .await
+        {
             Ok(server_config) => {
                 let guild_config: Guild = serde_json::from_value(server_config.config).unwrap();
 
@@ -55,7 +57,14 @@ pub async fn selfmute(ctx: &mut Context, msg: &Message, mut args: Args) -> Comma
                     let end_time = Utc::now() + duration;
 
                     Mute::create(
-                        &mut *conn,
+                        &mut *ctx
+                            .data
+                            .read()
+                            .await
+                            .get::<DatabasePool>()
+                            .ok_or("Failed to get Pool")?
+                            .get()
+                            .await?,
                         *guild_id.as_u64() as i64,
                         *msg.author.id.as_u64() as i64,
                         end_time,
@@ -66,17 +75,6 @@ pub async fn selfmute(ctx: &mut Context, msg: &Message, mut args: Args) -> Comma
                         .await?;
 
                     delay_for(duration.to_std()?).await;
-
-                    let mut conn = ctx
-                        .data
-                        .read()
-                        .await
-                        .get::<DatabasePool>()
-                        .map(|p| p.clone())
-                        .ok_or("Could not retrieve the database connection!")?
-                        .get()
-                        .await
-                        .expect("could not get database conn");
 
                     match guild_id.member(&ctx, msg.author.id).await {
                         Ok(mut member) => {
@@ -89,7 +87,14 @@ pub async fn selfmute(ctx: &mut Context, msg: &Message, mut args: Args) -> Comma
                     };
 
                     Mute::delete(
-                        &mut *conn,
+                        &mut *ctx
+                            .data
+                            .read()
+                            .await
+                            .get::<DatabasePool>()
+                            .ok_or("Failed to get Pool")?
+                            .get()
+                            .await?,
                         *guild_id.as_u64() as i64,
                         *msg.author.id.as_u64() as i64,
                     )

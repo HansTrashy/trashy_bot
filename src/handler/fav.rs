@@ -7,50 +7,55 @@ use chrono::prelude::*;
 use serenity::{model::channel::Reaction, prelude::*};
 
 pub async fn add(ctx: Context, add_reaction: Reaction) {
-
-    if let Some(pool) = ctx.data.read().await.get::<DatabasePool>() {
-        let mut conn = pool.get().await.unwrap();
-        let created_fav = Fav::create(
-            &mut *conn,
-            *add_reaction
-                .channel(&ctx)
-                .await
-                .unwrap()
-                .guild()
-                .unwrap()
-                .guild_id
-                .as_u64() as i64,
-            *add_reaction.channel_id.as_u64() as i64,
-            *add_reaction.message_id.as_u64() as i64,
-            *add_reaction.user_id.as_u64() as i64,
-            *add_reaction
-                .message(&ctx.http)
-                .await
-                .unwrap()
-                .author
-                .id
-                .as_u64() as i64,
-        )
-        .await
-        .expect("could not create fav");
-
-        if let Some(waiter) = ctx.data.read().await.get::<Waiter>() {
-            let mut wait = waiter.lock().await;
-            wait.wait(
-                *add_reaction.user_id.as_u64(),
-                Event::new(Action::AddTags, created_fav.id, Utc::now()),
-            );
-        }
-
-        if let Err(why) = add_reaction
-            .user(&ctx)
+    let created_fav = Fav::create(
+        &mut *ctx
+            .data
+            .read()
+            .await
+            .get::<DatabasePool>()
+            .ok_or("Failed to get Pool")
+            .unwrap()
+            .get()
+            .await
+            .unwrap(),
+        *add_reaction
+            .channel(&ctx)
             .await
             .unwrap()
-            .dm(&ctx, |m| m.content("Send me your labels!"))
+            .guild()
+            .unwrap()
+            .guild_id
+            .as_u64() as i64,
+        *add_reaction.channel_id.as_u64() as i64,
+        *add_reaction.message_id.as_u64() as i64,
+        *add_reaction.user_id.as_u64() as i64,
+        *add_reaction
+            .message(&ctx.http)
             .await
-        {
-            println!("Error sending message: {:?}", why);
-        }
+            .unwrap()
+            .author
+            .id
+            .as_u64() as i64,
+    )
+    .await
+    .expect("could not create fav");
+
+    if let Some(waiter) = ctx.data.read().await.get::<Waiter>() {
+        let mut wait = waiter.lock().await;
+        wait.wait(
+            *add_reaction.user_id.as_u64(),
+            Event::new(Action::AddTags, created_fav.id, Utc::now()),
+        );
+    }
+
+    if let Err(why) = add_reaction
+        .user(&ctx)
+        .await
+        .unwrap()
+        .dm(&ctx, |m| m.content("Send me your labels!"))
+        .await
+    {
+        println!("Error sending message: {:?}", why);
     }
 }
 

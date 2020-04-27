@@ -16,9 +16,6 @@ use tracing::debug;
 #[description = "Creates a new reaction role"]
 #[example = "🧀 group_name role_name"]
 pub async fn create(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
-    let pool = ctx.data.read().await.get::<DatabasePool>().map(|p| p.clone()).ok_or("Failed to get Pool")?;
-    let mut conn = pool.get().await?;
-
     let emoji_arg = args.single::<String>()?;
     let role_group_arg = args.single::<String>()?;
     let role_arg = args.rest();
@@ -26,7 +23,15 @@ pub async fn create(ctx: &mut Context, msg: &Message, mut args: Args) -> Command
     if let Some(guild) = msg.guild(&ctx.cache).await {
         if let Some(role) = guild.read().await.role_by_name(role_arg) {
             ReactionRole::create(
-                &mut conn,
+                &mut *ctx
+                    .data
+                    .read()
+                    .await
+                    .get::<DatabasePool>()
+                    .map(|p| p.clone())
+                    .ok_or("Failed to get Pool")?
+                    .get()
+                    .await?,
                 *msg.channel(&ctx.cache)
                     .await
                     .ok_or("no channel")?
@@ -51,7 +56,13 @@ pub async fn create(ctx: &mut Context, msg: &Message, mut args: Args) -> Command
 #[description = "Removes a reaction role"]
 #[example = "🧀 role_name"]
 pub async fn remove(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
-    let pool = ctx.data.read().await.get::<DatabasePool>().map(|p| p.clone()).ok_or("Failed to get Pool")?;
+    let pool = ctx
+        .data
+        .read()
+        .await
+        .get::<DatabasePool>()
+        .map(|p| p.clone())
+        .ok_or("Failed to get Pool")?;
     let mut conn = pool.get().await?;
 
     let emoji_arg = args.single::<String>()?;
@@ -78,7 +89,13 @@ pub async fn remove(ctx: &mut Context, msg: &Message, mut args: Args) -> Command
 #[allowed_roles("Mods")]
 #[description = "Lists all reaction roles"]
 pub async fn list(ctx: &mut Context, msg: &Message, _args: Args) -> CommandResult {
-    let pool = ctx.data.read().await.get::<DatabasePool>().map(|p| p.clone()).ok_or("Failed to get Pool")?;
+    let pool = ctx
+        .data
+        .read()
+        .await
+        .get::<DatabasePool>()
+        .map(|p| p.clone())
+        .ok_or("Failed to get Pool")?;
     let mut conn = pool.get().await?;
 
     let results = ReactionRole::list(&mut *conn).await?;
@@ -103,7 +120,13 @@ pub async fn list(ctx: &mut Context, msg: &Message, _args: Args) -> CommandResul
 #[allowed_roles("Mods")]
 #[description = "Posts the reaction role groups"]
 pub async fn postgroups(ctx: &mut Context, msg: &Message, _args: Args) -> CommandResult {
-    let pool = ctx.data.read().await.get::<DatabasePool>().map(|p| p.clone()).ok_or("Failed to get Pool")?;
+    let pool = ctx
+        .data
+        .read()
+        .await
+        .get::<DatabasePool>()
+        .map(|p| p.clone())
+        .ok_or("Failed to get Pool")?;
     let mut conn = pool.get().await?;
 
     let mut results = ReactionRole::list(&mut *conn).await?;
