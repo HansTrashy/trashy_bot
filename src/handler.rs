@@ -10,8 +10,15 @@ use chrono::Utc;
 use serenity::{
     async_trait,
     model::{
-        channel::Message, channel::Reaction, channel::ReactionType, gateway::Ready, guild::Member,
-        id::ChannelId, id::GuildId, id::RoleId, user::User,
+        channel::Message,
+        channel::Reaction,
+        channel::ReactionType,
+        gateway::{Activity, Ready},
+        guild::Member,
+        id::ChannelId,
+        id::GuildId,
+        id::RoleId,
+        user::User,
     },
     prelude::*,
 };
@@ -24,7 +31,8 @@ pub struct Handler;
 
 #[async_trait]
 impl EventHandler for Handler {
-    async fn ready(&self, _: Context, ready: Ready) {
+    async fn ready(&self, ctx: Context, ready: Ready) {
+        ctx.set_activity(Activity::listening("$help")).await;
         println!("{} is connected!", ready.user.name);
     }
 
@@ -68,10 +76,7 @@ impl EventHandler for Handler {
             if let Some(userlog_channel) = g_cfg.userlog_channel {
                 let member_name = new_member.user.name.to_string();
                 let member_discriminator = new_member.user.discriminator;
-                let member_avatar = new_member
-                    .user
-                    .static_avatar_url()
-                    .unwrap_or_default();
+                let member_avatar = new_member.user.static_avatar_url().unwrap_or_default();
                 let _ = ChannelId(userlog_channel)
                     .send_message(&ctx, |m| {
                         m.embed(|e| {
