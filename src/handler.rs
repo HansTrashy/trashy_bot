@@ -1,11 +1,9 @@
 use crate::commands::config::Guild;
 use crate::commands::userinfo::UserInfo;
-use crate::interaction::wait::Action;
 use crate::models::mute::Mute;
 use crate::models::server_config::ServerConfig;
 use crate::models::tag::Tag;
 use crate::DatabasePool;
-use crate::Waiter;
 use chrono::Utc;
 use serenity::{
     async_trait,
@@ -103,7 +101,7 @@ impl EventHandler for Handler {
 
             if let Ok(_mute) = mute {
                 if let Some(mute_role) = g_cfg.mute_role {
-                    let _ = new_member.add_role(&ctx, RoleId(mute_role));
+                    let _ = new_member.add_role(&ctx, RoleId(mute_role)).await;
                 }
             }
         }
@@ -159,52 +157,10 @@ impl EventHandler for Handler {
         }
     }
 
-    async fn message(&self, ctx: Context, msg: Message) {
-        if msg.is_private() {
-            // check if waiting for labels
-            let data = ctx.data.read().await;
-            if let Some(waiter) = data.get::<Waiter>() {
-                let mut wait = waiter.lock().await;
-                if let Some(waited_fav_id) = wait.waiting(*msg.author.id.as_u64(), &Action::AddTags)
-                {
-                    let mut conn = if let Some(v) = data.get::<DatabasePool>() {
-                        v.get().await.unwrap()
-                    } else {
-                        let _ = msg
-                            .reply(&ctx, "Could not retrieve the database connection!")
-                            .await;
-                        return;
-                    };
-
-                    // clear old tags for this fav
-                    let _ = Tag::delete(&mut *conn, waited_fav_id).await;
-
-                    // TODO: make this a single statement
-                    for tag in msg.content.split(' ') {
-                        let _ = Tag::create(&mut *conn, waited_fav_id, tag).await;
-                    }
-
-                    wait.purge(
-                        *msg.author.id.as_u64(),
-                        vec![Action::DeleteFav, Action::ReqTags, Action::AddTags],
-                    );
-                    msg.reply(&ctx, "added the tags!").await;
-                }
-            }
-        }
-    }
-
     async fn reaction_add(&self, ctx: Context, reaction: Reaction) {
-        //TODO: refactor old dispatch style into new one using the dispatcher
         match reaction.emoji {
             ReactionType::Unicode(ref s) if s.starts_with("📗") => {
                 fav::add(ctx, reaction).await;
-            }
-            ReactionType::Unicode(ref s) if s.starts_with("🗑") => {
-                fav::remove(ctx, reaction).await;
-            }
-            ReactionType::Unicode(ref s) if s.starts_with("🏷") => {
-                fav::add_label(ctx, reaction).await;
             }
             _ => {
                 reaction_roles::add_role(ctx, reaction).await;

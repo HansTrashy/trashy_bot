@@ -1,9 +1,7 @@
-use crate::interaction::wait::{Action, Event};
 use crate::models::fav::Fav;
 use crate::models::tag::Tag;
 use crate::DatabasePool;
 use crate::OptOut;
-use crate::Waiter;
 use chrono::prelude::*;
 use itertools::Itertools;
 use lazy_static::lazy_static;
@@ -98,27 +96,6 @@ pub async fn post(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandRe
         return Ok(());
     }
 
-    if let Some(waiter) = ctx.data.read().await.get::<Waiter>() {
-        let mut wait = waiter.lock().await;
-
-        //first remove all other waits for this user and these actions
-        // dont do this until checked this is really necessary
-        // => necessary for now, has to be changed wenn switching to async handling of this waiting thing
-        wait.purge(
-            *msg.author.id.as_u64(),
-            vec![Action::DeleteFav, Action::ReqTags],
-        );
-
-        wait.wait(
-            *msg.author.id.as_u64(),
-            Event::new(Action::DeleteFav, chosen_fav.id, Utc::now()),
-        );
-        wait.wait(
-            *msg.author.id.as_u64(),
-            Event::new(Action::ReqTags, chosen_fav.id, Utc::now()),
-        );
-    }
-
     let channel_name = fav_msg
         .channel_id
         .name(&ctx)
@@ -161,36 +138,133 @@ pub async fn post(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandRe
         })
         .await?;
 
-    let http = ctx.http.clone();
-    let _ = bot_msg
+    let collector_delete = bot_msg
         .await_reactions(&ctx)
-        .timeout(Duration::from_secs(60 * 60_u64))
+        .timeout(Duration::from_secs(120))
+        .author_id(msg.author.id)
+        .filter(|reaction| match reaction.emoji {
+            ReactionType::Unicode(ref value) if value.starts_with("🗑") => true,
+            _ => false,
+        })
+        .await;
+
+    let collector_label = bot_msg
+        .await_reactions(&ctx)
+        .timeout(Duration::from_secs(120))
+        .author_id(msg.author.id)
+        .filter(|reaction| match reaction.emoji {
+            ReactionType::Unicode(ref value) if value.starts_with("🏷") => true,
+            _ => false,
+        })
+        .await;
+
+    let collector_info = bot_msg
+        .await_reactions(&ctx)
+        .timeout(Duration::from_secs(5 * 60_u64))
         .filter(|reaction| match reaction.emoji {
             ReactionType::Unicode(ref value) if value == "ℹ\u{fe0f}" => true,
             _ => false,
         })
-        .await
-        .for_each(|reaction| {
-            let http = &http;
-            let chosen_fav = chosen_fav.clone();
-            async move {
-                // ignore add/remove reaction difference
-                let reaction = reaction.as_inner_ref();
-                if let Ok(dm_channel) = reaction.user_id.create_dm_channel(http).await {
-                    trace!(user = ?reaction.user_id, "sending info source for quote");
-                    let _ = dm_channel
-                        .say(
-                            http,
-                            format!(
-                                "https://discordapp.com/channels/{}/{}/{}",
-                                &chosen_fav.server_id, &chosen_fav.channel_id, &chosen_fav.msg_id,
-                            ),
+        .await;
+
+    let c1 = collector_delete.for_each(|reaction| {
+        let ctx = ctx.clone();
+        let chosen_fav_id = chosen_fav.id;
+        async move {
+            let _ = Fav::delete(
+                &mut *ctx
+                    .data
+                    .read()
+                    .await
+                    .get::<DatabasePool>()
+                    .ok_or("Failed to get Pool")
+                    .unwrap()
+                    .get()
+                    .await
+                    .unwrap(),
+                chosen_fav_id,
+            )
+            .await;
+        }
+    });
+    let c2 = collector_label.for_each(|reaction| {
+        let ctx = ctx.clone();
+        let chosen_fav_id = chosen_fav.id;
+        async move {
+            let reaction = reaction.as_inner_ref();
+            if let Ok(dm_channel) = reaction.user_id.create_dm_channel(&ctx).await {
+                trace!(user = ?reaction.user_id, "Requesting labels from user");
+                let _ = dm_channel.say(&ctx, "Send me your labels!").await;
+
+                if let Some(label_reply) = dm_channel
+                    .id
+                    .await_reply(&ctx)
+                    .timeout(Duration::from_secs(120))
+                    .await
+                {
+                    // clear old tags for this fav
+                    let _ = Tag::delete(
+                        &mut *ctx
+                            .data
+                            .read()
+                            .await
+                            .get::<DatabasePool>()
+                            .ok_or("Failed to get Pool")
+                            .unwrap()
+                            .get()
+                            .await
+                            .unwrap(),
+                        chosen_fav_id,
+                    )
+                    .await;
+
+                    // TODO: make this a single statement
+                    for tag in label_reply.content.split(' ') {
+                        let _ = Tag::create(
+                            &mut *ctx
+                                .data
+                                .read()
+                                .await
+                                .get::<DatabasePool>()
+                                .ok_or("Failed to get Pool")
+                                .unwrap()
+                                .get()
+                                .await
+                                .unwrap(),
+                            chosen_fav_id,
+                            tag,
                         )
                         .await;
+                    }
+
+                    let _ = label_reply.reply(&ctx, "added the tags!").await;
                 }
             }
-        })
-        .await;
+        }
+    });
+
+    let c3 = collector_info.for_each(|reaction| {
+        let ctx = ctx.clone();
+        let chosen_fav = chosen_fav.clone();
+        async move {
+            // ignore add/remove reaction difference
+            let reaction = reaction.as_inner_ref();
+            if let Ok(dm_channel) = reaction.user_id.create_dm_channel(&ctx).await {
+                trace!(user = ?reaction.user_id, "sending info source for quote");
+                let _ = dm_channel
+                    .say(
+                        &ctx,
+                        format!(
+                            "https://discordapp.com/channels/{}/{}/{}",
+                            &chosen_fav.server_id, &chosen_fav.channel_id, &chosen_fav.msg_id,
+                        ),
+                    )
+                    .await;
+            }
+        }
+    });
+
+    futures::future::join3(c1, c2, c3).await;
 
     Ok(())
 }
@@ -224,9 +298,9 @@ pub async fn untagged(ctx: &mut Context, msg: &Message, _args: Args) -> CommandR
     if results.is_empty() {
         let _ = msg.reply(&ctx, "Du hat keine untagged Favs!").await;
     } else {
-        let fa = results.first().unwrap();
-        let fav_msg = ChannelId(fa.channel_id as u64)
-            .message(&ctx, fa.msg_id as u64)
+        let fav = results.first().unwrap();
+        let fav_msg = ChannelId(fav.channel_id as u64)
+            .message(&ctx, fav.msg_id as u64)
             .await
             .unwrap();
 
@@ -242,25 +316,7 @@ pub async fn untagged(ctx: &mut Context, msg: &Message, _args: Args) -> CommandR
             return Ok(());
         }
 
-        if let Some(waiter) = ctx.data.read().await.get::<Waiter>() {
-            let mut wait = waiter.lock().await;
-
-            wait.purge(
-                *msg.author.id.as_u64(),
-                vec![Action::DeleteFav, Action::ReqTags],
-            );
-
-            wait.wait(
-                *msg.author.id.as_u64(),
-                Event::new(Action::DeleteFav, fa.id, Utc::now()),
-            );
-            wait.wait(
-                *msg.author.id.as_u64(),
-                Event::new(Action::ReqTags, fa.id, Utc::now()),
-            );
-        }
-
-        let sent_msg = msg
+        let bot_msg = msg
             .channel_id
             .send_message(&ctx, |m| {
                 m.embed(|e| {
@@ -295,8 +351,114 @@ pub async fn untagged(ctx: &mut Context, msg: &Message, _args: Args) -> CommandR
             })
             .await?;
 
-        let _ = sent_msg.react(&ctx, ReactionType::Unicode("🗑".to_string()));
-        let _ = sent_msg.react(&ctx, ReactionType::Unicode("🏷".to_string()));
+        let _ = bot_msg
+            .react(&ctx, ReactionType::Unicode("🗑".to_string()))
+            .await;
+        let _ = bot_msg
+            .react(&ctx, ReactionType::Unicode("🏷".to_string()))
+            .await;
+
+        let collector_delete = bot_msg
+            .await_reactions(&ctx)
+            .timeout(Duration::from_secs(120))
+            .author_id(msg.author.id)
+            .filter(|reaction| match reaction.emoji {
+                ReactionType::Unicode(ref value) if value.starts_with("🗑") => true,
+                _ => false,
+            })
+            .await;
+
+        let collector_label = bot_msg
+            .await_reactions(&ctx)
+            .timeout(Duration::from_secs(120))
+            .author_id(msg.author.id)
+            .filter(|reaction| match reaction.emoji {
+                ReactionType::Unicode(ref value) if value.starts_with("🏷") => true,
+                _ => false,
+            })
+            .await;
+
+        let c1 = collector_delete.for_each(|_| {
+            let ctx = ctx.clone();
+            let fav_id = fav.id;
+            async move {
+                trace!(fav = fav_id, "Delete Tag for fav");
+                let _ = Fav::delete(
+                    &mut *ctx
+                        .data
+                        .read()
+                        .await
+                        .get::<DatabasePool>()
+                        .ok_or("Failed to get Pool")
+                        .unwrap()
+                        .get()
+                        .await
+                        .unwrap(),
+                    fav_id,
+                )
+                .await;
+            }
+        });
+        let c2 = collector_label.for_each(|reaction| {
+            let ctx = ctx.clone();
+            let fav_id = fav.id;
+            async move {
+                let reaction = reaction.as_inner_ref();
+                if let Ok(dm_channel) = reaction.user_id.create_dm_channel(&ctx).await {
+                    trace!(user = ?reaction.user_id, "Requesting labels from user");
+                    let _ = dm_channel.say(&ctx, "Send me your labels!").await;
+
+                    if let Some(label_reply) = dm_channel
+                        .id
+                        .await_reply(&ctx)
+                        .timeout(Duration::from_secs(120))
+                        .await
+                    {
+                        // clear old tags for this fav
+                        let r = Tag::delete(
+                            &mut *ctx
+                                .data
+                                .read()
+                                .await
+                                .get::<DatabasePool>()
+                                .ok_or("Failed to get Pool")
+                                .unwrap()
+                                .get()
+                                .await
+                                .unwrap(),
+                            fav_id,
+                        )
+                        .await;
+                        trace!(tag_deletion = ?r, "Tags deleted");
+
+                        // TODO: make this a single statement
+                        for tag in label_reply.content.split(' ') {
+                            let r = Tag::create(
+                                &mut *ctx
+                                    .data
+                                    .read()
+                                    .await
+                                    .get::<DatabasePool>()
+                                    .ok_or("Failed to get Pool")
+                                    .unwrap()
+                                    .get()
+                                    .await
+                                    .unwrap(),
+                                fav_id,
+                                tag,
+                            )
+                            .await;
+
+                            trace!(tag_creation = ?r, "Tag created");
+                        }
+
+                        let _ = label_reply.reply(&ctx, "added the tags!").await;
+                    }
+                }
+            }
+        });
+
+        futures::future::join(c1, c2).await;
     }
     Ok(())
 }
