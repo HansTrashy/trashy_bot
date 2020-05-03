@@ -199,6 +199,7 @@ pub async fn post(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandRe
                 if let Some(label_reply) = dm_channel
                     .id
                     .await_reply(&ctx)
+                    .author_id(reaction.user_id)
                     .timeout(Duration::from_secs(120))
                     .await
                 {
@@ -411,6 +412,7 @@ pub async fn untagged(ctx: &mut Context, msg: &Message, _args: Args) -> CommandR
                     if let Some(label_reply) = dm_channel
                         .id
                         .await_reply(&ctx)
+                        .author_id(reaction.user_id)
                         .timeout(Duration::from_secs(120))
                         .await
                     {
