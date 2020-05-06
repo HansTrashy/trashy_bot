@@ -41,11 +41,13 @@ pub async fn add(ctx: Context, add_reaction: Reaction) {
 
     if let Ok(dm_channel) = add_reaction.user_id.create_dm_channel(&ctx).await {
         trace!(user = ?add_reaction.user_id, "Requesting labels from user");
+
         let _ = dm_channel.say(&ctx, "Send me your labels!").await;
 
         if let Some(label_reply) = dm_channel
             .id
             .await_reply(&ctx)
+            .author_id(add_reaction.user_id)
             .timeout(Duration::from_secs(120))
             .await
         {
