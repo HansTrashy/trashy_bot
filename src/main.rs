@@ -49,11 +49,6 @@ impl TypeMapKey for DatabasePool {
     type Value = Pool;
 }
 
-// struct Waiter;
-// impl TypeMapKey for Waiter {
-//     type Value = Arc<Mutex<self::interaction::wait::Wait>>;
-// }
-
 struct ReactionRolesState;
 impl TypeMapKey for ReactionRolesState {
     type Value = Arc<Mutex<self::reaction_roles::State>>;
@@ -226,7 +221,6 @@ async fn main() {
         .await
         .expect("Err creating client");
 
-    // let waiter = Arc::new(Mutex::new(self::interaction::wait::Wait::new()));
     let rr_state = Arc::new(Mutex::new(self::reaction_roles::State::load_set()));
     let rules_state = Arc::new(Mutex::new(self::rules::State::load()));
 
@@ -249,7 +243,6 @@ async fn main() {
         let mut data = client.data.write().await;
 
         data.insert::<ShardManagerContainer>(Arc::clone(&client.shard_manager));
-        // data.insert::<Waiter>(waiter);
         data.insert::<ReactionRolesState>(rr_state);
         data.insert::<RulesState>(rules_state);
         data.insert::<OptOut>(Arc::clone(&opt_out));
