@@ -32,7 +32,6 @@ use tracing_log::LogTracer;
 
 mod commands;
 mod handler;
-// mod interaction;
 mod migrations;
 mod models;
 mod reaction_roles;
