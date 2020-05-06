@@ -13,11 +13,11 @@ use serenity::{
 #[description = "Lists Shiny counts"]
 #[example("")]
 #[only_in("guilds")]
-async fn list(ctx: &mut Context, msg: &Message, _args: Args) -> CommandResult {
+async fn list(ctx: &Context, msg: &Message, _args: Args) -> CommandResult {
     let mut conn = match ctx.data.read().await.get::<DatabasePool>() {
         Some(v) => v.get().await.unwrap(),
         None => {
-            let _ = msg.reply(&ctx, "Could not retrieve the database connection!");
+            let _ = msg.reply(ctx, "Could not retrieve the database connection!");
             return Ok(());
         }
     };
@@ -48,9 +48,12 @@ async fn list(ctx: &mut Context, msg: &Message, _args: Args) -> CommandResult {
 #[example("1000")]
 #[only_in("guilds")]
 #[usage("*amount*")]
-async fn shiny(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
+async fn shiny(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     let amount = args.single::<i64>()?;
-    let pool = ctx.data.read().await
+    let pool = ctx
+        .data
+        .read()
+        .await
         .get::<DatabasePool>()
         .map(|p| p.clone())
         .ok_or("Could not retrieve the database connection!")?;
@@ -92,10 +95,13 @@ async fn respond(ctx: &Context, msg: &Message, shiny: Shiny) {
 #[only_in("guilds")]
 #[allowed_roles("Mods")]
 #[usage("*amount*")]
-async fn setshiny(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
+async fn setshiny(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     let amount = args.single::<i64>()?;
 
-    let pool = ctx.data.read().await
+    let pool = ctx
+        .data
+        .read()
+        .await
         .get::<DatabasePool>()
         .map(|p| p.clone())
         .ok_or("Could not retrieve the database connection!")?;
@@ -127,7 +133,7 @@ async fn setshiny(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandRe
         }
     }
 
-    msg.reply(&ctx, response.join("\n"))
+    msg.reply(ctx, response.join("\n"))
         .await
         .expect("Could not answer");
 
@@ -140,8 +146,11 @@ async fn setshiny(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandRe
 #[only_in("guilds")]
 #[allowed_roles("Mods")]
 #[usage("*user1* *user2*")]
-async fn removeshiny(ctx: &mut Context, msg: &Message, _args: Args) -> CommandResult {
-    let pool = ctx.data.read().await
+async fn removeshiny(ctx: &Context, msg: &Message, _args: Args) -> CommandResult {
+    let pool = ctx
+        .data
+        .read()
+        .await
         .get::<DatabasePool>()
         .map(|p| p.clone())
         .ok_or("Could not retrieve the database connection!")?;
@@ -156,7 +165,7 @@ async fn removeshiny(ctx: &mut Context, msg: &Message, _args: Args) -> CommandRe
         response.push(format!("Removed shinys for {}", user.name));
     }
 
-    msg.reply(&ctx, response.join("\n"))
+    msg.reply(ctx, response.join("\n"))
         .await
         .expect("Could not answer");
 

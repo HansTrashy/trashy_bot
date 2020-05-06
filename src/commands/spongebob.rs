@@ -7,7 +7,7 @@ use serenity::{
 #[command]
 #[description = "Let spongebob say something"]
 #[aliases("sponge")]
-async fn spongebob(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
+async fn spongebob(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     let spongify_this: String = args
         .rest()
         .chars()
@@ -21,17 +21,19 @@ async fn spongebob(ctx: &mut Context, msg: &Message, args: Args) -> CommandResul
         })
         .collect();
 
-    msg.channel_id.send_message(&ctx.http, |m| {
-        m.embed(|e| {
-            e.author(|a| {
-                a.name("Spongebob")
-                    .icon_url("https://cdn.discordapp.com/emojis/598837367343808532.png?v=1")
+    msg.channel_id
+        .send_message(&ctx.http, |m| {
+            m.embed(|e| {
+                e.author(|a| {
+                    a.name("Spongebob")
+                        .icon_url("https://cdn.discordapp.com/emojis/598837367343808532.png?v=1")
+                })
+                .description(&spongify_this)
+                .footer(|f| f.text(&format!("Spongified by: {}", &msg.author.name)))
+                .color((0, 120, 220))
             })
-            .description(&spongify_this)
-            .footer(|f| f.text(&format!("Spongified by: {}", &msg.author.name)))
-            .color((0, 120, 220))
         })
-    }).await?;
+        .await?;
 
     msg.delete(ctx).await?;
 

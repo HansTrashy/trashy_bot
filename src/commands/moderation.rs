@@ -21,7 +21,7 @@ use tracing::error;
 #[command]
 #[only_in("guilds")]
 #[allowed_roles("Mods")]
-pub async fn mute(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
+pub async fn mute(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     let pool = ctx
         .data
         .read()
@@ -43,7 +43,7 @@ pub async fn mute(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandRe
                     if let Some(mute_role) = &guild_config.mute_role {
                         let mut found_members = Vec::new();
                         for user in &msg.mentions {
-                            match guild_id.member(&ctx, user).await {
+                            match guild_id.member(ctx, user).await {
                                 Ok(mut member) => {
                                     let _ = member.add_role(&ctx, RoleId(*mute_role)).await;
                                     found_members.push(member);
@@ -94,12 +94,12 @@ pub async fn mute(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandRe
                             }
                         }
 
-                        msg.react(&ctx, ReactionType::Unicode("✅".to_string()))
+                        msg.react(ctx, ReactionType::Unicode("✅".to_string()))
                             .await;
                     }
                 }
                 Err(_e) => {
-                    msg.reply(&ctx, "server config missing").await;
+                    msg.reply(ctx, "server config missing").await;
                 }
             }
         }
@@ -260,7 +260,7 @@ async fn create_unmute_message(users: &[Member]) -> String {
 #[command]
 #[only_in("guilds")]
 #[allowed_roles("Mods")]
-pub async fn unmute(ctx: &mut Context, msg: &Message, _args: Args) -> CommandResult {
+pub async fn unmute(ctx: &Context, msg: &Message, _args: Args) -> CommandResult {
     let pool = ctx
         .data
         .read()
@@ -278,7 +278,7 @@ pub async fn unmute(ctx: &mut Context, msg: &Message, _args: Args) -> CommandRes
                 if let Some(mute_role) = &guild_config.mute_role {
                     let mut found_members = Vec::new();
                     for user in &msg.mentions {
-                        match guild_id.member(&ctx, user).await {
+                        match guild_id.member(ctx, user).await {
                             Ok(mut member) => {
                                 let _ = member.remove_role(&ctx, RoleId(*mute_role));
                                 found_members.push(member);
@@ -305,12 +305,12 @@ pub async fn unmute(ctx: &mut Context, msg: &Message, _args: Args) -> CommandRes
                         }
                     }
 
-                    msg.react(&ctx, ReactionType::Unicode("✅".to_string()))
+                    msg.react(ctx, ReactionType::Unicode("✅".to_string()))
                         .await?;
                 }
             }
             Err(_e) => {
-                msg.reply(&ctx, "server config missing").await?;
+                msg.reply(ctx, "server config missing").await?;
             }
         }
     }
@@ -321,7 +321,7 @@ pub async fn unmute(ctx: &mut Context, msg: &Message, _args: Args) -> CommandRes
 #[only_in("guilds")]
 #[aliases("yeet")]
 #[allowed_roles("Mods")]
-pub async fn kick(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
+pub async fn kick(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     let pool = ctx
         .data
         .read()
@@ -340,8 +340,8 @@ pub async fn kick(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult
 
                 let mut found_members = Vec::new();
                 for user in &msg.mentions {
-                    let member = guild_id.member(&ctx, user).await?;
-                    let _ = member.kick(&ctx).await;
+                    let member = guild_id.member(ctx, user).await?;
+                    let _ = member.kick(ctx).await;
                     found_members.push(member);
                 }
 
@@ -357,11 +357,11 @@ pub async fn kick(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult
                 }
 
                 let _ = msg
-                    .react(&ctx, ReactionType::Unicode("✅".to_string()))
+                    .react(ctx, ReactionType::Unicode("✅".to_string()))
                     .await;
             }
             Err(_e) => {
-                let _ = msg.reply(&ctx, "server config missing").await;
+                let _ = msg.reply(ctx, "server config missing").await;
             }
         }
     }
@@ -372,7 +372,7 @@ pub async fn kick(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult
 #[command]
 #[only_in("guilds")]
 #[allowed_roles("Mods")]
-pub async fn ban(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
+pub async fn ban(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     let pool = ctx
         .data
         .read()
@@ -391,7 +391,7 @@ pub async fn ban(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult 
 
                 let mut found_members = Vec::new();
                 for user in &msg.mentions {
-                    let member = guild_id.member(&ctx, user).await?;
+                    let member = guild_id.member(ctx, user).await?;
                     let _ = member.ban(&ctx, &(0, ban_msg)).await;
                     found_members.push(member);
                 }
@@ -408,11 +408,11 @@ pub async fn ban(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult 
                 }
 
                 let _ = msg
-                    .react(&ctx, ReactionType::Unicode("✅".to_string()))
+                    .react(ctx, ReactionType::Unicode("✅".to_string()))
                     .await;
             }
             Err(_e) => {
-                let _ = msg.reply(&ctx, "server config missing").await;
+                let _ = msg.reply(ctx, "server config missing").await;
             }
         }
     }

@@ -21,11 +21,11 @@ use tracing::{debug, trace};
 #[command]
 #[description = "Post a fav"]
 #[example = "taishi wichsen"]
-pub async fn post(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
+pub async fn post(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     let opt_out = if let Some(v) = ctx.data.read().await.get::<OptOut>() {
         v.clone()
     } else {
-        let _ = msg.reply(&ctx, "OptOut list not available").await;
+        let _ = msg.reply(ctx, "OptOut list not available").await;
         panic!("no optout");
     };
 
@@ -79,7 +79,7 @@ pub async fn post(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandRe
         .message(&ctx.http, chosen_fav.msg_id as u64)
         .await?;
 
-    match msg.delete(&ctx).await {
+    match msg.delete(ctx).await {
         Ok(_) => (),
         Err(_) => debug!("Deletion is not supported in DMs"),
     }
@@ -274,11 +274,11 @@ pub async fn post(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandRe
 #[description = "Shows untagged favs so you can tag them"]
 #[only_in("dms")]
 #[num_args(0)]
-pub async fn untagged(ctx: &mut Context, msg: &Message, _args: Args) -> CommandResult {
+pub async fn untagged(ctx: &Context, msg: &Message, _args: Args) -> CommandResult {
     let opt_out = match ctx.data.read().await.get::<OptOut>() {
         Some(v) => v.clone(),
         None => {
-            let _ = msg.reply(&ctx, "OptOut list not available");
+            let _ = msg.reply(ctx, "OptOut list not available");
             panic!("no optout");
         }
     };
@@ -297,7 +297,7 @@ pub async fn untagged(ctx: &mut Context, msg: &Message, _args: Args) -> CommandR
     .await?;
 
     if results.is_empty() {
-        let _ = msg.reply(&ctx, "Du hat keine untagged Favs!").await;
+        let _ = msg.reply(ctx, "Du hat keine untagged Favs!").await;
     } else {
         let fav = results.first().unwrap();
         let fav_msg = ChannelId(fav.channel_id as u64)
@@ -353,10 +353,10 @@ pub async fn untagged(ctx: &mut Context, msg: &Message, _args: Args) -> CommandR
             .await?;
 
         let _ = bot_msg
-            .react(&ctx, ReactionType::Unicode("🗑".to_string()))
+            .react(ctx, ReactionType::Unicode("🗑".to_string()))
             .await;
         let _ = bot_msg
-            .react(&ctx, ReactionType::Unicode("🏷".to_string()))
+            .react(ctx, ReactionType::Unicode("🏷".to_string()))
             .await;
 
         let collector_delete = bot_msg
@@ -469,7 +469,7 @@ pub async fn untagged(ctx: &mut Context, msg: &Message, _args: Args) -> CommandR
 #[only_in("dms")]
 #[description = "Add a fav per link to the message"]
 #[num_args(1)]
-pub async fn add(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
+pub async fn add(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     lazy_static! {
         static ref FAV_LINK_REGEX: Regex =
             Regex::new(r#"https://discordapp.com/channels/(\d+)/(\d+)/(\d+)"#)
@@ -506,7 +506,7 @@ pub async fn add(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult 
         )
         .await?;
 
-        if let Err(why) = msg.author.dm(&ctx, |m| m.content("Fav saved!")).await {
+        if let Err(why) = msg.author.dm(ctx, |m| m.content("Fav saved!")).await {
             debug!("Error sending message: {:?}", why);
         }
     }
@@ -518,7 +518,7 @@ pub async fn add(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult 
 #[only_in("dms")]
 #[description = "Shows your used tags so you do not have to remember them all"]
 #[num_args(0)]
-pub async fn tags(ctx: &mut Context, msg: &Message, _args: Args) -> CommandResult {
+pub async fn tags(ctx: &Context, msg: &Message, _args: Args) -> CommandResult {
     let mut messages = Vec::new();
     {
         let mut fav_tags = Tag::of_user(

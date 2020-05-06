@@ -9,15 +9,6 @@ use serenity::{
     model::channel::Message,
 };
 
-#[command]
-#[num_args(0)]
-#[allowed_roles("Mods")]
-pub async fn status(ctx: &mut Context, _msg: &Message, _args: Args) -> CommandResult {
-    ctx.set_presence(Some(Activity::listening("$help")), OnlineStatus::Online)
-        .await;
-    Ok(())
-}
-
 // Keep every setting optional and use reasonable defaults
 #[derive(Serialize, Deserialize, Debug, Default)]
 pub struct Guild {
@@ -29,8 +20,11 @@ pub struct Guild {
 #[command]
 #[num_args(0)]
 #[allowed_roles("Mods")]
-pub async fn show_config(ctx: &mut Context, msg: &Message, _args: Args) -> CommandResult {
-    let pool = ctx.data.read().await
+pub async fn show_config(ctx: &Context, msg: &Message, _args: Args) -> CommandResult {
+    let pool = ctx
+        .data
+        .read()
+        .await
         .get::<DatabasePool>()
         .map(|p| p.clone())
         .ok_or("Could not retrieve the database connection!")?;
@@ -62,9 +56,12 @@ pub async fn show_config(ctx: &mut Context, msg: &Message, _args: Args) -> Comma
 #[command]
 #[num_args(1)]
 #[allowed_roles("Mods")]
-pub async fn set_modlog(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
+pub async fn set_modlog(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     let modlog_channel = args.parse::<u64>()?;
-    let pool = ctx.data.read().await
+    let pool = ctx
+        .data
+        .read()
+        .await
         .get::<DatabasePool>()
         .map(|p| p.clone())
         .ok_or("Could not retrieve the database connection!")?;
@@ -123,9 +120,12 @@ pub async fn set_modlog(ctx: &mut Context, msg: &Message, args: Args) -> Command
 #[command]
 #[num_args(1)]
 #[allowed_roles("Mods")]
-pub async fn set_userlog(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
+pub async fn set_userlog(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     let userlog_channel = args.parse::<u64>()?;
-    let pool = ctx.data.read().await
+    let pool = ctx
+        .data
+        .read()
+        .await
         .get::<DatabasePool>()
         .map(|p| p.clone())
         .ok_or("Could not retrieve the database connection!")?;
@@ -186,9 +186,12 @@ pub async fn set_userlog(ctx: &mut Context, msg: &Message, args: Args) -> Comman
 #[command]
 #[num_args(1)]
 #[allowed_roles("Mods")]
-pub async fn set_muterole(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
+pub async fn set_muterole(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     let mute_role = args.parse::<u64>()?;
-    let pool = ctx.data.read().await
+    let pool = ctx
+        .data
+        .read()
+        .await
         .get::<DatabasePool>()
         .map(|p| p.clone())
         .ok_or("Could not retrieve the database connection!")?;

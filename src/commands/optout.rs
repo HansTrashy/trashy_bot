@@ -7,11 +7,11 @@ use serenity::{
 
 #[command]
 #[description = "Opt out of the fav/quote features"]
-pub async fn optout(ctx: &mut Context, msg: &Message, _args: Args) -> CommandResult {
+pub async fn optout(ctx: &Context, msg: &Message, _args: Args) -> CommandResult {
     let opt_out = match ctx.data.read().await.get::<OptOut>() {
         Some(v) => v.clone(),
         None => {
-            let _ = msg.reply(&ctx, "OptOut list not available");
+            let _ = msg.reply(ctx, "OptOut list not available");
             panic!("no optout");
         }
     };

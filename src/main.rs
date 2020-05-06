@@ -104,7 +104,7 @@ impl OptOutStore {
 #[lacking_role = "Hide"]
 #[wrong_channel = "Strike"]
 async fn my_help(
-    context: &mut Context,
+    context: &Context,
     msg: &Message,
     args: Args,
     help_options: &'static HelpOptions,
@@ -120,7 +120,7 @@ lazy_static! {
 }
 
 #[hook]
-async fn before(_ctx: &mut Context, msg: &Message, command_name: &str) -> bool {
+async fn before(_ctx: &Context, msg: &Message, command_name: &str) -> bool {
     debug!(
         "Got command '{}' by user '{}'",
         command_name, msg.author.name
@@ -130,12 +130,7 @@ async fn before(_ctx: &mut Context, msg: &Message, command_name: &str) -> bool {
 }
 
 #[hook]
-async fn after(
-    _ctx: &mut Context,
-    _msg: &Message,
-    command_name: &str,
-    command_result: CommandResult,
-) {
+async fn after(_ctx: &Context, _msg: &Message, command_name: &str, command_result: CommandResult) {
     match command_result {
         Ok(()) => debug!("Processed command '{}'", command_name),
         Err(why) => debug!("Command '{}' returned error {:?}", command_name, why),
@@ -143,17 +138,17 @@ async fn after(
 }
 
 #[hook]
-async fn unknown_command(_ctx: &mut Context, _msg: &Message, unknown_command_name: &str) {
+async fn unknown_command(_ctx: &Context, _msg: &Message, unknown_command_name: &str) {
     debug!("Could not find command named '{}'", unknown_command_name);
 }
 
 #[hook]
-async fn normal_message(_ctx: &mut Context, msg: &Message) {
+async fn normal_message(_ctx: &Context, msg: &Message) {
     trace!("Message is not a command '{}'", msg.content);
 }
 
 #[hook]
-async fn dispatch_error(ctx: &mut Context, msg: &Message, error: DispatchError) -> () {
+async fn dispatch_error(ctx: &Context, msg: &Message, error: DispatchError) -> () {
     if let DispatchError::Ratelimited(seconds) = error {
         let _ = msg
             .channel_id
@@ -225,10 +220,11 @@ async fn main() {
         .group(&commands::groups::lastfm::LASTFM_GROUP);
     debug!("Framework created");
 
-    let mut client = Client::new_with_framework(&token, handler::Handler, framework)
+    let mut client = Client::new(&token)
+        .event_handler(handler::Handler)
+        .framework(framework)
         .await
         .expect("Err creating client");
-    debug!("Client created");
 
     // let waiter = Arc::new(Mutex::new(self::interaction::wait::Wait::new()));
     let rr_state = Arc::new(Mutex::new(self::reaction_roles::State::load_set()));

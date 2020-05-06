@@ -13,13 +13,13 @@ use tracing::error;
 #[description = "Choose between things"]
 #[aliases("ch00se")]
 #[min_args(2)]
-pub async fn choose(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
+pub async fn choose(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     let settings = ContentSafeOptions::default().clean_channel(false);
 
     if args.len() < 2 {
         return match msg
             .channel_id
-            .say(&ctx.http, "You have to give at least 2 options")
+            .say(ctx, "You have to give at least 2 options")
             .await
         {
             Ok(_) => Ok(()),

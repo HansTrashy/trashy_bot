@@ -23,7 +23,7 @@ pub struct MemberInfo {
 #[command]
 #[description = "Display information about the user"]
 #[only_in("guilds")]
-pub async fn userinfo(ctx: &mut Context, msg: &Message, _args: Args) -> CommandResult {
+pub async fn userinfo(ctx: &Context, msg: &Message, _args: Args) -> CommandResult {
     let user = msg.mentions.get(0).ok_or("No user mentioned")?;
 
     let mut user_info = UserInfo {
@@ -35,7 +35,7 @@ pub async fn userinfo(ctx: &mut Context, msg: &Message, _args: Args) -> CommandR
     };
 
     if let Some(guild_id) = msg.guild_id {
-        let member = guild_id.member(&ctx, user.id).await?;
+        let member = guild_id.member(ctx, user.id).await?;
         let special_case =
             if user.id == 200_009_451_292_459_011 && guild_id == 217_015_995_385_118_721 {
                 Some(Utc.ymd(2017, 5, 26).and_hms(8, 56, 0))

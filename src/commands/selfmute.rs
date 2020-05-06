@@ -20,11 +20,11 @@ use tracing::error;
 #[usage = "*duration*"]
 #[example = "1h"]
 #[only_in("guilds")]
-pub async fn selfmute(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
+pub async fn selfmute(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     let duration = util::parse_duration(&args.single::<String>()?).expect("invalid duration");
 
     if duration > Duration::hours(24) {
-        msg.reply(&ctx, "You can not mute yourself for more than 24 hours!")
+        msg.reply(ctx, "You can not mute yourself for more than 24 hours!")
             .await?;
         return Ok(());
     }
@@ -47,7 +47,7 @@ pub async fn selfmute(ctx: &mut Context, msg: &Message, mut args: Args) -> Comma
                 let guild_config: Guild = serde_json::from_value(server_config.config).unwrap();
 
                 if let Some(mute_role) = &guild_config.mute_role {
-                    match guild_id.member(&ctx, msg.author.id).await {
+                    match guild_id.member(ctx, msg.author.id).await {
                         Ok(mut member) => {
                             member.add_role(&ctx, RoleId(*mute_role)).await?;
                         }
@@ -71,12 +71,12 @@ pub async fn selfmute(ctx: &mut Context, msg: &Message, mut args: Args) -> Comma
                     )
                     .await?;
 
-                    msg.react(&ctx, ReactionType::Unicode("✅".to_string()))
+                    msg.react(ctx, ReactionType::Unicode("✅".to_string()))
                         .await?;
 
                     delay_for(duration.to_std()?).await;
 
-                    match guild_id.member(&ctx, msg.author.id).await {
+                    match guild_id.member(ctx, msg.author.id).await {
                         Ok(mut member) => {
                             member
                                 .remove_role(&ctx, RoleId(*mute_role))
@@ -102,7 +102,7 @@ pub async fn selfmute(ctx: &mut Context, msg: &Message, mut args: Args) -> Comma
                 }
             }
             Err(_e) => {
-                msg.reply(&ctx, "server config missing").await?;
+                msg.reply(ctx, "server config missing").await?;
             }
         }
     }

@@ -13,9 +13,12 @@ use tracing::info;
 #[example = "HansTrashy"]
 #[usage = "*lastfmusername*"]
 #[num_args(1)]
-pub async fn register(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
+pub async fn register(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     let username = args.single::<String>()?;
-    let pool = ctx.data.read().await
+    let pool = ctx
+        .data
+        .read()
+        .await
         .get::<DatabasePool>()
         .map(|p| p.clone())
         .ok_or("Could not retrieve the database connection!")?;
@@ -25,7 +28,7 @@ pub async fn register(ctx: &mut Context, msg: &Message, mut args: Args) -> Comma
         let lastfm = Lastfm::update(&mut *conn, user.id, username).await?;
 
         msg.reply(
-            &ctx,
+            ctx,
             format!("Updated your lastfm username to {}", lastfm.username),
         )
         .await?;
@@ -33,7 +36,7 @@ pub async fn register(ctx: &mut Context, msg: &Message, mut args: Args) -> Comma
         let lastfm = Lastfm::create(&mut *conn, *msg.author.id.as_u64() as i64, username).await?;
 
         msg.reply(
-            &ctx,
+            ctx,
             format!("added {} as your lastfm username!", lastfm.username),
         )
         .await?;
@@ -46,8 +49,11 @@ pub async fn register(ctx: &mut Context, msg: &Message, mut args: Args) -> Comma
 #[description = "Show your currently playing track"]
 #[num_args(0)]
 #[bucket = "lastfm"]
-pub async fn now(ctx: &mut Context, msg: &Message, _args: Args) -> CommandResult {
-    let pool = ctx.data.read().await
+pub async fn now(ctx: &Context, msg: &Message, _args: Args) -> CommandResult {
+    let pool = ctx
+        .data
+        .read()
+        .await
         .get::<DatabasePool>()
         .map(|p| p.clone())
         .ok_or("Could not retrieve the database connection!")?;
@@ -98,8 +104,11 @@ pub async fn now(ctx: &mut Context, msg: &Message, _args: Args) -> CommandResult
 #[description = "Show your recent tracks"]
 #[num_args(0)]
 #[bucket = "lastfm"]
-pub async fn recent(ctx: &mut Context, msg: &Message, _args: Args) -> CommandResult {
-    let pool = ctx.data.read().await
+pub async fn recent(ctx: &Context, msg: &Message, _args: Args) -> CommandResult {
+    let pool = ctx
+        .data
+        .read()
+        .await
         .get::<DatabasePool>()
         .map(|p| p.clone())
         .ok_or("Could not retrieve the database connection!")?;
@@ -148,7 +157,7 @@ pub async fn recent(ctx: &mut Context, msg: &Message, _args: Args) -> CommandRes
 #[min_args(0)]
 #[max_args(1)]
 #[bucket = "lastfm"]
-pub async fn artists(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
+pub async fn artists(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     let period = match args.rest() {
         "all" => "overall",
         "7d" => "7day",
@@ -159,7 +168,10 @@ pub async fn artists(ctx: &mut Context, msg: &Message, args: Args) -> CommandRes
         _ => "overall",
     };
 
-    let pool = ctx.data.read().await
+    let pool = ctx
+        .data
+        .read()
+        .await
         .get::<DatabasePool>()
         .map(|p| p.clone())
         .ok_or("Could not retrieve the database connection!")?;
@@ -205,7 +217,7 @@ pub async fn artists(ctx: &mut Context, msg: &Message, args: Args) -> CommandRes
 #[min_args(0)]
 #[max_args(1)]
 #[bucket = "lastfm"]
-pub async fn albums(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
+pub async fn albums(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     let period = match args.rest() {
         "all" => "overall",
         "7d" => "7day",
@@ -216,7 +228,10 @@ pub async fn albums(ctx: &mut Context, msg: &Message, args: Args) -> CommandResu
         _ => "overall",
     };
 
-    let pool = ctx.data.read().await
+    let pool = ctx
+        .data
+        .read()
+        .await
         .get::<DatabasePool>()
         .map(|p| p.clone())
         .ok_or("Could not retrieve the database connection!")?;
@@ -262,7 +277,7 @@ pub async fn albums(ctx: &mut Context, msg: &Message, args: Args) -> CommandResu
 #[min_args(0)]
 #[max_args(1)]
 #[bucket = "lastfm"]
-pub async fn tracks(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
+pub async fn tracks(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     let period = match args.rest() {
         "all" => "overall",
         "7d" => "7day",
@@ -275,7 +290,10 @@ pub async fn tracks(ctx: &mut Context, msg: &Message, args: Args) -> CommandResu
 
     info!("period: {:?}", period);
 
-    let pool = ctx.data.read().await
+    let pool = ctx
+        .data
+        .read()
+        .await
         .get::<DatabasePool>()
         .map(|p| p.clone())
         .ok_or("Could not retrieve the database connection!")?;

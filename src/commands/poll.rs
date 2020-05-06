@@ -17,7 +17,7 @@ use std::time::Duration;
 #[usage = "command \"question\" \"answer\" \"answer"]
 #[example = "\"Do you freeze bread?\" \"Yes\" \"No\""]
 #[only_in("guilds")]
-async fn poll(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
+async fn poll(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     let question = args.single::<String>()?;
     let answers = args
         .iter()
@@ -34,7 +34,7 @@ async fn poll(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult
         .say(&ctx, ask_question(&msg.author, &question, &answers).await)
         .await?;
 
-    let _ = msg.delete(&ctx).await;
+    let _ = msg.delete(ctx).await;
 
     let collector = question_msg
         .await_reactions(&ctx)

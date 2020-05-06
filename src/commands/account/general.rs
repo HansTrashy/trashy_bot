@@ -6,12 +6,12 @@ use serenity::{
     framework::standard::{macros::command, Args, CommandResult},
     model::channel::Message,
 };
-use tracing::{debug, error, info};
+use tracing::debug;
 
 #[command]
 #[description = "Create an account if you do not already own one"]
 #[num_args(0)]
-pub async fn create(ctx: &mut Context, msg: &Message, _args: Args) -> CommandResult {
+pub async fn create(ctx: &Context, msg: &Message, _args: Args) -> CommandResult {
     let mut conn = ctx
         .data
         .read()
@@ -23,7 +23,7 @@ pub async fn create(ctx: &mut Context, msg: &Message, _args: Args) -> CommandRes
     // check if user already owns a bank
     if let Ok(bank) = Bank::get(&mut *conn, *msg.author.id.as_u64() as i64).await {
         let _ = msg
-            .reply(&ctx, &format!("Your bank balance: {}", bank.amount))
+            .reply(ctx, &format!("Your bank balance: {}", bank.amount))
             .await;
     } else {
         let bank = Bank::create(
@@ -36,7 +36,7 @@ pub async fn create(ctx: &mut Context, msg: &Message, _args: Args) -> CommandRes
         .await;
         debug!("Created bank entry {:?}", bank);
 
-        let _ = msg.reply(&ctx, "Created bank!").await;
+        let _ = msg.reply(ctx, "Created bank!").await;
     }
     Ok(())
 }
@@ -44,7 +44,7 @@ pub async fn create(ctx: &mut Context, msg: &Message, _args: Args) -> CommandRes
 #[command]
 #[aliases("paydaddy")]
 #[num_args(0)]
-pub async fn payday(ctx: &mut Context, msg: &Message, _args: Args) -> CommandResult {
+pub async fn payday(ctx: &Context, msg: &Message, _args: Args) -> CommandResult {
     // check if user has a bank & last payday was over 24h ago
     let pool = ctx
         .data
@@ -72,19 +72,19 @@ pub async fn payday(ctx: &mut Context, msg: &Message, _args: Args) -> CommandRes
             .await?;
 
             let _ = msg
-                .reply(&ctx, &format!("Your new balance: {}", &updated_amount))
+                .reply(ctx, &format!("Your new balance: {}", &updated_amount))
                 .await;
         } else {
             let _ = msg
                 .reply(
-                    &ctx,
+                    ctx,
                     &format!("Wait {} hours for your next Payday!", (24 - &hours_diff)),
                 )
                 .await;
         }
     } else {
         let _ = msg.reply(
-            &ctx,
+            ctx,
             "You do not own a bank, please create one using the createaccount command",
         );
     }
@@ -94,7 +94,7 @@ pub async fn payday(ctx: &mut Context, msg: &Message, _args: Args) -> CommandRes
 #[command]
 #[description = "Lists the leading players"]
 #[num_args(0)]
-pub async fn leaderboard(ctx: &mut Context, msg: &Message, _args: Args) -> CommandResult {
+pub async fn leaderboard(ctx: &Context, msg: &Message, _args: Args) -> CommandResult {
     let pool = ctx
         .data
         .read()
@@ -122,7 +122,7 @@ pub async fn leaderboard(ctx: &mut Context, msg: &Message, _args: Args) -> Comma
 #[command]
 #[description = "Transfers amount x to all listed users"]
 #[example = "1000 @user1 @user2"]
-pub async fn transfer(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
+pub async fn transfer(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     let pool = ctx
         .data
         .read()
@@ -172,7 +172,7 @@ pub async fn transfer(ctx: &mut Context, msg: &Message, mut args: Args) -> Comma
             let mentioned_user_names: Vec<String> =
                 msg.mentions.iter().map(|u| u.name.to_owned()).collect();
             msg.reply(
-                &ctx,
+                ctx,
                 &format!(
                     "Transferred: {}, to: {:?}",
                     amount_to_transfer, mentioned_user_names
@@ -180,11 +180,11 @@ pub async fn transfer(ctx: &mut Context, msg: &Message, mut args: Args) -> Comma
             )
             .await?;
         } else {
-            msg.reply(&ctx, "Du hast nicht genügend credits für den Transfer!")
+            msg.reply(ctx, "Du hast nicht genügend credits für den Transfer!")
                 .await?;
         }
     } else {
-        msg.reply(&ctx, "Du besitzt noch keine Bank!").await?;
+        msg.reply(ctx, "Du besitzt noch keine Bank!").await?;
     }
     Ok(())
 }

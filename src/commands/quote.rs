@@ -23,7 +23,7 @@ lazy_static! {
 #[usage = "command message-link"]
 #[example = "https://discordapp.com/channels/_/_/_"]
 #[only_in("guilds")]
-pub async fn quote(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
+pub async fn quote(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     check_optout(ctx, msg, *msg.author.id.as_u64()).await?;
 
     let caps = QUOTE_LINK_REGEX
@@ -80,7 +80,7 @@ pub async fn quote(ctx: &mut Context, msg: &Message, args: Args) -> CommandResul
             })
             .await?;
 
-        match msg.delete(&ctx).await {
+        match msg.delete(ctx).await {
             Ok(_) => (),
             Err(_) => debug!("deleting in dms is not supported"),
         }
@@ -115,7 +115,7 @@ pub async fn quote(ctx: &mut Context, msg: &Message, args: Args) -> CommandResul
             })
             .await;
     } else {
-        msg.reply(&ctx, "Sorry, i can not find this message.")
+        msg.reply(ctx, "Sorry, i can not find this message.")
             .await?;
         trace!("Could not find quote message");
     }
@@ -123,7 +123,7 @@ pub async fn quote(ctx: &mut Context, msg: &Message, args: Args) -> CommandResul
     Ok(())
 }
 
-async fn check_optout(ctx: &mut Context, msg: &Message, id: u64) -> CommandResult {
+async fn check_optout(ctx: &Context, msg: &Message, id: u64) -> CommandResult {
     if ctx
         .data
         .read()
@@ -141,7 +141,7 @@ async fn check_optout(ctx: &mut Context, msg: &Message, id: u64) -> CommandResul
                 m.content("OptOut is used by you or the quoted")
             })
             .await?;
-        msg.delete(&ctx).await?;
+        msg.delete(ctx).await?;
         debug!("OptOut check unsuccessful");
         Err("Fav/Quote OptOut is active".into())
     } else {

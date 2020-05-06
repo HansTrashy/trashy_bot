@@ -38,7 +38,7 @@ pub mod config {
 
     #[group]
     #[prefix("cfg")]
-    #[commands(status, show_config, set_modlog, set_muterole, set_userlog)]
+    #[commands(show_config, set_modlog, set_muterole, set_userlog)]
     pub struct Config;
 }
 

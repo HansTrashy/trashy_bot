@@ -10,7 +10,7 @@ use tracing::error;
 #[description = "Roll x dice with y sides"]
 #[num_args(2)]
 #[example = "1 6"]
-async fn roll(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
+async fn roll(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     let amount_of_dice = args.single::<u64>()?;
     let number_of_eyes = args.single::<u64>()?;
 

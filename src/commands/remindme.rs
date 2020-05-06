@@ -12,20 +12,20 @@ use tokio::time::delay_for;
 #[example("15m Pizza ist fertig!")]
 #[usage("*duration* *message*")]
 #[min_args(1)]
-pub async fn remindme(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
+pub async fn remindme(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     let duration = util::parse_duration(&args.single::<String>()?);
 
     match duration {
         None => {
             let _ = msg
-                .reply(&ctx, "Unknown time unit. Allowed units are: s,m,h,d,w")
+                .reply(ctx, "Unknown time unit. Allowed units are: s,m,h,d,w")
                 .await;
         }
         Some(duration) => {
             let defaults = ContentSafeOptions::default();
             let message = content_safe(&ctx, args.rest().to_string(), &defaults).await;
 
-            msg.react(&ctx, ReactionType::Unicode("✅".to_string()))
+            msg.react(ctx, ReactionType::Unicode("✅".to_string()))
                 .await?;
 
             delay_for(duration.to_std()?).await;

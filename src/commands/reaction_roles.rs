@@ -15,7 +15,7 @@ use tracing::debug;
 #[allowed_roles("Mods")]
 #[description = "Creates a new reaction role"]
 #[example = "🧀 group_name role_name"]
-pub async fn create(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
+pub async fn create(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     let emoji_arg = args.single::<String>()?;
     let role_group_arg = args.single::<String>()?;
     let role_arg = args.rest();
@@ -45,7 +45,7 @@ pub async fn create(ctx: &mut Context, msg: &Message, mut args: Args) -> Command
                 emoji_arg,
             )
             .await?;
-            msg.reply(&ctx, "Added rr!").await?;
+            msg.reply(ctx, "Added rr!").await?;
         }
     }
     Ok(())
@@ -55,7 +55,7 @@ pub async fn create(ctx: &mut Context, msg: &Message, mut args: Args) -> Command
 #[allowed_roles("Mods")]
 #[description = "Removes a reaction role"]
 #[example = "🧀 role_name"]
-pub async fn remove(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
+pub async fn remove(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     let pool = ctx
         .data
         .read()
@@ -79,7 +79,7 @@ pub async fn remove(ctx: &mut Context, msg: &Message, mut args: Args) -> Command
                 *role.id.as_u64() as i64,
             )
             .await?;
-            msg.reply(&ctx, "deleted rr!").await?;
+            msg.reply(ctx, "deleted rr!").await?;
         }
     }
     Ok(())
@@ -88,7 +88,7 @@ pub async fn remove(ctx: &mut Context, msg: &Message, mut args: Args) -> Command
 #[command]
 #[allowed_roles("Mods")]
 #[description = "Lists all reaction roles"]
-pub async fn list(ctx: &mut Context, msg: &Message, _args: Args) -> CommandResult {
+pub async fn list(ctx: &Context, msg: &Message, _args: Args) -> CommandResult {
     let pool = ctx
         .data
         .read()
@@ -119,7 +119,7 @@ pub async fn list(ctx: &mut Context, msg: &Message, _args: Args) -> CommandResul
 #[command]
 #[allowed_roles("Mods")]
 #[description = "Posts the reaction role groups"]
-pub async fn postgroups(ctx: &mut Context, msg: &Message, _args: Args) -> CommandResult {
+pub async fn postgroups(ctx: &Context, msg: &Message, _args: Args) -> CommandResult {
     let pool = ctx
         .data
         .read()
@@ -162,7 +162,7 @@ pub async fn postgroups(ctx: &mut Context, msg: &Message, _args: Args) -> Comman
 
         for r in &roles {
             group_message
-                .react(&ctx, ReactionType::Unicode(r.emoji.clone()))
+                .react(ctx, ReactionType::Unicode(r.emoji.clone()))
                 .await?;
         }
     }
