@@ -15,17 +15,33 @@ use tracing::info;
 #[num_args(1)]
 pub async fn register(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     let username = args.single::<String>()?;
-    let pool = ctx
-        .data
-        .read()
-        .await
-        .get::<DatabasePool>()
-        .map(|p| p.clone())
-        .ok_or("Could not retrieve the database connection!")?;
-    let mut conn = pool.get().await?;
 
-    if let Ok(user) = Lastfm::get(&mut *conn, *msg.author.id.as_u64() as i64).await {
-        let lastfm = Lastfm::update(&mut *conn, user.id, username).await?;
+    if let Ok(user) = Lastfm::get(
+        &mut *ctx
+            .data
+            .read()
+            .await
+            .get::<DatabasePool>()
+            .ok_or("Failed to get Pool")?
+            .get()
+            .await?,
+        *msg.author.id.as_u64() as i64,
+    )
+    .await
+    {
+        let lastfm = Lastfm::update(
+            &mut *ctx
+                .data
+                .read()
+                .await
+                .get::<DatabasePool>()
+                .ok_or("Failed to get Pool")?
+                .get()
+                .await?,
+            user.id,
+            username,
+        )
+        .await?;
 
         msg.reply(
             ctx,
@@ -33,7 +49,19 @@ pub async fn register(ctx: &Context, msg: &Message, mut args: Args) -> CommandRe
         )
         .await?;
     } else {
-        let lastfm = Lastfm::create(&mut *conn, *msg.author.id.as_u64() as i64, username).await?;
+        let lastfm = Lastfm::create(
+            &mut *ctx
+                .data
+                .read()
+                .await
+                .get::<DatabasePool>()
+                .ok_or("Failed to get Pool")?
+                .get()
+                .await?,
+            *msg.author.id.as_u64() as i64,
+            username,
+        )
+        .await?;
 
         msg.reply(
             ctx,
@@ -50,16 +78,18 @@ pub async fn register(ctx: &Context, msg: &Message, mut args: Args) -> CommandRe
 #[num_args(0)]
 #[bucket = "lastfm"]
 pub async fn now(ctx: &Context, msg: &Message, _args: Args) -> CommandResult {
-    let pool = ctx
-        .data
-        .read()
-        .await
-        .get::<DatabasePool>()
-        .map(|p| p.clone())
-        .ok_or("Could not retrieve the database connection!")?;
-    let mut conn = pool.get().await?;
-
-    let lastfm = Lastfm::get(&mut *conn, *msg.author.id.as_u64() as i64).await?;
+    let lastfm = Lastfm::get(
+        &mut *ctx
+            .data
+            .read()
+            .await
+            .get::<DatabasePool>()
+            .ok_or("Failed to get Pool")?
+            .get()
+            .await?,
+        *msg.author.id.as_u64() as i64,
+    )
+    .await?;
 
     // prepare for the lastfm api
     let url = format!("http://ws.audioscrobbler.com/2.0/?method=user.getrecenttracks&user={}&api_key={}&format=json",
@@ -105,16 +135,18 @@ pub async fn now(ctx: &Context, msg: &Message, _args: Args) -> CommandResult {
 #[num_args(0)]
 #[bucket = "lastfm"]
 pub async fn recent(ctx: &Context, msg: &Message, _args: Args) -> CommandResult {
-    let pool = ctx
-        .data
-        .read()
-        .await
-        .get::<DatabasePool>()
-        .map(|p| p.clone())
-        .ok_or("Could not retrieve the database connection!")?;
-    let mut conn = pool.get().await?;
-
-    let lastfm = Lastfm::get(&mut *conn, *msg.author.id.as_u64() as i64).await?;
+    let lastfm = Lastfm::get(
+        &mut *ctx
+            .data
+            .read()
+            .await
+            .get::<DatabasePool>()
+            .ok_or("Failed to get Pool")?
+            .get()
+            .await?,
+        *msg.author.id.as_u64() as i64,
+    )
+    .await?;
 
     // prepare for the lastfm api
     let url = format!("http://ws.audioscrobbler.com/2.0/?method=user.getrecenttracks&user={}&api_key={}&format=json&limit=10",
@@ -168,16 +200,18 @@ pub async fn artists(ctx: &Context, msg: &Message, args: Args) -> CommandResult 
         _ => "overall",
     };
 
-    let pool = ctx
-        .data
-        .read()
-        .await
-        .get::<DatabasePool>()
-        .map(|p| p.clone())
-        .ok_or("Could not retrieve the database connection!")?;
-    let mut conn = pool.get().await?;
-
-    let lastfm = Lastfm::get(&mut *conn, *msg.author.id.as_u64() as i64).await?;
+    let lastfm = Lastfm::get(
+        &mut *ctx
+            .data
+            .read()
+            .await
+            .get::<DatabasePool>()
+            .ok_or("Failed to get Pool")?
+            .get()
+            .await?,
+        *msg.author.id.as_u64() as i64,
+    )
+    .await?;
 
     // prepare for the lastfm api
     let url = format!("http://ws.audioscrobbler.com/2.0/?method=user.gettopartists&user={}&api_key={}&format=json&limit=10&period={}",
@@ -228,16 +262,18 @@ pub async fn albums(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
         _ => "overall",
     };
 
-    let pool = ctx
-        .data
-        .read()
-        .await
-        .get::<DatabasePool>()
-        .map(|p| p.clone())
-        .ok_or("Could not retrieve the database connection!")?;
-    let mut conn = pool.get().await?;
-
-    let lastfm = Lastfm::get(&mut *conn, *msg.author.id.as_u64() as i64).await?;
+    let lastfm = Lastfm::get(
+        &mut *ctx
+            .data
+            .read()
+            .await
+            .get::<DatabasePool>()
+            .ok_or("Failed to get Pool")?
+            .get()
+            .await?,
+        *msg.author.id.as_u64() as i64,
+    )
+    .await?;
 
     // prepare for the lastfm api
     let url = format!("http://ws.audioscrobbler.com/2.0/?method=user.gettopalbums&user={}&api_key={}&format=json&limit=10&period={}",
@@ -290,16 +326,18 @@ pub async fn tracks(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
 
     info!("period: {:?}", period);
 
-    let pool = ctx
-        .data
-        .read()
-        .await
-        .get::<DatabasePool>()
-        .map(|p| p.clone())
-        .ok_or("Could not retrieve the database connection!")?;
-    let mut conn = pool.get().await?;
-
-    let lastfm = Lastfm::get(&mut *conn, *msg.author.id.as_u64() as i64).await?;
+    let lastfm = Lastfm::get(
+        &mut *ctx
+            .data
+            .read()
+            .await
+            .get::<DatabasePool>()
+            .ok_or("Failed to get Pool")?
+            .get()
+            .await?,
+        *msg.author.id.as_u64() as i64,
+    )
+    .await?;
 
     // prepare for the lastfm api
     let url = format!("http://ws.audioscrobbler.com/2.0/?method=user.gettoptracks&user={}&api_key={}&format=json&limit=10&period={}",

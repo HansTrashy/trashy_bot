@@ -487,28 +487,26 @@ pub async fn add(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
         .await
         .expect("cannot find this message");
 
-    if let Some(pool) = ctx.data.read().await.get::<DatabasePool>() {
-        Fav::create(
-            &mut *ctx
-                .data
-                .read()
-                .await
-                .get::<DatabasePool>()
-                .map(|p| p.clone())
-                .ok_or("Failed to get Pool")?
-                .get()
-                .await?,
-            fav_server_id as i64,
-            fav_channel_id as i64,
-            fav_msg_id as i64,
-            *msg.author.id.as_u64() as i64,
-            *fav_msg.author.id.as_u64() as i64,
-        )
-        .await?;
+    Fav::create(
+        &mut *ctx
+            .data
+            .read()
+            .await
+            .get::<DatabasePool>()
+            .map(|p| p.clone())
+            .ok_or("Failed to get Pool")?
+            .get()
+            .await?,
+        fav_server_id as i64,
+        fav_channel_id as i64,
+        fav_msg_id as i64,
+        *msg.author.id.as_u64() as i64,
+        *fav_msg.author.id.as_u64() as i64,
+    )
+    .await?;
 
-        if let Err(why) = msg.author.dm(ctx, |m| m.content("Fav saved!")).await {
-            debug!("Error sending message: {:?}", why);
-        }
+    if let Err(why) = msg.author.dm(ctx, |m| m.content("Fav saved!")).await {
+        debug!("Error sending message: {:?}", why);
     }
 
     Ok(())

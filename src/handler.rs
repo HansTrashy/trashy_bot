@@ -35,22 +35,21 @@ impl EventHandler for Handler {
     }
 
     async fn guild_member_addition(&self, ctx: Context, guild_id: GuildId, mut new_member: Member) {
-        let conn = ctx
-            .data
-            .read()
-            .await
-            .get::<DatabasePool>()
-            .expect("Failed to access db pool")
-            .get()
-            .await;
-
-        if conn.is_err() {
-            error!("Failed to get database connection");
-            return;
-        }
-        let mut conn = conn.unwrap();
-
-        if let Ok(mut config) = ServerConfig::get(&mut *conn, *guild_id.as_u64() as i64).await {
+        if let Ok(mut config) = ServerConfig::get(
+            &mut *ctx
+                .data
+                .read()
+                .await
+                .get::<DatabasePool>()
+                .ok_or("Failed to get Pool")
+                .expect("failed to get pool")
+                .get()
+                .await
+                .expect("failed to get conn from pool"),
+            *guild_id.as_u64() as i64,
+        )
+        .await
+        {
             let g_cfg: Guild = serde_json::from_value(config.config.take()).unwrap();
 
             let user_info = UserInfo {
@@ -93,7 +92,16 @@ impl EventHandler for Handler {
             }
 
             let mute = Mute::get(
-                &mut *conn,
+                &mut *ctx
+                    .data
+                    .read()
+                    .await
+                    .get::<DatabasePool>()
+                    .ok_or("Failed to get Pool")
+                    .expect("failed to get pool")
+                    .get()
+                    .await
+                    .expect("failed to get conn from pool"),
                 *guild_id.as_u64() as i64,
                 *member_id.as_u64() as i64,
             )
@@ -114,45 +122,55 @@ impl EventHandler for Handler {
         user: User,
         _old_member: Option<Member>,
     ) {
-        if let Some(pool) = ctx.data.read().await.get::<DatabasePool>() {
-            let mut conn = pool.get().await.unwrap();
+        if let Ok(mut config) = ServerConfig::get(
+            &mut *ctx
+                .data
+                .read()
+                .await
+                .get::<DatabasePool>()
+                .ok_or("Failed to get Pool")
+                .expect("failed to get pool")
+                .get()
+                .await
+                .expect("failed to get conn from pool"),
+            *guild_id.as_u64() as i64,
+        )
+        .await
+        {
+            let g_cfg: Guild = serde_json::from_value(config.config.take()).unwrap();
 
-            if let Ok(mut config) = ServerConfig::get(&mut *conn, *guild_id.as_u64() as i64).await {
-                let g_cfg: Guild = serde_json::from_value(config.config.take()).unwrap();
+            let user_info = UserInfo {
+                created_at: user.created_at().format("%d.%m.%Y %H:%M:%S").to_string(),
+                created_at_ago: Utc::now()
+                    .signed_duration_since(user.created_at())
+                    .num_days(),
+                member: None,
+            };
 
-                let user_info = UserInfo {
-                    created_at: user.created_at().format("%d.%m.%Y %H:%M:%S").to_string(),
-                    created_at_ago: Utc::now()
-                        .signed_duration_since(user.created_at())
-                        .num_days(),
-                    member: None,
-                };
+            let information_body = format!(
+                "**Joined discord:** {} ({} days ago)\n\n**Has left the server.**",
+                user_info.created_at, user_info.created_at_ago,
+            );
 
-                let information_body = format!(
-                    "**Joined discord:** {} ({} days ago)\n\n**Has left the server.**",
-                    user_info.created_at, user_info.created_at_ago,
-                );
-
-                if let Some(userlog_channel) = g_cfg.userlog_channel {
-                    let _ = ChannelId(userlog_channel)
-                        .send_message(&ctx, |m| {
-                            m.embed(|e| {
-                                e.author(|a| {
-                                    a.name(&user.name)
-                                        .icon_url(&user.static_avatar_url().unwrap_or_default())
-                                })
-                                .color((220, 0, 0))
-                                .description(&information_body)
-                                .footer(|f| {
-                                    f.text(&format!(
-                                        "{}#{} | id: {}",
-                                        user.name, user.discriminator, &user.id,
-                                    ))
-                                })
+            if let Some(userlog_channel) = g_cfg.userlog_channel {
+                let _ = ChannelId(userlog_channel)
+                    .send_message(&ctx, |m| {
+                        m.embed(|e| {
+                            e.author(|a| {
+                                a.name(&user.name)
+                                    .icon_url(&user.static_avatar_url().unwrap_or_default())
+                            })
+                            .color((220, 0, 0))
+                            .description(&information_body)
+                            .footer(|f| {
+                                f.text(&format!(
+                                    "{}#{} | id: {}",
+                                    user.name, user.discriminator, &user.id,
+                                ))
                             })
                         })
-                        .await;
-                }
+                    })
+                    .await;
             }
         }
     }

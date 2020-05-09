@@ -14,16 +14,19 @@ use serenity::{
 #[example("")]
 #[only_in("guilds")]
 async fn list(ctx: &Context, msg: &Message, _args: Args) -> CommandResult {
-    let mut conn = match ctx.data.read().await.get::<DatabasePool>() {
-        Some(v) => v.get().await.unwrap(),
-        None => {
-            let _ = msg.reply(ctx, "Could not retrieve the database connection!");
-            return Ok(());
-        }
-    };
-
     if let Some(server_id) = msg.guild_id {
-        let shinys = Shiny::list(&mut *conn, *server_id.as_u64() as i64).await?;
+        let shinys = Shiny::list(
+            &mut *ctx
+                .data
+                .read()
+                .await
+                .get::<DatabasePool>()
+                .ok_or("Failed to get Pool")?
+                .get()
+                .await?,
+            *server_id.as_u64() as i64,
+        )
+        .await?;
 
         let mut content = MessageBuilder::new();
         content.push_line("Shinys Tracked");
@@ -50,18 +53,29 @@ async fn list(ctx: &Context, msg: &Message, _args: Args) -> CommandResult {
 #[usage("*amount*")]
 async fn shiny(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     let amount = args.single::<i64>()?;
-    let pool = ctx
-        .data
-        .read()
-        .await
-        .get::<DatabasePool>()
-        .map(|p| p.clone())
-        .ok_or("Could not retrieve the database connection!")?;
-    let mut conn = pool.get().await?;
 
-    if let Ok(user_shiny) = Shiny::get(&mut *conn, *msg.author.id.as_u64() as i64).await {
+    if let Ok(user_shiny) = Shiny::get(
+        &mut *ctx
+            .data
+            .read()
+            .await
+            .get::<DatabasePool>()
+            .ok_or("Failed to get Pool")?
+            .get()
+            .await?,
+        *msg.author.id.as_u64() as i64,
+    )
+    .await
+    {
         let updated_shiny = Shiny::update(
-            &mut *conn,
+            &mut *ctx
+                .data
+                .read()
+                .await
+                .get::<DatabasePool>()
+                .ok_or("Failed to get Pool")?
+                .get()
+                .await?,
             *msg.author.id.as_u64() as i64,
             user_shiny.amount + amount,
         )
@@ -70,7 +84,14 @@ async fn shiny(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
         respond(&ctx, msg, updated_shiny).await;
     } else if let Some(server_id) = msg.guild_id {
         let new_shiny = Shiny::create(
-            &mut *conn,
+            &mut *ctx
+                .data
+                .read()
+                .await
+                .get::<DatabasePool>()
+                .ok_or("Failed to get Pool")?
+                .get()
+                .await?,
             *server_id.as_u64() as i64,
             *msg.author.id.as_u64() as i64,
             msg.author.name.to_string(),
@@ -98,21 +119,36 @@ async fn respond(ctx: &Context, msg: &Message, shiny: Shiny) {
 async fn setshiny(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     let amount = args.single::<i64>()?;
 
-    let pool = ctx
-        .data
-        .read()
-        .await
-        .get::<DatabasePool>()
-        .map(|p| p.clone())
-        .ok_or("Could not retrieve the database connection!")?;
-    let mut conn = pool.get().await?;
-
     let mut response = Vec::new();
 
     for user in &msg.mentions {
         // check if user has an entry already
-        if let Ok(_user_shiny) = Shiny::get(&mut *conn, *user.id.as_u64() as i64).await {
-            let updated_shiny = Shiny::update(&mut *conn, *user.id.as_u64() as i64, amount).await?;
+        if let Ok(_user_shiny) = Shiny::get(
+            &mut *ctx
+                .data
+                .read()
+                .await
+                .get::<DatabasePool>()
+                .ok_or("Failed to get Pool")?
+                .get()
+                .await?,
+            *user.id.as_u64() as i64,
+        )
+        .await
+        {
+            let updated_shiny = Shiny::update(
+                &mut *ctx
+                    .data
+                    .read()
+                    .await
+                    .get::<DatabasePool>()
+                    .ok_or("Failed to get Pool")?
+                    .get()
+                    .await?,
+                *user.id.as_u64() as i64,
+                amount,
+            )
+            .await?;
 
             response.push(format!("{}: {}", user.name, updated_shiny.amount));
         } else {
@@ -120,7 +156,14 @@ async fn setshiny(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
 
             if let Some(server_id) = msg.guild_id {
                 let new_shiny = Shiny::create(
-                    &mut *conn,
+                    &mut *ctx
+                        .data
+                        .read()
+                        .await
+                        .get::<DatabasePool>()
+                        .ok_or("Failed to get Pool")?
+                        .get()
+                        .await?,
                     *server_id.as_u64() as i64,
                     *user.id.as_u64() as i64,
                     user.name.to_string(),
@@ -147,20 +190,22 @@ async fn setshiny(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
 #[allowed_roles("Mods")]
 #[usage("*user1* *user2*")]
 async fn removeshiny(ctx: &Context, msg: &Message, _args: Args) -> CommandResult {
-    let pool = ctx
-        .data
-        .read()
-        .await
-        .get::<DatabasePool>()
-        .map(|p| p.clone())
-        .ok_or("Could not retrieve the database connection!")?;
-    let mut conn = pool.get().await?;
-
     let mut response = Vec::new();
 
     for user in &msg.mentions {
         // check if user has an entry already
-        let _updated_shiny = Shiny::delete(&mut *conn, *user.id.as_u64() as i64).await?;
+        let _updated_shiny = Shiny::delete(
+            &mut *ctx
+                .data
+                .read()
+                .await
+                .get::<DatabasePool>()
+                .ok_or("Failed to get Pool")?
+                .get()
+                .await?,
+            *user.id.as_u64() as i64,
+        )
+        .await?;
 
         response.push(format!("Removed shinys for {}", user.name));
     }

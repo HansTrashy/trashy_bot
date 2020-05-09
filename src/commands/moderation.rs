@@ -16,27 +16,30 @@ use serenity::{
     model::prelude::*,
 };
 use tokio::time::delay_for;
-use tracing::error;
+use tracing::{debug, error};
 
 #[command]
 #[only_in("guilds")]
 #[allowed_roles("Mods")]
 pub async fn mute(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
-    let pool = ctx
-        .data
-        .read()
-        .await
-        .get::<DatabasePool>()
-        .map(|p| p.clone())
-        .ok_or("Could not retrieve the database connection!")?;
-    let mut conn = pool.get().await?;
-
     let duration = util::parse_duration(&args.single::<String>()?);
     let mute_message = args.rest();
 
     if let Some(duration) = duration {
         if let Some(guild_id) = msg.guild_id {
-            match ServerConfig::get(&mut *conn, *guild_id.as_u64() as i64).await {
+            match ServerConfig::get(
+                &mut *ctx
+                    .data
+                    .read()
+                    .await
+                    .get::<DatabasePool>()
+                    .ok_or("Failed to get Pool")?
+                    .get()
+                    .await?,
+                *guild_id.as_u64() as i64,
+            )
+            .await
+            {
                 Ok(server_config) => {
                     let guild_config: Guild = serde_json::from_value(server_config.config).unwrap();
 
@@ -54,13 +57,24 @@ pub async fn mute(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
                         let end_time = Utc::now() + duration;
 
                         for user in &msg.mentions {
-                            let _ = Mute::create(
-                                &mut *conn,
+                            match Mute::create(
+                                &mut *ctx
+                                    .data
+                                    .read()
+                                    .await
+                                    .get::<DatabasePool>()
+                                    .ok_or("Failed to get Pool")?
+                                    .get()
+                                    .await?,
                                 *guild_id.as_u64() as i64,
                                 *user.id.as_u64() as i64,
                                 end_time,
                             )
-                            .await;
+                            .await
+                            {
+                                Ok(_) => (),
+                                Err(e) => debug!(error = ?e, "failed to create mute"),
+                            }
                         }
 
                         let mutes = msg
@@ -68,18 +82,11 @@ pub async fn mute(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
                             .iter()
                             .map(|user| {
                                 let ctx = ctx.clone();
-                                remove_mute(
-                                    ctx,
-                                    pool.clone(),
-                                    guild_id,
-                                    *user.id.as_u64(),
-                                    duration,
-                                    *mute_role,
-                                )
+                                remove_mute(ctx, guild_id, *user.id.as_u64(), duration, *mute_role)
                             })
                             .collect::<Vec<_>>();
 
-                        join_all(mutes).await;
+                        tokio::spawn(join_all(mutes));
 
                         if let Some(modlog_channel) = &guild_config.modlog_channel {
                             if !found_members.is_empty() {
@@ -94,12 +101,13 @@ pub async fn mute(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
                             }
                         }
 
-                        msg.react(ctx, ReactionType::Unicode("✅".to_string()))
+                        let _ = msg
+                            .react(ctx, ReactionType::Unicode("✅".to_string()))
                             .await;
                     }
                 }
                 Err(_e) => {
-                    msg.reply(ctx, "server config missing").await;
+                    let _ = msg.reply(ctx, "server config missing").await;
                 }
             }
         }
@@ -110,7 +118,6 @@ pub async fn mute(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
 
 async fn remove_mute(
     ctx: Context,
-    pool: deadpool_postgres::Pool,
     guild_id: GuildId,
     user_id: u64,
     duration: chrono::Duration,
@@ -120,16 +127,20 @@ async fn remove_mute(
 
     match guild_id.member(&ctx, user_id).await {
         Ok(mut member) => {
-            member
-                .remove_role(&ctx, RoleId(mute_role))
-                .await
-                .expect("could not remove role");
+            let _ = member.remove_role(&ctx, RoleId(mute_role)).await;
         }
         Err(e) => error!("could not get member: {:?}", e),
     };
 
     Mute::delete(
-        &mut *pool.get().await?,
+        &mut *ctx
+            .data
+            .read()
+            .await
+            .get::<DatabasePool>()
+            .ok_or("Failed to get Pool")?
+            .get()
+            .await?,
         *guild_id.as_u64() as i64,
         user_id as i64,
     )
@@ -261,17 +272,20 @@ async fn create_unmute_message(users: &[Member]) -> String {
 #[only_in("guilds")]
 #[allowed_roles("Mods")]
 pub async fn unmute(ctx: &Context, msg: &Message, _args: Args) -> CommandResult {
-    let pool = ctx
-        .data
-        .read()
-        .await
-        .get::<DatabasePool>()
-        .map(|p| p.clone())
-        .ok_or("Could not retrieve the database connection!")?;
-    let mut conn = pool.get().await?;
-
     if let Some(guild_id) = msg.guild_id {
-        match ServerConfig::get(&mut *conn, *guild_id.as_u64() as i64).await {
+        match ServerConfig::get(
+            &mut *ctx
+                .data
+                .read()
+                .await
+                .get::<DatabasePool>()
+                .ok_or("Failed to get Pool")?
+                .get()
+                .await?,
+            *guild_id.as_u64() as i64,
+        )
+        .await
+        {
             Ok(server_config) => {
                 let guild_config: Guild = serde_json::from_value(server_config.config).unwrap();
 
@@ -290,10 +304,18 @@ pub async fn unmute(ctx: &Context, msg: &Message, _args: Args) -> CommandResult 
                     for user in &msg.mentions {
                         //TODO: this should be done in a single statement
                         let _ = Mute::delete(
-                            &mut *conn,
+                            &mut *ctx
+                                .data
+                                .read()
+                                .await
+                                .get::<DatabasePool>()
+                                .ok_or("Failed to get Pool")?
+                                .get()
+                                .await?,
                             *guild_id.as_u64() as i64,
                             *user.id.as_u64() as i64,
-                        );
+                        )
+                        .await?;
                     }
 
                     if let Some(modlog_channel) = &guild_config.modlog_channel {
@@ -322,19 +344,22 @@ pub async fn unmute(ctx: &Context, msg: &Message, _args: Args) -> CommandResult 
 #[aliases("yeet")]
 #[allowed_roles("Mods")]
 pub async fn kick(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
-    let pool = ctx
-        .data
-        .read()
-        .await
-        .get::<DatabasePool>()
-        .map(|p| p.clone())
-        .ok_or("Could not retrieve the database connection!")?;
-    let mut conn = pool.get().await?;
-
     let kick_message = args.rest();
 
     if let Some(guild_id) = msg.guild_id {
-        match ServerConfig::get(&mut *conn, *guild_id.as_u64() as i64).await {
+        match ServerConfig::get(
+            &mut *ctx
+                .data
+                .read()
+                .await
+                .get::<DatabasePool>()
+                .ok_or("Failed to get Pool")?
+                .get()
+                .await?,
+            *guild_id.as_u64() as i64,
+        )
+        .await
+        {
             Ok(server_config) => {
                 let guild_config: Guild = serde_json::from_value(server_config.config).unwrap();
 
@@ -373,26 +398,29 @@ pub async fn kick(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
 #[only_in("guilds")]
 #[allowed_roles("Mods")]
 pub async fn ban(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
-    let pool = ctx
-        .data
-        .read()
-        .await
-        .get::<DatabasePool>()
-        .map(|p| p.clone())
-        .ok_or("Could not retrieve the database connection!")?;
-    let mut conn = pool.get().await?;
-
     let ban_msg = args.rest();
 
     if let Some(guild_id) = msg.guild_id {
-        match ServerConfig::get(&mut *conn, *guild_id.as_u64() as i64).await {
+        match ServerConfig::get(
+            &mut *ctx
+                .data
+                .read()
+                .await
+                .get::<DatabasePool>()
+                .ok_or("Failed to get Pool")?
+                .get()
+                .await?,
+            *guild_id.as_u64() as i64,
+        )
+        .await
+        {
             Ok(server_config) => {
                 let guild_config: Guild = serde_json::from_value(server_config.config).unwrap();
 
                 let mut found_members = Vec::new();
                 for user in &msg.mentions {
                     let member = guild_id.member(ctx, user).await?;
-                    let _ = member.ban(&ctx, &(0, ban_msg)).await;
+                    let _ = member.ban_with_reason(&ctx, 0, ban_msg).await;
                     found_members.push(member);
                 }
 

@@ -12,15 +12,6 @@ use serenity::{
 #[num_args(1)]
 #[example = "1000"]
 pub async fn slot(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
-    let pool = ctx
-        .data
-        .read()
-        .await
-        .get::<DatabasePool>()
-        .map(|p| p.clone())
-        .ok_or("Could not retrieve the database connection!")?;
-    let mut conn = pool.get().await?;
-
     let amount_to_bet = match args.single::<i64>() {
         Ok(v) if v > 0 => v,
         Ok(_) => {
@@ -36,7 +27,19 @@ pub async fn slot(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
     };
 
     // check if user already owns a bank & has enough balance
-    if let Ok(bank) = Bank::get(&mut *conn, *msg.author.id.as_u64() as i64).await {
+    if let Ok(bank) = Bank::get(
+        &mut *ctx
+            .data
+            .read()
+            .await
+            .get::<DatabasePool>()
+            .ok_or("Failed to get Pool")?
+            .get()
+            .await?,
+        *msg.author.id.as_u64() as i64,
+    )
+    .await
+    {
         if bank.amount >= amount_to_bet {
             // roll
             let full_reels: Vec<Vec<i64>> = (0..3)
@@ -62,7 +65,20 @@ pub async fn slot(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
             let delta = payout - amount_to_bet;
             let updated_amount = bank.amount + delta;
 
-            Bank::update(&mut *conn, bank.user_id, updated_amount, bank.last_payday).await?;
+            Bank::update(
+                &mut *ctx
+                    .data
+                    .read()
+                    .await
+                    .get::<DatabasePool>()
+                    .ok_or("Failed to get Pool")?
+                    .get()
+                    .await?,
+                bank.user_id,
+                updated_amount,
+                bank.last_payday,
+            )
+            .await?;
 
             let slot_machine_output = display_reels(&full_reels, payout, updated_amount);
             msg.channel_id
