@@ -28,7 +28,6 @@ use std::collections::HashSet;
 use std::{env, sync::Arc};
 use tokio::sync::Mutex;
 use tracing::{debug, error, info, instrument, trace, warn, Level};
-use tracing_log::LogTracer;
 
 mod commands;
 mod handler;
@@ -163,12 +162,9 @@ async fn dispatch_error(ctx: &Context, msg: &Message, error: DispatchError) -> (
 async fn main() {
     dotenv().ok();
 
-    let subscriber = tracing_subscriber::FmtSubscriber::builder()
-        .with_max_level(Level::DEBUG)
-        .finish();
-    tracing::subscriber::set_global_default(subscriber).expect("setting default subscriber failed");
-
-    LogTracer::init().expect("could not setup Log tracer");
+    tracing_subscriber::fmt()
+        .with_env_filter(tracing_subscriber::EnvFilter::from_default_env())
+        .init();
 
     let token = env::var("DISCORD_TOKEN").expect("Expected a discord token in the environment");
     let http = Http::new_with_token(&token);
