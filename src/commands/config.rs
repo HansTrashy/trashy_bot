@@ -36,19 +36,25 @@ pub async fn show_config(ctx: &Context, msg: &Message, _args: Args) -> CommandRe
         .await;
 
         if let Ok(server_config) = server_config {
-            let _ = msg.channel_id.send_message(&ctx.http, |m| {
-                m.embed(|e| {
-                    e.description(format!("{:?}", &server_config))
-                        .color((0, 120, 220))
+            let _ = msg
+                .channel_id
+                .send_message(&ctx.http, |m| {
+                    m.embed(|e| {
+                        e.description(format!("{:?}", &server_config))
+                            .color((0, 120, 220))
+                    })
                 })
-            });
+                .await;
         } else {
-            let _ = msg.channel_id.send_message(&ctx.http, |m| {
-                m.embed(|e| {
-                    e.description("config for this server is not available")
-                        .color((255, 0, 0))
+            let _ = msg
+                .channel_id
+                .send_message(&ctx.http, |m| {
+                    m.embed(|e| {
+                        e.description("config for this server is not available")
+                            .color((255, 0, 0))
+                    })
                 })
-            });
+                .await;
         }
     }
 

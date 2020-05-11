@@ -21,6 +21,15 @@ impl ServerConfig {
         )?)
     }
 
+    pub async fn list(client: &mut Client) -> Result<Vec<Self>, DbError> {
+        Ok(client
+            .query("SELECT * FROM server_configs", &[])
+            .await?
+            .into_iter()
+            .map(Self::from_row)
+            .collect::<Result<Vec<_>, DbError>>()?)
+    }
+
     pub async fn create(
         client: &mut Client,
         server_id: i64,
@@ -29,7 +38,7 @@ impl ServerConfig {
         Ok(Self::from_row(
             client
                 .query_one(
-                    "INSERT INTO (server_id, config) server_configs VALUES ($1, $2) RETURNING *",
+                    "INSERT INTO server_configs (server_id, config) VALUES ($1, $2) RETURNING *",
                     &[&server_id, &config],
                 )
                 .await?,

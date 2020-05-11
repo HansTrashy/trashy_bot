@@ -3,7 +3,7 @@ use tokio_postgres::{row::Row, Client};
 
 pub type DbError = Box<dyn std::error::Error + Send + Sync>;
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct Mute {
     pub id: i64,
     pub server_id: i64,
@@ -21,6 +21,15 @@ impl Mute {
                 )
                 .await?,
         )?)
+    }
+
+    pub async fn list(client: &mut Client) -> Result<Vec<Self>, DbError> {
+        Ok(client
+            .query("SELECT * FROM mutes", &[])
+            .await?
+            .into_iter()
+            .map(Self::from_row)
+            .collect::<Result<Vec<_>, DbError>>()?)
     }
 
     pub async fn create(
