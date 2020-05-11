@@ -211,6 +211,7 @@ async fn main() {
     debug!("Framework created");
 
     let mut client = Client::new(&token)
+        .cache_update_timeout(std::time::Duration::from_millis(500))
         .event_handler(handler::Handler)
         .framework(framework)
         .await
