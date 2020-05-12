@@ -1,4 +1,5 @@
 use crate::models::shiny::Shiny;
+use crate::util::get_client;
 use crate::DatabasePool;
 use serenity::{
     framework::standard::{macros::command, Args, CommandResult},
@@ -15,18 +16,7 @@ use serenity::{
 #[only_in("guilds")]
 async fn list(ctx: &Context, msg: &Message, _args: Args) -> CommandResult {
     if let Some(server_id) = msg.guild_id {
-        let shinys = Shiny::list(
-            &mut *ctx
-                .data
-                .read()
-                .await
-                .get::<DatabasePool>()
-                .ok_or("Failed to get Pool")?
-                .get()
-                .await?,
-            *server_id.as_u64() as i64,
-        )
-        .await?;
+        let shinys = Shiny::list(&mut *get_client(&ctx).await?, *server_id.as_u64() as i64).await?;
 
         let mut content = MessageBuilder::new();
         content.push_line("Shinys Tracked");
@@ -55,27 +45,13 @@ async fn shiny(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     let amount = args.single::<i64>()?;
 
     if let Ok(user_shiny) = Shiny::get(
-        &mut *ctx
-            .data
-            .read()
-            .await
-            .get::<DatabasePool>()
-            .ok_or("Failed to get Pool")?
-            .get()
-            .await?,
+        &mut *get_client(&ctx).await?,
         *msg.author.id.as_u64() as i64,
     )
     .await
     {
         let updated_shiny = Shiny::update(
-            &mut *ctx
-                .data
-                .read()
-                .await
-                .get::<DatabasePool>()
-                .ok_or("Failed to get Pool")?
-                .get()
-                .await?,
+            &mut *get_client(&ctx).await?,
             *msg.author.id.as_u64() as i64,
             user_shiny.amount + amount,
         )
@@ -84,14 +60,7 @@ async fn shiny(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
         respond(&ctx, msg, updated_shiny).await;
     } else if let Some(server_id) = msg.guild_id {
         let new_shiny = Shiny::create(
-            &mut *ctx
-                .data
-                .read()
-                .await
-                .get::<DatabasePool>()
-                .ok_or("Failed to get Pool")?
-                .get()
-                .await?,
+            &mut *get_client(&ctx).await?,
             *server_id.as_u64() as i64,
             *msg.author.id.as_u64() as i64,
             msg.author.name.to_string(),
@@ -123,28 +92,11 @@ async fn setshiny(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
 
     for user in &msg.mentions {
         // check if user has an entry already
-        if let Ok(_user_shiny) = Shiny::get(
-            &mut *ctx
-                .data
-                .read()
-                .await
-                .get::<DatabasePool>()
-                .ok_or("Failed to get Pool")?
-                .get()
-                .await?,
-            *user.id.as_u64() as i64,
-        )
-        .await
+        if let Ok(_user_shiny) =
+            Shiny::get(&mut *get_client(&ctx).await?, *user.id.as_u64() as i64).await
         {
             let updated_shiny = Shiny::update(
-                &mut *ctx
-                    .data
-                    .read()
-                    .await
-                    .get::<DatabasePool>()
-                    .ok_or("Failed to get Pool")?
-                    .get()
-                    .await?,
+                &mut *get_client(&ctx).await?,
                 *user.id.as_u64() as i64,
                 amount,
             )
@@ -156,14 +108,7 @@ async fn setshiny(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
 
             if let Some(server_id) = msg.guild_id {
                 let new_shiny = Shiny::create(
-                    &mut *ctx
-                        .data
-                        .read()
-                        .await
-                        .get::<DatabasePool>()
-                        .ok_or("Failed to get Pool")?
-                        .get()
-                        .await?,
+                    &mut *get_client(&ctx).await?,
                     *server_id.as_u64() as i64,
                     *user.id.as_u64() as i64,
                     user.name.to_string(),
@@ -194,18 +139,8 @@ async fn removeshiny(ctx: &Context, msg: &Message, _args: Args) -> CommandResult
 
     for user in &msg.mentions {
         // check if user has an entry already
-        let _updated_shiny = Shiny::delete(
-            &mut *ctx
-                .data
-                .read()
-                .await
-                .get::<DatabasePool>()
-                .ok_or("Failed to get Pool")?
-                .get()
-                .await?,
-            *user.id.as_u64() as i64,
-        )
-        .await?;
+        let _updated_shiny =
+            Shiny::delete(&mut *get_client(&ctx).await?, *user.id.as_u64() as i64).await?;
 
         response.push(format!("Removed shinys for {}", user.name));
     }

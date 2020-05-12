@@ -2,6 +2,7 @@ use super::config::Guild;
 use crate::models::mute::Mute;
 use crate::models::server_config::ServerConfig;
 use crate::util;
+use crate::util::get_client;
 use crate::DatabasePool;
 use chrono::{Duration, Utc};
 use serenity::prelude::*;
@@ -30,19 +31,7 @@ pub async fn selfmute(ctx: &Context, msg: &Message, mut args: Args) -> CommandRe
     }
 
     if let Some(guild_id) = msg.guild_id {
-        match ServerConfig::get(
-            &mut *ctx
-                .data
-                .read()
-                .await
-                .get::<DatabasePool>()
-                .ok_or("Failed to get Pool")?
-                .get()
-                .await?,
-            *guild_id.as_u64() as i64,
-        )
-        .await
-        {
+        match ServerConfig::get(&mut *get_client(&ctx).await?, *guild_id.as_u64() as i64).await {
             Ok(server_config) => {
                 let guild_config: Guild = serde_json::from_value(server_config.config).unwrap();
 
@@ -57,14 +46,7 @@ pub async fn selfmute(ctx: &Context, msg: &Message, mut args: Args) -> CommandRe
                     let end_time = Utc::now() + duration;
 
                     Mute::create(
-                        &mut *ctx
-                            .data
-                            .read()
-                            .await
-                            .get::<DatabasePool>()
-                            .ok_or("Failed to get Pool")?
-                            .get()
-                            .await?,
+                        &mut *get_client(&ctx).await?,
                         *guild_id.as_u64() as i64,
                         *msg.author.id.as_u64() as i64,
                         end_time,
@@ -87,14 +69,7 @@ pub async fn selfmute(ctx: &Context, msg: &Message, mut args: Args) -> CommandRe
                     };
 
                     Mute::delete(
-                        &mut *ctx
-                            .data
-                            .read()
-                            .await
-                            .get::<DatabasePool>()
-                            .ok_or("Failed to get Pool")?
-                            .get()
-                            .await?,
+                        &mut *get_client(&ctx).await?,
                         *guild_id.as_u64() as i64,
                         *msg.author.id.as_u64() as i64,
                     )

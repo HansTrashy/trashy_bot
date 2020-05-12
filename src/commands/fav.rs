@@ -1,5 +1,6 @@
 use crate::models::fav::Fav;
 use crate::models::tag::Tag;
+use crate::util::get_client;
 use crate::DatabasePool;
 use crate::OptOut;
 use chrono::prelude::*;
@@ -43,27 +44,13 @@ pub async fn post(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
 
     let results = if labels.is_empty() {
         Fav::list(
-            &mut *ctx
-                .data
-                .read()
-                .await
-                .get::<DatabasePool>()
-                .ok_or("Failed to get Pool")?
-                .get()
-                .await?,
+            &mut *get_client(&ctx).await?,
             *msg.author.id.as_u64() as i64,
         )
         .await?
     } else {
         Fav::tagged_with(
-            &mut *ctx
-                .data
-                .read()
-                .await
-                .get::<DatabasePool>()
-                .ok_or("Failed to get Pool")?
-                .get()
-                .await?,
+            &mut *get_client(&ctx).await?,
             *msg.author.id.as_u64() as i64,
             labels,
         )
@@ -171,20 +158,7 @@ pub async fn post(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
         let ctx = ctx.clone();
         let chosen_fav_id = chosen_fav.id;
         async move {
-            let _ = Fav::delete(
-                &mut *ctx
-                    .data
-                    .read()
-                    .await
-                    .get::<DatabasePool>()
-                    .ok_or("Failed to get Pool")
-                    .unwrap()
-                    .get()
-                    .await
-                    .unwrap(),
-                chosen_fav_id,
-            )
-            .await;
+            let _ = Fav::delete(&mut *get_client(&ctx).await.unwrap(), chosen_fav_id).await;
         }
     });
     let c2 = collector_label.for_each(|reaction| {
@@ -204,38 +178,13 @@ pub async fn post(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
                     .await
                 {
                     // clear old tags for this fav
-                    let _ = Tag::delete(
-                        &mut *ctx
-                            .data
-                            .read()
-                            .await
-                            .get::<DatabasePool>()
-                            .ok_or("Failed to get Pool")
-                            .unwrap()
-                            .get()
-                            .await
-                            .unwrap(),
-                        chosen_fav_id,
-                    )
-                    .await;
+                    let _ = Tag::delete(&mut *get_client(&ctx).await.unwrap(), chosen_fav_id).await;
 
                     // TODO: make this a single statement
                     for tag in label_reply.content.split(' ') {
-                        let _ = Tag::create(
-                            &mut *ctx
-                                .data
-                                .read()
-                                .await
-                                .get::<DatabasePool>()
-                                .ok_or("Failed to get Pool")
-                                .unwrap()
-                                .get()
-                                .await
-                                .unwrap(),
-                            chosen_fav_id,
-                            tag,
-                        )
-                        .await;
+                        let _ =
+                            Tag::create(&mut *get_client(&ctx).await.unwrap(), chosen_fav_id, tag)
+                                .await;
                     }
 
                     let _ = label_reply.reply(&ctx, "added the tags!").await;
@@ -284,14 +233,7 @@ pub async fn untagged(ctx: &Context, msg: &Message, _args: Args) -> CommandResul
     };
 
     let results = Fav::untagged(
-        &mut *ctx
-            .data
-            .read()
-            .await
-            .get::<DatabasePool>()
-            .ok_or("Failed to get Pool")?
-            .get()
-            .await?,
+        &mut *get_client(&ctx).await.unwrap(),
         *msg.author.id.as_u64() as i64,
     )
     .await?;
@@ -384,20 +326,7 @@ pub async fn untagged(ctx: &Context, msg: &Message, _args: Args) -> CommandResul
             let fav_id = fav.id;
             async move {
                 trace!(fav = fav_id, "Delete Tag for fav");
-                let _ = Fav::delete(
-                    &mut *ctx
-                        .data
-                        .read()
-                        .await
-                        .get::<DatabasePool>()
-                        .ok_or("Failed to get Pool")
-                        .unwrap()
-                        .get()
-                        .await
-                        .unwrap(),
-                    fav_id,
-                )
-                .await;
+                let _ = Fav::delete(&mut *get_client(&ctx).await.unwrap(), fav_id).await;
             }
         });
         let c2 = collector_label.for_each(|reaction| {
@@ -417,39 +346,13 @@ pub async fn untagged(ctx: &Context, msg: &Message, _args: Args) -> CommandResul
                         .await
                     {
                         // clear old tags for this fav
-                        let r = Tag::delete(
-                            &mut *ctx
-                                .data
-                                .read()
-                                .await
-                                .get::<DatabasePool>()
-                                .ok_or("Failed to get Pool")
-                                .unwrap()
-                                .get()
-                                .await
-                                .unwrap(),
-                            fav_id,
-                        )
-                        .await;
+                        let r = Tag::delete(&mut *get_client(&ctx).await.unwrap(), fav_id).await;
                         trace!(tag_deletion = ?r, "Tags deleted");
 
                         // TODO: make this a single statement
                         for tag in label_reply.content.split(' ') {
-                            let r = Tag::create(
-                                &mut *ctx
-                                    .data
-                                    .read()
-                                    .await
-                                    .get::<DatabasePool>()
-                                    .ok_or("Failed to get Pool")
-                                    .unwrap()
-                                    .get()
-                                    .await
-                                    .unwrap(),
-                                fav_id,
-                                tag,
-                            )
-                            .await;
+                            let r = Tag::create(&mut *get_client(&ctx).await.unwrap(), fav_id, tag)
+                                .await;
 
                             trace!(tag_creation = ?r, "Tag created");
                         }
@@ -488,15 +391,7 @@ pub async fn add(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
         .expect("cannot find this message");
 
     Fav::create(
-        &mut *ctx
-            .data
-            .read()
-            .await
-            .get::<DatabasePool>()
-            .map(|p| p.clone())
-            .ok_or("Failed to get Pool")?
-            .get()
-            .await?,
+        &mut *get_client(&ctx).await?,
         fav_server_id as i64,
         fav_channel_id as i64,
         fav_msg_id as i64,
@@ -520,14 +415,7 @@ pub async fn tags(ctx: &Context, msg: &Message, _args: Args) -> CommandResult {
     let mut messages = Vec::new();
     {
         let mut fav_tags = Tag::of_user(
-            &mut *ctx
-                .data
-                .read()
-                .await
-                .get::<DatabasePool>()
-                .ok_or("Failed to get Pool")?
-                .get()
-                .await?,
+            &mut *get_client(&ctx).await?,
             *msg.author.id.as_u64() as i64,
         )
         .await?;

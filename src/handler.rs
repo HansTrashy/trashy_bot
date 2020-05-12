@@ -6,6 +6,7 @@ use crate::commands::userinfo::UserInfo;
 use crate::models::mute::Mute;
 use crate::models::server_config::ServerConfig;
 use crate::models::tag::Tag;
+use crate::util::get_client;
 use crate::DatabasePool;
 use chrono::Utc;
 use serenity::{
@@ -34,35 +35,13 @@ impl EventHandler for Handler {
         ctx.set_activity(Activity::listening("$help")).await;
         println!("{} is connected!", ready.user.name);
 
-        let server_configs = ServerConfig::list(
-            &mut *ctx
-                .data
-                .read()
-                .await
-                .get::<DatabasePool>()
-                .ok_or("Failed to get Pool")
-                .expect("failed to get pool")
-                .get()
-                .await
-                .expect("failed to get client from context"),
-        )
-        .await
-        .unwrap();
+        let server_configs = ServerConfig::list(&mut *get_client(&ctx).await.unwrap())
+            .await
+            .unwrap();
 
-        for m in Mute::list(
-            &mut *ctx
-                .data
-                .read()
-                .await
-                .get::<DatabasePool>()
-                .ok_or("Failed to get Pool")
-                .expect("failed to get pool")
-                .get()
-                .await
-                .expect("failed to get client from context"),
-        )
-        .await
-        .unwrap()
+        for m in Mute::list(&mut *get_client(&ctx).await.unwrap())
+            .await
+            .unwrap()
         {
             let ctx = ctx.clone();
             if let Some(config) = server_configs
@@ -90,16 +69,7 @@ impl EventHandler for Handler {
                     };
 
                     let _ = Mute::delete(
-                        &mut *ctx
-                            .data
-                            .read()
-                            .await
-                            .get::<DatabasePool>()
-                            .ok_or("Failed to get Pool")
-                            .expect("failed to get pool")
-                            .get()
-                            .await
-                            .expect("failed to get client from context"),
+                        &mut *get_client(&ctx).await.unwrap(),
                         m.server_id,
                         m.user_id,
                     )
@@ -122,16 +92,7 @@ impl EventHandler for Handler {
 
     async fn guild_member_addition(&self, ctx: Context, guild_id: GuildId, mut new_member: Member) {
         if let Ok(mut config) = ServerConfig::get(
-            &mut *ctx
-                .data
-                .read()
-                .await
-                .get::<DatabasePool>()
-                .ok_or("Failed to get Pool")
-                .expect("failed to get pool")
-                .get()
-                .await
-                .expect("failed to get conn from pool"),
+            &mut *get_client(&ctx).await.unwrap(),
             *guild_id.as_u64() as i64,
         )
         .await
@@ -178,16 +139,7 @@ impl EventHandler for Handler {
             }
 
             let mute = Mute::get(
-                &mut *ctx
-                    .data
-                    .read()
-                    .await
-                    .get::<DatabasePool>()
-                    .ok_or("Failed to get Pool")
-                    .expect("failed to get pool")
-                    .get()
-                    .await
-                    .expect("failed to get conn from pool"),
+                &mut *get_client(&ctx).await.unwrap(),
                 *guild_id.as_u64() as i64,
                 *member_id.as_u64() as i64,
             )
@@ -209,16 +161,7 @@ impl EventHandler for Handler {
         _old_member: Option<Member>,
     ) {
         if let Ok(mut config) = ServerConfig::get(
-            &mut *ctx
-                .data
-                .read()
-                .await
-                .get::<DatabasePool>()
-                .ok_or("Failed to get Pool")
-                .expect("failed to get pool")
-                .get()
-                .await
-                .expect("failed to get conn from pool"),
+            &mut *get_client(&ctx).await.unwrap(),
             *guild_id.as_u64() as i64,
         )
         .await

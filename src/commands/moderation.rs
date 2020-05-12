@@ -2,6 +2,7 @@ use super::config::Guild;
 use crate::models::mute::Mute;
 use crate::models::server_config::ServerConfig;
 use crate::util;
+use crate::util::get_client;
 use crate::DatabasePool;
 use chrono::{Duration, Utc};
 use futures::future::join_all;
@@ -27,18 +28,7 @@ pub async fn mute(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
 
     if let Some(duration) = duration {
         if let Some(guild_id) = msg.guild_id {
-            match ServerConfig::get(
-                &mut *ctx
-                    .data
-                    .read()
-                    .await
-                    .get::<DatabasePool>()
-                    .ok_or("Failed to get Pool")?
-                    .get()
-                    .await?,
-                *guild_id.as_u64() as i64,
-            )
-            .await
+            match ServerConfig::get(&mut *get_client(&ctx).await?, *guild_id.as_u64() as i64).await
             {
                 Ok(server_config) => {
                     let guild_config: Guild = serde_json::from_value(server_config.config).unwrap();
@@ -58,14 +48,7 @@ pub async fn mute(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
 
                         for user in &msg.mentions {
                             match Mute::create(
-                                &mut *ctx
-                                    .data
-                                    .read()
-                                    .await
-                                    .get::<DatabasePool>()
-                                    .ok_or("Failed to get Pool")?
-                                    .get()
-                                    .await?,
+                                &mut *get_client(&ctx).await?,
                                 *guild_id.as_u64() as i64,
                                 *user.id.as_u64() as i64,
                                 end_time,
@@ -133,14 +116,7 @@ async fn remove_mute(
     };
 
     Mute::delete(
-        &mut *ctx
-            .data
-            .read()
-            .await
-            .get::<DatabasePool>()
-            .ok_or("Failed to get Pool")?
-            .get()
-            .await?,
+        &mut *get_client(&ctx).await?,
         *guild_id.as_u64() as i64,
         user_id as i64,
     )
@@ -273,19 +249,7 @@ async fn create_unmute_message(users: &[Member]) -> String {
 #[allowed_roles("Mods")]
 pub async fn unmute(ctx: &Context, msg: &Message, _args: Args) -> CommandResult {
     if let Some(guild_id) = msg.guild_id {
-        match ServerConfig::get(
-            &mut *ctx
-                .data
-                .read()
-                .await
-                .get::<DatabasePool>()
-                .ok_or("Failed to get Pool")?
-                .get()
-                .await?,
-            *guild_id.as_u64() as i64,
-        )
-        .await
-        {
+        match ServerConfig::get(&mut *get_client(&ctx).await?, *guild_id.as_u64() as i64).await {
             Ok(server_config) => {
                 let guild_config: Guild = serde_json::from_value(server_config.config).unwrap();
 
@@ -304,14 +268,7 @@ pub async fn unmute(ctx: &Context, msg: &Message, _args: Args) -> CommandResult 
                     for user in &msg.mentions {
                         //TODO: this should be done in a single statement
                         let _ = Mute::delete(
-                            &mut *ctx
-                                .data
-                                .read()
-                                .await
-                                .get::<DatabasePool>()
-                                .ok_or("Failed to get Pool")?
-                                .get()
-                                .await?,
+                            &mut *get_client(&ctx).await?,
                             *guild_id.as_u64() as i64,
                             *user.id.as_u64() as i64,
                         )
@@ -347,19 +304,7 @@ pub async fn kick(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     let kick_message = args.rest();
 
     if let Some(guild_id) = msg.guild_id {
-        match ServerConfig::get(
-            &mut *ctx
-                .data
-                .read()
-                .await
-                .get::<DatabasePool>()
-                .ok_or("Failed to get Pool")?
-                .get()
-                .await?,
-            *guild_id.as_u64() as i64,
-        )
-        .await
-        {
+        match ServerConfig::get(&mut *get_client(&ctx).await?, *guild_id.as_u64() as i64).await {
             Ok(server_config) => {
                 let guild_config: Guild = serde_json::from_value(server_config.config).unwrap();
 
@@ -401,19 +346,7 @@ pub async fn ban(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     let ban_msg = args.rest();
 
     if let Some(guild_id) = msg.guild_id {
-        match ServerConfig::get(
-            &mut *ctx
-                .data
-                .read()
-                .await
-                .get::<DatabasePool>()
-                .ok_or("Failed to get Pool")?
-                .get()
-                .await?,
-            *guild_id.as_u64() as i64,
-        )
-        .await
-        {
+        match ServerConfig::get(&mut *get_client(&ctx).await?, *guild_id.as_u64() as i64).await {
             Ok(server_config) => {
                 let guild_config: Guild = serde_json::from_value(server_config.config).unwrap();
 

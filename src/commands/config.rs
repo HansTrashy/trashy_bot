@@ -1,4 +1,5 @@
 use crate::models::server_config::ServerConfig;
+use crate::util::get_client;
 use crate::DatabasePool;
 use serde::{Deserialize, Serialize};
 use serenity::model::gateway::Activity;
@@ -22,18 +23,8 @@ pub struct Guild {
 #[allowed_roles("Mods")]
 pub async fn show_config(ctx: &Context, msg: &Message, _args: Args) -> CommandResult {
     if let Some(server_id) = msg.guild_id {
-        let server_config = ServerConfig::get(
-            &mut *ctx
-                .data
-                .read()
-                .await
-                .get::<DatabasePool>()
-                .ok_or("Failed to get Pool")?
-                .get()
-                .await?,
-            *server_id.as_u64() as i64,
-        )
-        .await;
+        let server_config =
+            ServerConfig::get(&mut *get_client(&ctx).await?, *server_id.as_u64() as i64).await;
 
         if let Ok(server_config) = server_config {
             let _ = msg
@@ -68,19 +59,7 @@ pub async fn set_modlog(ctx: &Context, msg: &Message, args: Args) -> CommandResu
     let modlog_channel = args.parse::<u64>()?;
 
     if let Some(server_id) = msg.guild_id {
-        match ServerConfig::get(
-            &mut *ctx
-                .data
-                .read()
-                .await
-                .get::<DatabasePool>()
-                .ok_or("Failed to get Pool")?
-                .get()
-                .await?,
-            *server_id.as_u64() as i64,
-        )
-        .await
-        {
+        match ServerConfig::get(&mut *get_client(&ctx).await?, *server_id.as_u64() as i64).await {
             Ok(mut config) => {
                 let mut old_guild_config: Guild =
                     serde_json::from_value(config.config.take()).unwrap();
@@ -88,14 +67,7 @@ pub async fn set_modlog(ctx: &Context, msg: &Message, args: Args) -> CommandResu
                 old_guild_config.modlog_channel = Some(modlog_channel);
 
                 let updated_config = ServerConfig::update(
-                    &mut *ctx
-                        .data
-                        .read()
-                        .await
-                        .get::<DatabasePool>()
-                        .ok_or("Failed to get Pool")?
-                        .get()
-                        .await?,
+                    &mut *get_client(&ctx).await?,
                     *server_id.as_u64() as i64,
                     serde_json::to_value(old_guild_config).unwrap(),
                 )
@@ -117,14 +89,7 @@ pub async fn set_modlog(ctx: &Context, msg: &Message, args: Args) -> CommandResu
                 guild_config.modlog_channel = Some(modlog_channel);
 
                 let inserted_config = ServerConfig::create(
-                    &mut *ctx
-                        .data
-                        .read()
-                        .await
-                        .get::<DatabasePool>()
-                        .ok_or("Failed to get Pool")?
-                        .get()
-                        .await?,
+                    &mut *get_client(&ctx).await?,
                     *server_id.as_u64() as i64,
                     serde_json::to_value(guild_config).unwrap(),
                 )
@@ -150,19 +115,7 @@ pub async fn set_userlog(ctx: &Context, msg: &Message, args: Args) -> CommandRes
     let userlog_channel = args.parse::<u64>()?;
 
     if let Some(server_id) = msg.guild_id {
-        match ServerConfig::get(
-            &mut *ctx
-                .data
-                .read()
-                .await
-                .get::<DatabasePool>()
-                .ok_or("Failed to get Pool")?
-                .get()
-                .await?,
-            *server_id.as_u64() as i64,
-        )
-        .await
-        {
+        match ServerConfig::get(&mut *get_client(&ctx).await?, *server_id.as_u64() as i64).await {
             Ok(mut config) => {
                 let mut old_guild_config: Guild =
                     serde_json::from_value(config.config.take()).unwrap();
@@ -170,14 +123,7 @@ pub async fn set_userlog(ctx: &Context, msg: &Message, args: Args) -> CommandRes
                 old_guild_config.userlog_channel = Some(userlog_channel);
 
                 let inserted_config = ServerConfig::update(
-                    &mut *ctx
-                        .data
-                        .read()
-                        .await
-                        .get::<DatabasePool>()
-                        .ok_or("Failed to get Pool")?
-                        .get()
-                        .await?,
+                    &mut *get_client(&ctx).await?,
                     *server_id.as_u64() as i64,
                     serde_json::to_value(old_guild_config).unwrap(),
                 )
@@ -199,14 +145,7 @@ pub async fn set_userlog(ctx: &Context, msg: &Message, args: Args) -> CommandRes
                 guild_config.modlog_channel = Some(userlog_channel);
 
                 let inserted_config = ServerConfig::create(
-                    &mut *ctx
-                        .data
-                        .read()
-                        .await
-                        .get::<DatabasePool>()
-                        .ok_or("Failed to get Pool")?
-                        .get()
-                        .await?,
+                    &mut *get_client(&ctx).await?,
                     *server_id.as_u64() as i64,
                     serde_json::to_value(guild_config).unwrap(),
                 )
@@ -234,19 +173,7 @@ pub async fn set_muterole(ctx: &Context, msg: &Message, args: Args) -> CommandRe
     let mute_role = args.parse::<u64>()?;
 
     if let Some(server_id) = msg.guild_id {
-        match ServerConfig::get(
-            &mut *ctx
-                .data
-                .read()
-                .await
-                .get::<DatabasePool>()
-                .ok_or("Failed to get Pool")?
-                .get()
-                .await?,
-            *server_id.as_u64() as i64,
-        )
-        .await
-        {
+        match ServerConfig::get(&mut *get_client(&ctx).await?, *server_id.as_u64() as i64).await {
             Ok(mut config) => {
                 let mut old_guild_config: Guild =
                     serde_json::from_value(config.config.take()).unwrap();
@@ -254,14 +181,7 @@ pub async fn set_muterole(ctx: &Context, msg: &Message, args: Args) -> CommandRe
                 old_guild_config.mute_role = Some(mute_role);
 
                 let inserted_config = ServerConfig::update(
-                    &mut *ctx
-                        .data
-                        .read()
-                        .await
-                        .get::<DatabasePool>()
-                        .ok_or("Failed to get Pool")?
-                        .get()
-                        .await?,
+                    &mut *get_client(&ctx).await?,
                     *server_id.as_u64() as i64,
                     serde_json::to_value(old_guild_config).unwrap(),
                 )
@@ -283,14 +203,7 @@ pub async fn set_muterole(ctx: &Context, msg: &Message, args: Args) -> CommandRe
                 guild_config.mute_role = Some(mute_role);
 
                 let inserted_config = ServerConfig::create(
-                    &mut *ctx
-                        .data
-                        .read()
-                        .await
-                        .get::<DatabasePool>()
-                        .ok_or("Failed to get Pool")?
-                        .get()
-                        .await?,
+                    &mut *get_client(&ctx).await?,
                     *server_id.as_u64() as i64,
                     serde_json::to_value(guild_config).unwrap(),
                 )

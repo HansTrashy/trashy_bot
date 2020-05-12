@@ -1,4 +1,22 @@
+use crate::DatabasePool;
 use chrono::Duration;
+use deadpool::managed::Object;
+use deadpool_postgres::ClientWrapper;
+use serenity::prelude::Context;
+use tokio_postgres::error::Error as PgError;
+
+pub async fn get_client(
+    ctx: &Context,
+) -> Result<Object<ClientWrapper, PgError>, Box<dyn std::error::Error + Send + Sync>> {
+    Ok(ctx
+        .data
+        .read()
+        .await
+        .get::<DatabasePool>()
+        .ok_or("Failed to get Pool")?
+        .get()
+        .await?)
+}
 
 static OTHER_MOD_CMD: [char; 3] = ['%', '=', '$'];
 

@@ -1,5 +1,6 @@
 use crate::models::reaction_role::ReactionRole;
 use crate::reaction_roles::State as RRState;
+use crate::util::get_client;
 use crate::DatabasePool;
 use crate::ReactionRolesState;
 use serenity::model::channel::ReactionType;
@@ -23,15 +24,7 @@ pub async fn create(ctx: &Context, msg: &Message, mut args: Args) -> CommandResu
     if let Some(guild) = msg.guild(&ctx.cache).await {
         if let Some(role) = guild.read().await.role_by_name(role_arg) {
             ReactionRole::create(
-                &mut *ctx
-                    .data
-                    .read()
-                    .await
-                    .get::<DatabasePool>()
-                    .map(|p| p.clone())
-                    .ok_or("Failed to get Pool")?
-                    .get()
-                    .await?,
+                &mut *get_client(&ctx).await?,
                 *msg.channel(&ctx.cache)
                     .await
                     .ok_or("no channel")?
@@ -65,14 +58,7 @@ pub async fn remove(ctx: &Context, msg: &Message, mut args: Args) -> CommandResu
         if let Some(role) = guild.read().await.role_by_name(role_arg) {
             debug!("Role found: {:?}", &role);
             ReactionRole::delete(
-                &mut *ctx
-                    .data
-                    .read()
-                    .await
-                    .get::<DatabasePool>()
-                    .ok_or("Failed to get Pool")?
-                    .get()
-                    .await?,
+                &mut *get_client(&ctx).await?,
                 *msg.guild_id.unwrap().as_u64() as i64,
                 *role.id.as_u64() as i64,
             )
@@ -87,17 +73,7 @@ pub async fn remove(ctx: &Context, msg: &Message, mut args: Args) -> CommandResu
 #[allowed_roles("Mods")]
 #[description = "Lists all reaction roles"]
 pub async fn list(ctx: &Context, msg: &Message, _args: Args) -> CommandResult {
-    let results = ReactionRole::list(
-        &mut *ctx
-            .data
-            .read()
-            .await
-            .get::<DatabasePool>()
-            .ok_or("Failed to get Pool")?
-            .get()
-            .await?,
-    )
-    .await?;
+    let results = ReactionRole::list(&mut *get_client(&ctx).await?).await?;
 
     let mut output = String::new();
     for r in results {
@@ -119,17 +95,7 @@ pub async fn list(ctx: &Context, msg: &Message, _args: Args) -> CommandResult {
 #[allowed_roles("Mods")]
 #[description = "Posts the reaction role groups"]
 pub async fn postgroups(ctx: &Context, msg: &Message, _args: Args) -> CommandResult {
-    let mut results = ReactionRole::list(
-        &mut *ctx
-            .data
-            .read()
-            .await
-            .get::<DatabasePool>()
-            .ok_or("Failed to get Pool")?
-            .get()
-            .await?,
-    )
-    .await?;
+    let mut results = ReactionRole::list(&mut *get_client(&ctx).await?).await?;
     results.sort_by_key(|r| r.role_group.to_owned());
     // post a message for each group and react under them with the respective emojis
 

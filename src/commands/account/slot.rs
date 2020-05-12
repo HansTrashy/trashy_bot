@@ -1,4 +1,5 @@
 use crate::models::bank::Bank;
+use crate::util::get_client;
 use crate::DatabasePool;
 use rand::prelude::*;
 use serenity::prelude::*;
@@ -28,14 +29,7 @@ pub async fn slot(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
 
     // check if user already owns a bank & has enough balance
     if let Ok(bank) = Bank::get(
-        &mut *ctx
-            .data
-            .read()
-            .await
-            .get::<DatabasePool>()
-            .ok_or("Failed to get Pool")?
-            .get()
-            .await?,
+        &mut *get_client(&ctx).await?,
         *msg.author.id.as_u64() as i64,
     )
     .await
@@ -66,14 +60,7 @@ pub async fn slot(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
             let updated_amount = bank.amount + delta;
 
             Bank::update(
-                &mut *ctx
-                    .data
-                    .read()
-                    .await
-                    .get::<DatabasePool>()
-                    .ok_or("Failed to get Pool")?
-                    .get()
-                    .await?,
+                &mut *get_client(&ctx).await?,
                 bank.user_id,
                 updated_amount,
                 bank.last_payday,

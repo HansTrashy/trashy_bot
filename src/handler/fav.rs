@@ -1,5 +1,6 @@
 use crate::models::fav::Fav;
 use crate::models::tag::Tag;
+use crate::util::get_client;
 use crate::DatabasePool;
 use serenity::{model::channel::Reaction, prelude::*};
 use std::time::Duration;
@@ -7,16 +8,7 @@ use tracing::trace;
 
 pub async fn add(ctx: Context, add_reaction: Reaction) {
     let created_fav = Fav::create(
-        &mut *ctx
-            .data
-            .read()
-            .await
-            .get::<DatabasePool>()
-            .ok_or("Failed to get Pool")
-            .unwrap()
-            .get()
-            .await
-            .unwrap(),
+        &mut *get_client(&ctx).await.unwrap(),
         *add_reaction
             .channel(&ctx)
             .await
@@ -55,21 +47,8 @@ pub async fn add(ctx: Context, add_reaction: Reaction) {
 
             // TODO: make this a single statement
             for tag in label_reply.content.split(' ') {
-                let r = Tag::create(
-                    &mut *ctx
-                        .data
-                        .read()
-                        .await
-                        .get::<DatabasePool>()
-                        .ok_or("Failed to get Pool")
-                        .unwrap()
-                        .get()
-                        .await
-                        .unwrap(),
-                    created_fav.id,
-                    tag,
-                )
-                .await;
+                let r =
+                    Tag::create(&mut *get_client(&ctx).await.unwrap(), created_fav.id, tag).await;
 
                 trace!(tag_creation = ?r, "Tag created");
             }

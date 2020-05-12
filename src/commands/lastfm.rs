@@ -1,4 +1,5 @@
 use crate::models::lastfm::Lastfm;
+use crate::util::get_client;
 use crate::DatabasePool;
 use crate::LASTFM_API_KEY;
 use serenity::prelude::*;
@@ -17,31 +18,12 @@ pub async fn register(ctx: &Context, msg: &Message, mut args: Args) -> CommandRe
     let username = args.single::<String>()?;
 
     if let Ok(user) = Lastfm::get(
-        &mut *ctx
-            .data
-            .read()
-            .await
-            .get::<DatabasePool>()
-            .ok_or("Failed to get Pool")?
-            .get()
-            .await?,
+        &mut *get_client(&ctx).await?,
         *msg.author.id.as_u64() as i64,
     )
     .await
     {
-        let lastfm = Lastfm::update(
-            &mut *ctx
-                .data
-                .read()
-                .await
-                .get::<DatabasePool>()
-                .ok_or("Failed to get Pool")?
-                .get()
-                .await?,
-            user.id,
-            username,
-        )
-        .await?;
+        let lastfm = Lastfm::update(&mut *get_client(&ctx).await?, user.id, username).await?;
 
         msg.reply(
             ctx,
@@ -50,14 +32,7 @@ pub async fn register(ctx: &Context, msg: &Message, mut args: Args) -> CommandRe
         .await?;
     } else {
         let lastfm = Lastfm::create(
-            &mut *ctx
-                .data
-                .read()
-                .await
-                .get::<DatabasePool>()
-                .ok_or("Failed to get Pool")?
-                .get()
-                .await?,
+            &mut *get_client(&ctx).await?,
             *msg.author.id.as_u64() as i64,
             username,
         )
@@ -79,14 +54,7 @@ pub async fn register(ctx: &Context, msg: &Message, mut args: Args) -> CommandRe
 #[bucket = "lastfm"]
 pub async fn now(ctx: &Context, msg: &Message, _args: Args) -> CommandResult {
     let lastfm = Lastfm::get(
-        &mut *ctx
-            .data
-            .read()
-            .await
-            .get::<DatabasePool>()
-            .ok_or("Failed to get Pool")?
-            .get()
-            .await?,
+        &mut *get_client(&ctx).await?,
         *msg.author.id.as_u64() as i64,
     )
     .await?;
@@ -136,14 +104,7 @@ pub async fn now(ctx: &Context, msg: &Message, _args: Args) -> CommandResult {
 #[bucket = "lastfm"]
 pub async fn recent(ctx: &Context, msg: &Message, _args: Args) -> CommandResult {
     let lastfm = Lastfm::get(
-        &mut *ctx
-            .data
-            .read()
-            .await
-            .get::<DatabasePool>()
-            .ok_or("Failed to get Pool")?
-            .get()
-            .await?,
+        &mut *get_client(&ctx).await?,
         *msg.author.id.as_u64() as i64,
     )
     .await?;
@@ -201,14 +162,7 @@ pub async fn artists(ctx: &Context, msg: &Message, args: Args) -> CommandResult 
     };
 
     let lastfm = Lastfm::get(
-        &mut *ctx
-            .data
-            .read()
-            .await
-            .get::<DatabasePool>()
-            .ok_or("Failed to get Pool")?
-            .get()
-            .await?,
+        &mut *get_client(&ctx).await?,
         *msg.author.id.as_u64() as i64,
     )
     .await?;
@@ -263,14 +217,7 @@ pub async fn albums(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     };
 
     let lastfm = Lastfm::get(
-        &mut *ctx
-            .data
-            .read()
-            .await
-            .get::<DatabasePool>()
-            .ok_or("Failed to get Pool")?
-            .get()
-            .await?,
+        &mut *get_client(&ctx).await?,
         *msg.author.id.as_u64() as i64,
     )
     .await?;
@@ -327,14 +274,7 @@ pub async fn tracks(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     info!("period: {:?}", period);
 
     let lastfm = Lastfm::get(
-        &mut *ctx
-            .data
-            .read()
-            .await
-            .get::<DatabasePool>()
-            .ok_or("Failed to get Pool")?
-            .get()
-            .await?,
+        &mut *get_client(&ctx).await?,
         *msg.author.id.as_u64() as i64,
     )
     .await?;

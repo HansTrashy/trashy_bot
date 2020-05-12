@@ -1,4 +1,5 @@
 use crate::models::bank::Bank;
+use crate::util::get_client;
 use crate::DatabasePool;
 use chrono::prelude::*;
 use serenity::prelude::*;
@@ -14,14 +15,7 @@ use tracing::debug;
 pub async fn create(ctx: &Context, msg: &Message, _args: Args) -> CommandResult {
     // check if user already owns a bank
     if let Ok(bank) = Bank::get(
-        &mut *ctx
-            .data
-            .read()
-            .await
-            .get::<DatabasePool>()
-            .ok_or("Failed to get Pool")?
-            .get()
-            .await?,
+        &mut *get_client(&ctx).await?,
         *msg.author.id.as_u64() as i64,
     )
     .await
@@ -31,14 +25,7 @@ pub async fn create(ctx: &Context, msg: &Message, _args: Args) -> CommandResult 
             .await;
     } else {
         let bank = Bank::create(
-            &mut *ctx
-                .data
-                .read()
-                .await
-                .get::<DatabasePool>()
-                .ok_or("Failed to get Pool")?
-                .get()
-                .await?,
+            &mut *get_client(&ctx).await?,
             *msg.author.id.as_u64() as i64,
             msg.author.name.to_string(),
             1000,
@@ -59,14 +46,7 @@ pub async fn payday(ctx: &Context, msg: &Message, _args: Args) -> CommandResult 
     // check if user has a bank & last payday was over 24h ago
 
     if let Ok(bank) = Bank::get(
-        &mut *ctx
-            .data
-            .read()
-            .await
-            .get::<DatabasePool>()
-            .ok_or("Failed to get Pool")?
-            .get()
-            .await?,
+        &mut *get_client(&ctx).await?,
         *msg.author.id.as_u64() as i64,
     )
     .await
@@ -79,14 +59,7 @@ pub async fn payday(ctx: &Context, msg: &Message, _args: Args) -> CommandResult 
             let updated_amount = bank.amount + 1000;
 
             Bank::update(
-                &mut *ctx
-                    .data
-                    .read()
-                    .await
-                    .get::<DatabasePool>()
-                    .ok_or("Failed to get Pool")?
-                    .get()
-                    .await?,
+                &mut *get_client(&ctx).await?,
                 *msg.author.id.as_u64() as i64,
                 updated_amount,
                 Utc::now().naive_utc(),
@@ -117,17 +90,7 @@ pub async fn payday(ctx: &Context, msg: &Message, _args: Args) -> CommandResult 
 #[description = "Lists the leading players"]
 #[num_args(0)]
 pub async fn leaderboard(ctx: &Context, msg: &Message, _args: Args) -> CommandResult {
-    let results = Bank::top10(
-        &mut *ctx
-            .data
-            .read()
-            .await
-            .get::<DatabasePool>()
-            .ok_or("Failed to get Pool")?
-            .get()
-            .await?,
-    )
-    .await?;
+    let results = Bank::top10(&mut *get_client(&ctx).await?).await?;
 
     let mut rendered_leaderboard = String::from("Top Ten:\n");
     for (i, r) in results.iter().enumerate() {
@@ -163,14 +126,7 @@ pub async fn transfer(ctx: &Context, msg: &Message, mut args: Args) -> CommandRe
     let mentions_count = msg.mentions.len() as i64;
 
     if let Ok(bank) = Bank::get(
-        &mut *ctx
-            .data
-            .read()
-            .await
-            .get::<DatabasePool>()
-            .ok_or("Failed to get Pool")?
-            .get()
-            .await?,
+        &mut *get_client(&ctx).await?,
         *msg.author.id.as_u64() as i64,
     )
     .await
@@ -181,14 +137,7 @@ pub async fn transfer(ctx: &Context, msg: &Message, mut args: Args) -> CommandRe
 
             // remove the needed money
             Bank::update(
-                &mut *ctx
-                    .data
-                    .read()
-                    .await
-                    .get::<DatabasePool>()
-                    .ok_or("Failed to get Pool")?
-                    .get()
-                    .await?,
+                &mut *get_client(&ctx).await?,
                 bank.user_id,
                 updated_amount,
                 bank.last_payday,
@@ -196,29 +145,12 @@ pub async fn transfer(ctx: &Context, msg: &Message, mut args: Args) -> CommandRe
             .await?;
 
             for mention in &msg.mentions {
-                if let Ok(bank) = Bank::get(
-                    &mut *ctx
-                        .data
-                        .read()
-                        .await
-                        .get::<DatabasePool>()
-                        .ok_or("Failed to get Pool")?
-                        .get()
-                        .await?,
-                    *mention.id.as_u64() as i64,
-                )
-                .await
+                if let Ok(bank) =
+                    Bank::get(&mut *get_client(&ctx).await?, *mention.id.as_u64() as i64).await
                 {
                     let mentioned_user_amount = bank.amount + amount_to_transfer;
                     Bank::update(
-                        &mut *ctx
-                            .data
-                            .read()
-                            .await
-                            .get::<DatabasePool>()
-                            .ok_or("Failed to get Pool")?
-                            .get()
-                            .await?,
+                        &mut *get_client(&ctx).await?,
                         bank.user_id,
                         mentioned_user_amount,
                         bank.last_payday,

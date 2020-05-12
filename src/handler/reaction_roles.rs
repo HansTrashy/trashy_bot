@@ -1,5 +1,6 @@
 use crate::models::reaction_role::ReactionRole;
 use crate::reaction_roles::State;
+use crate::util::get_client;
 use crate::DatabasePool;
 use crate::ReactionRolesState;
 use serenity::{
@@ -26,21 +27,9 @@ pub async fn add_role(ctx: Context, add_reaction: Reaction) {
         info!("On correct message reacted!");
         if let ReactionType::Unicode(ref s) = add_reaction.emoji {
             // check if rr registered for this emoji
-            let results = ReactionRole::list_by_emoji(
-                &mut *ctx
-                    .data
-                    .read()
-                    .await
-                    .get::<DatabasePool>()
-                    .ok_or("Failed to get Pool")
-                    .unwrap()
-                    .get()
-                    .await
-                    .unwrap(),
-                s,
-            )
-            .await
-            .expect("could not get by emojis");
+            let results = ReactionRole::list_by_emoji(&mut *get_client(&ctx).await.unwrap(), s)
+                .await
+                .expect("could not get by emojis");
 
             if !results.is_empty() {
                 info!("Found role for this emoji!");
@@ -82,21 +71,9 @@ pub async fn remove_role(ctx: Context, remove_reaction: Reaction) {
         info!("On correct message reacted!");
         if let ReactionType::Unicode(ref s) = remove_reaction.emoji {
             // check if rr registered for this emoji
-            let results = ReactionRole::list_by_emoji(
-                &mut *ctx
-                    .data
-                    .read()
-                    .await
-                    .get::<DatabasePool>()
-                    .ok_or("Failed to get Pool")
-                    .unwrap()
-                    .get()
-                    .await
-                    .unwrap(),
-                s,
-            )
-            .await
-            .expect("could not get by emojis");
+            let results = ReactionRole::list_by_emoji(&mut *get_client(&ctx).await.unwrap(), s)
+                .await
+                .expect("could not get by emojis");
 
             if !results.is_empty() {
                 info!("Found role for this emoji!");
