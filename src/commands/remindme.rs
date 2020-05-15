@@ -1,4 +1,8 @@
+use crate::models::reminder::Reminder;
 use crate::util;
+use crate::util::get_client;
+use chrono::Utc;
+use serenity::utils::MessageBuilder;
 use serenity::utils::{content_safe, ContentSafeOptions};
 use serenity::{
     framework::standard::{macros::command, Args, CommandResult},
@@ -25,12 +29,37 @@ pub async fn remindme(ctx: &Context, msg: &Message, mut args: Args) -> CommandRe
             let defaults = ContentSafeOptions::default();
             let message = content_safe(&ctx, args.rest().to_string(), &defaults).await;
 
-            msg.react(ctx, ReactionType::Unicode("✅".to_string()))
-                .await?;
+            Reminder::create(
+                &mut *get_client(&ctx).await?,
+                *msg.channel_id.as_u64() as i64,
+                *msg.id.as_u64() as i64,
+                *msg.author.id.as_u64() as i64,
+                Utc::now() + duration,
+                &message,
+            )
+            .await?;
+
+            let _ = msg
+                .react(ctx, ReactionType::Unicode("✅".to_string()))
+                .await;
 
             delay_for(duration.to_std()?).await;
 
-            let _ = msg.reply(ctx, message).await;
+            let _ = Reminder::delete(&mut *get_client(&ctx).await?, *msg.id.as_u64() as i64).await;
+
+            let _ = msg
+                .channel_id
+                .send_message(ctx, |m| {
+                    m.content(
+                        MessageBuilder::new()
+                            .push("Hey, ")
+                            .mention(&msg.author.id)
+                            .push("! You wanted me to remind you that: ")
+                            .push(message)
+                            .build(),
+                    )
+                })
+                .await;
         }
     }
     Ok(())

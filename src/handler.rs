@@ -4,11 +4,13 @@ mod reaction_roles;
 use crate::commands::config::Guild;
 use crate::commands::userinfo::UserInfo;
 use crate::models::mute::Mute;
+use crate::models::reminder::Reminder;
 use crate::models::server_config::ServerConfig;
 use crate::models::tag::Tag;
 use crate::util::get_client;
 use crate::DatabasePool;
 use chrono::Utc;
+use serenity::utils::MessageBuilder;
 use serenity::{
     async_trait,
     model::{
@@ -20,6 +22,7 @@ use serenity::{
         id::ChannelId,
         id::GuildId,
         id::RoleId,
+        id::UserId,
         user::User,
     },
     prelude::*,
@@ -35,6 +38,57 @@ impl EventHandler for Handler {
         ctx.set_activity(Activity::listening("$help")).await;
         println!("{} is connected!", ready.user.name);
 
+        // restart reminders
+        for r in Reminder::list(&mut *get_client(&ctx).await.unwrap())
+            .await
+            .unwrap()
+        {
+            let ctx = ctx.clone();
+            if r.end_time <= Utc::now() {
+                tokio::spawn(async move {
+                    let source_msg_id = r.source_msg_id;
+                    let _ = ChannelId(r.channel_id as u64)
+                        .send_message(&ctx, |m| {
+                            m.content(
+                                MessageBuilder::new()
+                                    .push("Sorry, ")
+                                    .mention(&UserId(r.user_id as u64))
+                                    .push(" im late! You wanted me to remind you that: ")
+                                    .push(r.msg)
+                                    .build(),
+                            )
+                        })
+                        .await;
+
+                    let _ = Reminder::delete(&mut *get_client(&ctx).await.unwrap(), source_msg_id)
+                        .await;
+                });
+            } else {
+                let duration = r.end_time.signed_duration_since(Utc::now());
+                tokio::spawn(async move {
+                    delay_for(duration.to_std().unwrap()).await;
+
+                    let source_msg_id = r.source_msg_id;
+                    let _ = ChannelId(r.channel_id as u64)
+                        .send_message(&ctx, |m| {
+                            m.content(
+                                MessageBuilder::new()
+                                    .push("Hey, ")
+                                    .mention(&UserId(r.user_id as u64))
+                                    .push("! You wanted me to remind you that: ")
+                                    .push(r.msg)
+                                    .build(),
+                            )
+                        })
+                        .await;
+
+                    let _ = Reminder::delete(&mut *get_client(&ctx).await.unwrap(), source_msg_id)
+                        .await;
+                });
+            }
+        }
+
+        // restart unmute futures
         let server_configs = ServerConfig::list(&mut *get_client(&ctx).await.unwrap())
             .await
             .unwrap();
