@@ -21,7 +21,7 @@ async fn emoji(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     let emoji_name = args.rest();
 
     if let Some(guild) = msg.guild(&ctx).await {
-        for (_id, e) in guild.read().await.emojis.iter() {
+        for (_id, e) in guild.emojis.iter() {
             if e.name == emoji_name {
                 let _ = msg
                     .channel_id

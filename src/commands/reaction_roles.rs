@@ -22,7 +22,7 @@ pub async fn create(ctx: &Context, msg: &Message, mut args: Args) -> CommandResu
     let role_arg = args.rest();
 
     if let Some(guild) = msg.guild(&ctx.cache).await {
-        if let Some(role) = guild.read().await.role_by_name(role_arg) {
+        if let Some(role) = guild.role_by_name(role_arg) {
             ReactionRole::create(
                 &mut *get_client(&ctx).await?,
                 *msg.channel(&ctx.cache)
@@ -55,7 +55,7 @@ pub async fn remove(ctx: &Context, msg: &Message, mut args: Args) -> CommandResu
 
     if let Some(guild) = msg.guild(&ctx.cache).await {
         debug!("Some guild found");
-        if let Some(role) = guild.read().await.role_by_name(role_arg) {
+        if let Some(role) = guild.role_by_name(role_arg) {
             debug!("Role found: {:?}", &role);
             ReactionRole::delete(
                 &mut *get_client(&ctx).await?,
