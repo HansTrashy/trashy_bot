@@ -21,26 +21,27 @@ pub async fn create(ctx: &Context, msg: &Message, mut args: Args) -> CommandResu
     let role_group_arg = args.single::<String>()?;
     let role_arg = args.rest();
 
-    if let Some(guild) = msg.guild(&ctx.cache).await {
-        if let Some(role) = guild.role_by_name(role_arg) {
-            ReactionRole::create(
-                &mut *get_client(&ctx).await?,
-                *msg.channel(&ctx.cache)
-                    .await
-                    .ok_or("no channel")?
-                    .guild()
-                    .ok_or("no guild")?
-                    .guild_id
-                    .as_u64() as i64,
-                *role.id.as_u64() as i64,
-                role_arg.to_string(),
-                role_group_arg,
-                emoji_arg,
-            )
-            .await?;
-            msg.reply(ctx, "Added rr!").await?;
-        }
-    }
+    let guild = msg.guild(&ctx).await.ok_or("No Guild found")?;
+    let role = guild.role_by_name(role_arg).ok_or("Role not found")?;
+
+    ReactionRole::create(
+        &mut *get_client(&ctx).await?,
+        *msg.channel(&ctx.cache)
+            .await
+            .ok_or("no channel")?
+            .guild()
+            .ok_or("no guild")?
+            .guild_id
+            .as_u64() as i64,
+        *role.id.as_u64() as i64,
+        role_arg.to_string(),
+        role_group_arg,
+        emoji_arg,
+    )
+    .await?;
+
+    let _ = msg.reply(ctx, "Added rr!").await;
+
     Ok(())
 }
 
