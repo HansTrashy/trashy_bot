@@ -19,10 +19,11 @@ use tracing::debug;
 pub async fn create(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     let emoji_arg = args.single::<String>()?;
     let role_group_arg = args.single::<String>()?;
-    let role_arg = args.rest();
+    let role_arg = args.single::<String>()?;
 
     let guild = msg.guild(&ctx).await.ok_or("No Guild found")?;
-    let role = guild.role_by_name(role_arg).ok_or("Role not found")?;
+    debug!("trying to find role: '{:?}'", &role_arg);
+    let role = guild.role_by_name(&role_arg).ok_or("Role not found")?;
 
     ReactionRole::create(
         &mut *get_client(&ctx).await?,
