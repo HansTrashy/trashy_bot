@@ -34,7 +34,7 @@ pub struct Handler;
 
 #[async_trait]
 impl EventHandler for Handler {
-    async fn ready(&self, ctx: Context, ready: Ready) {
+    async fn ready(&self, mut ctx: Context, ready: Ready) {
         ctx.set_activity(Activity::listening("$help")).await;
         println!("{} is connected!", ready.user.name);
 

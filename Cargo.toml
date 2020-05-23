@@ -26,7 +26,7 @@ tracing-futures = "0.2.3"
 
 [dependencies.serenity]
 git = "https://github.com/Lakelezz/serenity.git"
-branch = "await"
+branch = "await-oom"
 default-features = false
 features = [
     "builder",
