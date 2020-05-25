@@ -16,7 +16,7 @@ async fn spongebob(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
             if (i % 2) == 0 {
                 c.to_uppercase().to_string()
             } else {
-                c.to_string()
+                c.to_lowercase().to_string()
             }
         })
         .collect();
@@ -30,7 +30,7 @@ async fn spongebob(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
                 })
                 .description(&spongify_this)
                 .footer(|f| f.text(&format!("Spongified by: {}", &msg.author.name)))
-                .color((0, 120, 220))
+                .color((252, 230, 49))
             })
         })
         .await?;
