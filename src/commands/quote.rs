@@ -14,14 +14,14 @@ use tracing::{debug, trace};
 
 lazy_static! {
     static ref QUOTE_LINK_REGEX: Regex =
-        Regex::new(r#"https://discordapp.com/channels/(\d+)/(\d+)/(\d+)"#)
+        Regex::new(r#"https://discord.com/channels/(\d+)/(\d+)/(\d+)"#)
             .expect("could not compile quote link regex");
 }
 
 #[command]
 #[description = "Quote a message"]
 #[usage = "command message-link"]
-#[example = "https://discordapp.com/channels/_/_/_"]
+#[example = "https://discord.com/channels/_/_/_"]
 #[only_in("guilds")]
 pub async fn quote(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     check_optout(ctx, msg, *msg.author.id.as_u64()).await?;
@@ -105,7 +105,7 @@ pub async fn quote(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
                             .say(
                                 http,
                                 format!(
-                                    "https://discordapp.com/channels/{}/{}/{}",
+                                    "https://discord.com/channels/{}/{}/{}",
                                     quote_server_id, quote_channel_id, quote_msg_id,
                                 ),
                             )
