@@ -35,6 +35,7 @@ mod migrations;
 mod models;
 mod reaction_roles;
 mod rules;
+mod startup;
 mod util;
 
 struct ShardManagerContainer;
@@ -226,8 +227,8 @@ async fn main() {
         .expect("could not create async db pool");
 
     {
-        let mut client = async_db_pool.get().await.unwrap();
-        migrations::run(&mut client)
+        let mut db_client = async_db_pool.get().await.unwrap();
+        migrations::run(&mut db_client)
             .await
             .expect("could not run migrations");
     }

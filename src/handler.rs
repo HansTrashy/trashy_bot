@@ -4,17 +4,12 @@ mod reaction_roles;
 use crate::commands::config::Guild;
 use crate::commands::userinfo::UserInfo;
 use crate::models::mute::Mute;
-use crate::models::reminder::Reminder;
 use crate::models::server_config::ServerConfig;
-use crate::models::tag::Tag;
 use crate::util::get_client;
-use crate::DatabasePool;
 use chrono::Utc;
-use serenity::utils::MessageBuilder;
 use serenity::{
     async_trait,
     model::{
-        channel::Message,
         channel::Reaction,
         channel::ReactionType,
         gateway::{Activity, Ready},
@@ -22,13 +17,11 @@ use serenity::{
         id::ChannelId,
         id::GuildId,
         id::RoleId,
-        id::UserId,
         user::User,
     },
     prelude::*,
 };
-use tokio::time::delay_for;
-use tracing::{error, info, instrument};
+use tracing::info;
 
 pub struct Handler;
 
@@ -36,112 +29,7 @@ pub struct Handler;
 impl EventHandler for Handler {
     async fn ready(&self, mut ctx: Context, ready: Ready) {
         ctx.set_activity(Activity::listening("$help")).await;
-        println!("{} is connected!", ready.user.name);
-
-        // restart reminders
-        for r in Reminder::list(&mut *get_client(&ctx).await.unwrap())
-            .await
-            .unwrap()
-        {
-            let ctx = ctx.clone();
-            if r.end_time <= Utc::now() {
-                tokio::spawn(async move {
-                    let source_msg_id = r.source_msg_id;
-                    let _ = ChannelId(r.channel_id as u64)
-                        .send_message(&ctx, |m| {
-                            m.content(
-                                MessageBuilder::new()
-                                    .push("Sorry, ")
-                                    .mention(&UserId(r.user_id as u64))
-                                    .push(" im late! You wanted me to remind you that: ")
-                                    .push(r.msg)
-                                    .build(),
-                            )
-                        })
-                        .await;
-
-                    let _ = Reminder::delete(&mut *get_client(&ctx).await.unwrap(), source_msg_id)
-                        .await;
-                });
-            } else {
-                let duration = r.end_time.signed_duration_since(Utc::now());
-                tokio::spawn(async move {
-                    delay_for(duration.to_std().unwrap()).await;
-
-                    let source_msg_id = r.source_msg_id;
-                    let _ = ChannelId(r.channel_id as u64)
-                        .send_message(&ctx, |m| {
-                            m.content(
-                                MessageBuilder::new()
-                                    .push("Hey, ")
-                                    .mention(&UserId(r.user_id as u64))
-                                    .push("! You wanted me to remind you that: ")
-                                    .push(r.msg)
-                                    .build(),
-                            )
-                        })
-                        .await;
-
-                    let _ = Reminder::delete(&mut *get_client(&ctx).await.unwrap(), source_msg_id)
-                        .await;
-                });
-            }
-        }
-
-        // restart unmute futures
-        let server_configs = ServerConfig::list(&mut *get_client(&ctx).await.unwrap())
-            .await
-            .unwrap();
-
-        for m in Mute::list(&mut *get_client(&ctx).await.unwrap())
-            .await
-            .unwrap()
-        {
-            let ctx = ctx.clone();
-            if let Some(config) = server_configs
-                .iter()
-                .filter(|x| x.server_id == m.server_id)
-                .collect::<Vec<_>>()
-                .first()
-            {
-                let config: crate::commands::config::Guild =
-                    serde_json::from_value(config.config.clone()).unwrap();
-
-                let m_clone = m.clone();
-                let remove_mute_fut = async move {
-                    match GuildId(m.server_id as u64)
-                        .member(&ctx, m.user_id as u64)
-                        .await
-                    {
-                        Ok(mut member) => {
-                            member
-                                .remove_role(&ctx, RoleId(config.mute_role.unwrap()))
-                                .await
-                                .expect("could not remove role");
-                        }
-                        Err(e) => error!("could not get member: {:?}", e),
-                    };
-
-                    let _ = Mute::delete(
-                        &mut *get_client(&ctx).await.unwrap(),
-                        m.server_id,
-                        m.user_id,
-                    )
-                    .await;
-                };
-
-                if m_clone.end_time <= Utc::now() {
-                    tokio::spawn(remove_mute_fut);
-                } else {
-                    let duration = m_clone.end_time.signed_duration_since(Utc::now());
-                    let delayed_fut = async move {
-                        delay_for(duration.to_std().unwrap()).await;
-                        remove_mute_fut.await;
-                    };
-                    tokio::spawn(delayed_fut);
-                }
-            }
-        }
+        info!("{} is connected!", ready.user.name);
     }
 
     async fn guild_member_addition(&self, ctx: Context, guild_id: GuildId, mut new_member: Member) {
