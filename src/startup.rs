@@ -8,7 +8,7 @@ use serenity::utils::MessageBuilder;
 use tokio::time::delay_for;
 use tracing::error;
 
-async fn on_startup(client: &serenity::Client) {
+pub async fn on_startup(client: &serenity::Client) {
     let mut db_client = client
         .data
         .read()

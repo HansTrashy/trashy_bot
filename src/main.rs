@@ -246,6 +246,8 @@ async fn main() {
         data.insert::<DatabasePool>(async_db_pool);
     }
 
+    startup::on_startup(&client).await;
+
     if let Err(why) = client.start().await {
         error!("Client error: {:?}", why);
     }
