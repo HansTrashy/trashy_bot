@@ -14,7 +14,7 @@ use tracing::{debug, trace};
 
 lazy_static! {
     static ref QUOTE_LINK_REGEX: Regex =
-        Regex::new(r#"https://discord.com/channels/(\d+)/(\d+)/(\d+)"#)
+        Regex::new(r#"https://(discord.com|discordapp.com)/channels/(\d+)/(\d+)/(\d+)"#)
             .expect("could not compile quote link regex");
 }
 
