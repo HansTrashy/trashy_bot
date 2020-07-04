@@ -24,9 +24,12 @@ use tracing::error;
 pub async fn selfmute(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     let duration = util::parse_duration(&args.single::<String>()?).expect("invalid duration");
 
-    if duration > Duration::hours(24) {
-        msg.reply(ctx, "You can not mute yourself for more than 24 hours!")
-            .await?;
+    if duration > Duration::hours(24) || duration < Duration::seconds(60) {
+        msg.reply(
+            ctx,
+            "You can not mute yourself for less than 60 seconds or more than 24 hours!",
+        )
+        .await?;
         return Ok(());
     }
 
