@@ -10,6 +10,7 @@ pub struct ReactionRole {
     pub role_name: String,
     pub role_group: String,
     pub emoji: String,
+    pub role_description: Option<String>,
 }
 
 impl ReactionRole {
@@ -53,11 +54,26 @@ impl ReactionRole {
         role_name: String,
         role_group: String,
         emoji: String,
+        description: Option<String>,
     ) -> Result<Self, DbError> {
         Ok(Self::from_row(client.query_one(
-            "INSERT INTO reaction_roles (server_id, role_id, role_name, role_group, emoji) VALUES ($1, $2, $3, $4, $5) RETURNING *",
-            &[&server_id, &role_id, &role_name, &role_group, &emoji],
+            "INSERT INTO reaction_roles (server_id, role_id, role_name, role_group, emoji, role_description) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *",
+            &[&server_id, &role_id, &role_name, &role_group, &emoji, &description],
         ).await?)?)
+    }
+
+    pub async fn change_description(
+        client: &mut Client,
+        server_id: i64,
+        role_id: i64,
+        description: Option<String>,
+    ) -> Result<u64, DbError> {
+        Ok(client
+            .execute(
+                "UPDATE reaction_roles SET role_description = $3 WHERE server_id = $1 AND role_id = $2",
+                &[&server_id, &role_id, &description],
+            )
+            .await?)
     }
 
     pub async fn delete(client: &mut Client, server_id: i64, role_id: i64) -> Result<u64, DbError> {
@@ -77,6 +93,7 @@ impl ReactionRole {
             role_name: row.try_get("role_name").map_err(|e| e.to_string())?,
             role_group: row.try_get("role_group").map_err(|e| e.to_string())?,
             emoji: row.try_get("emoji").map_err(|e| e.to_string())?,
+            role_description: row.try_get("role_description").map_err(|e| e.to_string())?,
         })
     }
 }

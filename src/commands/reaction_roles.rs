@@ -34,6 +34,7 @@ pub async fn create(ctx: &Context, msg: &Message, mut args: Args) -> CommandResu
     let emoji_arg = args.single::<String>()?;
     let role_group_arg = args.single::<String>()?;
     let role_arg = args.single::<String>()?;
+    let description_arg = args.single_quoted::<String>().ok();
 
     let guild = msg.guild(&ctx).await.ok_or("No Guild found")?;
     debug!("trying to find role: '{:?}'", &role_arg);
@@ -52,6 +53,7 @@ pub async fn create(ctx: &Context, msg: &Message, mut args: Args) -> CommandResu
         role_arg.to_string(),
         role_group_arg,
         emoji_arg,
+        description_arg,
     )
     .await?;
 
@@ -62,17 +64,37 @@ pub async fn create(ctx: &Context, msg: &Message, mut args: Args) -> CommandResu
 
 #[command]
 #[allowed_roles("Mods")]
-#[description = "Removes a reaction role"]
-#[example = "🧀 role_name"]
-pub async fn remove(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
-    let emoji_arg = args.single::<String>()?;
-    let role_arg = args.rest();
-    dbg!(&role_arg);
+#[description = "changes the description of a reaction role"]
+#[example = "role_name description"]
+pub async fn description(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
+    let role_arg = args.single::<String>()?;
+    let description = args.single_quoted::<String>().ok();
 
     if let Some(guild) = msg.guild(&ctx.cache).await {
-        debug!("Some guild found");
+        if let Some(role) = guild.role_by_name(&role_arg) {
+            ReactionRole::change_description(
+                &mut *get_client(&ctx).await?,
+                *msg.guild_id.unwrap().as_u64() as i64,
+                *role.id.as_u64() as i64,
+                description,
+            )
+            .await?;
+            msg.reply(ctx, format!("changed description of {} rr!", role_arg))
+                .await?;
+        }
+    }
+    Ok(())
+}
+
+#[command]
+#[allowed_roles("Mods")]
+#[description = "Removes a reaction role"]
+#[example = "role_name"]
+pub async fn remove(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
+    let role_arg = args.rest();
+
+    if let Some(guild) = msg.guild(&ctx.cache).await {
         if let Some(role) = guild.role_by_name(role_arg) {
-            debug!("Role found: {:?}", &role);
             ReactionRole::delete(
                 &mut *get_client(&ctx).await?,
                 *msg.guild_id.unwrap().as_u64() as i64,
@@ -94,8 +116,11 @@ pub async fn list(ctx: &Context, msg: &Message, _args: Args) -> CommandResult {
     let mut output = String::new();
     for r in results {
         output.push_str(&format!(
-            "{} | {} | {}\n",
-            r.emoji, r.role_group, r.role_name
+            "{} | {} | {} | {}\n",
+            r.emoji,
+            r.role_group,
+            r.role_name,
+            r.role_description.unwrap_or("No Description".to_string())
         ));
     }
 
@@ -126,7 +151,11 @@ pub async fn postgroups(ctx: &Context, msg: &Message, _args: Args) -> CommandRes
     for (reaction_group_name, roles) in reaction_groups {
         let mut rendered_roles = String::new();
         for r in &roles {
-            rendered_roles.push_str(&format!("{} | {}\n", r.emoji, r.role_name));
+            rendered_roles.push_str(&format!("{} | {}", r.emoji, r.role_name));
+            if let Some(description) = &r.role_description {
+                rendered_roles.push_str(&format!(" | {}", description));
+            }
+            rendered_roles.push_str("\n");
         }
 
         let group_message = msg
