@@ -56,7 +56,11 @@ pub async fn payday(ctx: &Context, msg: &Message, _args: Args) -> CommandResult 
             .signed_duration_since(bank.last_payday)
             .num_hours();
         if hours_diff > 23 {
-            let updated_amount = bank.amount + 1000;
+            let updated_amount = if bank.amount < 0 {
+                1000
+            } else {
+                bank.amount + 1000
+            };
 
             Bank::update(
                 &mut *get_client(&ctx).await?,
