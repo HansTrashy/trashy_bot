@@ -58,6 +58,10 @@ pub async fn payday(ctx: &Context, msg: &Message, _args: Args) -> CommandResult 
         if hours_diff > 23 {
             let updated_amount = bank.amount + 1000;
 
+            if updated_amount <= 0 {
+                let updated_amount = 1000;
+            }
+
             Bank::update(
                 &mut *get_client(&ctx).await?,
                 *msg.author.id.as_u64() as i64,
