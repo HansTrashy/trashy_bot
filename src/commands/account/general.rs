@@ -57,7 +57,7 @@ pub async fn payday(ctx: &Context, msg: &Message, _args: Args) -> CommandResult 
             .num_hours();
         if hours_diff > 23 {
             let updated_amount = bank.amount + 1000;
-
+            // Fix negative account balance
             if updated_amount <= 0 {
                 let updated_amount = 1000;
             }
