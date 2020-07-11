@@ -166,14 +166,14 @@ pub async fn post(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
         let chosen_fav_id = chosen_fav.id;
         async move {
             let reaction = reaction.as_inner_ref();
-            if let Ok(dm_channel) = reaction.user_id.create_dm_channel(&ctx).await {
+            if let Ok(dm_channel) = reaction.user_id.unwrap().create_dm_channel(&ctx).await {
                 trace!(user = ?reaction.user_id, "Requesting labels from user");
                 let _ = dm_channel.say(&ctx, "Send me your labels!").await;
 
                 if let Some(label_reply) = dm_channel
                     .id
                     .await_reply(&ctx)
-                    .author_id(reaction.user_id)
+                    .author_id(reaction.user_id.unwrap())
                     .timeout(Duration::from_secs(120))
                     .await
                 {
@@ -199,7 +199,7 @@ pub async fn post(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
         async move {
             // ignore add/remove reaction difference
             let reaction = reaction.as_inner_ref();
-            if let Ok(dm_channel) = reaction.user_id.create_dm_channel(&ctx).await {
+            if let Ok(dm_channel) = reaction.user_id.unwrap().create_dm_channel(&ctx).await {
                 trace!(user = ?reaction.user_id, "sending info source for quote");
                 let _ = dm_channel
                     .say(
@@ -334,14 +334,14 @@ pub async fn untagged(ctx: &Context, msg: &Message, _args: Args) -> CommandResul
             let fav_id = fav.id;
             async move {
                 let reaction = reaction.as_inner_ref();
-                if let Ok(dm_channel) = reaction.user_id.create_dm_channel(&ctx).await {
+                if let Ok(dm_channel) = reaction.user_id.unwrap().create_dm_channel(&ctx).await {
                     trace!(user = ?reaction.user_id, "Requesting labels from user");
                     let _ = dm_channel.say(&ctx, "Send me your labels!").await;
 
                     if let Some(label_reply) = dm_channel
                         .id
                         .await_reply(&ctx)
-                        .author_id(reaction.user_id)
+                        .author_id(reaction.user_id.unwrap())
                         .timeout(Duration::from_secs(120))
                         .await
                     {

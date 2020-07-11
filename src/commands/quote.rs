@@ -99,7 +99,8 @@ pub async fn quote(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
                 async move {
                     // ignore add/remove reaction difference
                     let reaction = reaction.as_inner_ref();
-                    if let Ok(dm_channel) = reaction.user_id.create_dm_channel(http).await {
+                    if let Ok(dm_channel) = reaction.user_id.unwrap().create_dm_channel(http).await
+                    {
                         trace!(user = ?reaction.user_id, "sending info source for quote");
                         let _ = dm_channel
                             .say(

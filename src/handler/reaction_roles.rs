@@ -40,7 +40,10 @@ pub async fn add_role(ctx: Context, add_reaction: Reaction) {
                     .ok()
                     .and_then(|c| c.guild())
                 {
-                    if let Ok(mut member) = guild.guild_id.member(&ctx, add_reaction.user_id).await
+                    if let Ok(mut member) = guild
+                        .guild_id
+                        .member(&ctx, add_reaction.user_id.unwrap())
+                        .await
                     {
                         member
                             .add_role(&ctx, results[0].role_id as u64)
@@ -84,8 +87,10 @@ pub async fn remove_role(ctx: Context, remove_reaction: Reaction) {
                     .ok()
                     .and_then(|c| c.guild())
                 {
-                    if let Ok(mut member) =
-                        guild.guild_id.member(&ctx, remove_reaction.user_id).await
+                    if let Ok(mut member) = guild
+                        .guild_id
+                        .member(&ctx, remove_reaction.user_id.unwrap())
+                        .await
                     {
                         member
                             .remove_role(&ctx, results[0].role_id as u64)

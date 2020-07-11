@@ -19,7 +19,7 @@ pub async fn add(ctx: Context, add_reaction: Reaction) {
             .as_u64() as i64,
         *add_reaction.channel_id.as_u64() as i64,
         *add_reaction.message_id.as_u64() as i64,
-        *add_reaction.user_id.as_u64() as i64,
+        *add_reaction.user_id.unwrap().as_u64() as i64,
         *add_reaction
             .message(&ctx.http)
             .await
@@ -31,7 +31,7 @@ pub async fn add(ctx: Context, add_reaction: Reaction) {
     .await
     .expect("could not create fav");
 
-    if let Ok(dm_channel) = add_reaction.user_id.create_dm_channel(&ctx).await {
+    if let Ok(dm_channel) = add_reaction.user_id.unwrap().create_dm_channel(&ctx).await {
         trace!(user = ?add_reaction.user_id, "Requesting labels from user");
 
         let _ = dm_channel.say(&ctx, "Send me your labels!").await;
@@ -39,7 +39,7 @@ pub async fn add(ctx: Context, add_reaction: Reaction) {
         if let Some(label_reply) = dm_channel
             .id
             .await_reply(&ctx)
-            .author_id(add_reaction.user_id)
+            .author_id(add_reaction.user_id.unwrap())
             .timeout(Duration::from_secs(120))
             .await
         {
