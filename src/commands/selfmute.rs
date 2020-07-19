@@ -17,7 +17,7 @@ use tracing::error;
 
 #[command]
 #[num_args(1)]
-#[description = "Mutes youself for the given duration supports (w, d, h, m, s)"]
+#[description = "Mutes youself for the given duration supports (d, h, m, s)"]
 #[usage = "*duration*"]
 #[example = "1h"]
 #[only_in("guilds")]
