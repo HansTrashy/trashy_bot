@@ -1,6 +1,5 @@
 use crate::models::lastfm::Lastfm;
 use crate::util::get_client;
-use crate::DatabasePool;
 use crate::LASTFM_API_KEY;
 use serenity::prelude::*;
 use serenity::{
@@ -89,7 +88,7 @@ pub async fn now(ctx: &Context, msg: &Message, _args: Args) -> CommandResult {
                 );
 
                 msg.channel_id
-                    .send_message(&ctx, |m| m.content(&content))
+                    .send_message(&ctx, |m| m.embed(|e| e.description(&content)))
                     .await?;
             }
         }
@@ -137,7 +136,7 @@ pub async fn recent(ctx: &Context, msg: &Message, _args: Args) -> CommandResult 
     }
 
     msg.channel_id
-        .send_message(&ctx, |m| m.content(&content))
+        .send_message(&ctx, |m| m.embed(|e| e.description(&content)))
         .await?;
 
     Ok(())
@@ -192,7 +191,7 @@ pub async fn artists(ctx: &Context, msg: &Message, args: Args) -> CommandResult 
     }
 
     msg.channel_id
-        .send_message(&ctx, |m| m.content(&content))
+        .send_message(&ctx, |m| m.embed(|e| e.description(&content)))
         .await?;
 
     Ok(())
@@ -247,7 +246,7 @@ pub async fn albums(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     }
 
     msg.channel_id
-        .send_message(&ctx, |m| m.content(&content))
+        .send_message(&ctx, |m| m.embed(|e| e.description(&content)))
         .await?;
 
     Ok(())
@@ -310,7 +309,7 @@ pub async fn tracks(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     }
 
     msg.channel_id
-        .send_message(&ctx, |m| m.content(&content))
+        .send_message(&ctx, |m| m.embed(|e| e.description(&content)))
         .await?;
 
     Ok(())
