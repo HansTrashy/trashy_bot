@@ -13,9 +13,31 @@ pub struct Fav {
 }
 
 impl Fav {
-    pub async fn list(client: &mut Client, user_id: i64) -> Result<Vec<Self>, DbError> {
+    pub async fn list(
+        client: &mut Client,
+        user_id: i64,
+        server_id: Option<i64>,
+    ) -> Result<Vec<Self>, DbError> {
+        let server_id = server_id.unwrap_or(0);
         Ok(client
-            .query("SELECT * FROM favs WHERE user_id = $1", &[&user_id])
+            .query("SELECT favs.id, favs.server_id, favs.channel_id, favs.msg_id, favs.user_id, favs.author_id 
+                FROM favs LEFT JOIN fav_blocks ON favs.server_id = fav_blocks.server_id WHERE user_id = $1 AND (fav_blocks.id IS NULL OR fav_blocks.server_id != $2)", &[&user_id, &server_id])
+            .await?
+            .into_iter()
+            .map(Self::from_row)
+            .collect::<Result<Vec<_>, DbError>>()?)
+    }
+
+    pub async fn list_by_channel_msg(
+        client: &mut Client,
+        channel_id: i64,
+        msg_id: i64,
+    ) -> Result<Vec<Self>, DbError> {
+        Ok(client
+            .query(
+                "SELECT * FROM favs WHERE channel_id = $1 AND msg_id = $2",
+                &[&channel_id, &msg_id],
+            )
             .await?
             .into_iter()
             .map(Self::from_row)

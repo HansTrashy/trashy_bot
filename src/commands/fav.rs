@@ -1,9 +1,9 @@
 use crate::models::fav::Fav;
+use crate::models::fav_block::FavBlock;
 use crate::models::tag::Tag;
+use crate::util;
 use crate::util::get_client;
-use crate::DatabasePool;
 use crate::OptOut;
-use chrono::prelude::*;
 use itertools::Itertools;
 use lazy_static::lazy_static;
 use rand::prelude::*;
@@ -46,6 +46,7 @@ pub async fn post(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
         Fav::list(
             &mut *get_client(&ctx).await?,
             *msg.author.id.as_u64() as i64,
+            msg.guild_id.map(|g_id| *g_id.as_u64() as i64),
         )
         .await?
     } else {
@@ -436,6 +437,46 @@ pub async fn tags(ctx: &Context, msg: &Message, _args: Args) -> CommandResult {
         .map(|description| {
             msg.channel_id
                 .send_message(&ctx, |m| m.embed(|e| e.description(description)))
+        })
+        .collect::<Vec<_>>();
+
+    futures::future::join_all(messages).await;
+
+    Ok(())
+}
+
+#[command]
+#[only_in("guilds")]
+#[description = "Adds a fav to the blocklist"]
+#[allowed_roles("Mods")]
+pub async fn block(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
+    let (_, block_channel_id, block_msg_id) = util::parse_message_link(args.rest())?;
+
+    // add to blocklist
+    let fav_block = FavBlock::create(
+        &mut *get_client(&ctx).await?,
+        *msg.guild_id.unwrap().as_u64() as i64,
+        block_channel_id as i64,
+        block_msg_id as i64,
+    )
+    .await?;
+
+    // check who used it as fav
+    let favs_now_blocked = Fav::list_by_channel_msg(
+        &mut *get_client(&ctx).await?,
+        fav_block.channel_id,
+        fav_block.msg_id,
+    )
+    .await?;
+
+    // send messages to those using the fav
+    let messages = favs_now_blocked
+        .into_iter()
+        .map(|blocked_fav| {
+            msg.channel_id.send_message(&ctx, |m| {
+                let blocked_fav = blocked_fav;
+                m.content(format!("Es wurde gerade ein fav von dir geblockt. https://discordapp.com/channels/{}/{}/{}", blocked_fav.server_id as u64, blocked_fav.channel_id as u64, blocked_fav.msg_id as u64))
+            })
         })
         .collect::<Vec<_>>();
 

@@ -1,5 +1,6 @@
 pub mod bank;
 pub mod fav;
+pub mod fav_block;
 pub mod lastfm;
 pub mod mute;
 pub mod reaction_role;

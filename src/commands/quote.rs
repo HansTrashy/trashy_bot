@@ -1,6 +1,5 @@
+use crate::util;
 use crate::OptOut;
-use lazy_static::lazy_static;
-use regex::Regex;
 use serenity::futures::stream::StreamExt;
 use serenity::model::channel::Attachment;
 use serenity::model::id::ChannelId;
@@ -12,12 +11,6 @@ use serenity::{
 use std::time::Duration;
 use tracing::{debug, trace};
 
-lazy_static! {
-    static ref QUOTE_LINK_REGEX: Regex =
-        Regex::new(r#"https://(?:discord.com|discordapp.com)/channels/(\d+)/(\d+)/(\d+)"#)
-            .expect("could not compile quote link regex");
-}
-
 #[command]
 #[description = "Quote a message"]
 #[usage = "command message-link"]
@@ -26,12 +19,7 @@ lazy_static! {
 pub async fn quote(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     check_optout(ctx, msg, *msg.author.id.as_u64()).await?;
 
-    let caps = QUOTE_LINK_REGEX
-        .captures(args.rest())
-        .ok_or("No captures, invalid link?")?;
-    let quote_server_id = caps.get(1).map_or("", |m| m.as_str()).parse::<u64>()?;
-    let quote_channel_id = caps.get(2).map_or("", |m| m.as_str()).parse::<u64>()?;
-    let quote_msg_id = caps.get(3).map_or("", |m| m.as_str()).parse::<u64>()?;
+    let (quote_server_id, quote_channel_id, quote_msg_id) = util::parse_message_link(args.rest())?;
 
     if let Ok(quoted_msg) = ChannelId(quote_channel_id)
         .message(&ctx.http, quote_msg_id)

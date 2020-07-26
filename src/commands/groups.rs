@@ -68,7 +68,7 @@ pub mod greenbook {
     #[group]
     #[prefix("fav")]
     #[default_command(post)]
-    #[commands(post, untagged, add, tags)]
+    #[commands(post, untagged, add, tags, block)]
     pub struct Greenbook;
 }
 

@@ -2,6 +2,7 @@ use crate::DatabasePool;
 use chrono::Duration;
 use deadpool::managed::Object;
 use deadpool_postgres::ClientWrapper;
+use regex::Regex;
 use serenity::prelude::Context;
 use tokio_postgres::error::Error as PgError;
 
@@ -72,6 +73,35 @@ pub fn humanize_duration(duration: &Duration) -> String {
         (x, 0, y) => format!("{} days {} minutes", x, y),
         (x, y, z) => format!("{} days {} hours {} minutes", x, y, z),
     }
+}
+
+lazy_static::lazy_static! {
+    static ref MESSAGE_LINK_REGEX: Regex =
+        Regex::new(r#"https://(?:discord.com|discordapp.com)/channels/(\d+)/(\d+)/(\d+)"#)
+            .expect("could not compile quote link regex");
+}
+
+pub fn parse_message_link(link: &str) -> Result<(u64, u64, u64), String> {
+    let caps = MESSAGE_LINK_REGEX
+        .captures(link)
+        .ok_or("No captures, invalid link?")?;
+    let server_id = caps
+        .get(1)
+        .map_or("", |m| m.as_str())
+        .parse::<u64>()
+        .map_err(|_| "failed parsing to u64")?;
+    let channel_id = caps
+        .get(2)
+        .map_or("", |m| m.as_str())
+        .parse::<u64>()
+        .map_err(|_| "failed parsing to u64")?;
+    let msg_id = caps
+        .get(3)
+        .map_or("", |m| m.as_str())
+        .parse::<u64>()
+        .map_err(|_| "failed parsing to u64")?;
+
+    Ok((server_id, channel_id, msg_id))
 }
 
 #[cfg(test)]
