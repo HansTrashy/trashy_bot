@@ -25,13 +25,19 @@ impl FavBlock {
 
     pub async fn check_blocked(client: &mut Client, channel_id: i64, msg_id: i64) -> bool {
         match client
-            .query_one(
-                "SELECT * FROM fav_blocks WHERE channel_id = $1 AND msg_id = $2 LIMIT1",
+            .query(
+                "SELECT * FROM fav_blocks WHERE channel_id = $1 AND msg_id = $2",
                 &[&channel_id, &msg_id],
             )
             .await
         {
-            Ok(_) => true,
+            Ok(rows) => {
+                if rows.len() > 0 {
+                    true
+                } else {
+                    false
+                }
+            }
             Err(_) => false,
         }
     }
