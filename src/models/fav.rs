@@ -72,10 +72,15 @@ impl Fav {
     pub async fn tagged_with(
         client: &mut Client,
         user_id: i64,
+        server_id: Option<i64>,
         tags: Vec<String>,
     ) -> Result<Vec<Self>, DbError> {
-        Ok(client.query("SELECT favs.id, favs.server_id, favs.channel_id, favs.msg_id, favs.user_id, favs.author_id FROM favs INNER JOIN tags ON favs.id = tags.fav_id WHERE favs.user_id = $1 AND tags.label = ANY($2)",
-            &[&user_id, &tags]).await?.into_iter().map(Self::from_row).collect::<Result<Vec<_>, DbError>>()?)
+        let server_id = server_id.unwrap_or(0);
+        Ok(client.query("SELECT favs.id, favs.server_id, favs.channel_id, favs.msg_id, favs.user_id, favs.author_id 
+            FROM favs INNER JOIN tags ON favs.id = tags.fav_id 
+            LEFT JOIN fav_blocks ON favs.server_id = fav_blocks.server_id 
+            WHERE favs.user_id = $1 AND tags.label = ANY($2)  AND (fav_blocks.id IS NULL OR fav_blocks.server_id != $3)",
+            &[&user_id, &tags, &server_id]).await?.into_iter().map(Self::from_row).collect::<Result<Vec<_>, DbError>>()?)
     }
 
     fn from_row(row: Row) -> Result<Self, DbError> {

@@ -1,12 +1,30 @@
 use crate::models::fav::Fav;
+use crate::models::fav_block::FavBlock;
 use crate::models::tag::Tag;
 use crate::util::get_client;
-use crate::DatabasePool;
 use serenity::{model::channel::Reaction, prelude::*};
 use std::time::Duration;
 use tracing::trace;
 
 pub async fn add(ctx: Context, add_reaction: Reaction) {
+    if FavBlock::check_blocked(
+        &mut *get_client(&ctx).await.unwrap(),
+        *add_reaction.channel_id.as_u64() as i64,
+        *add_reaction.message_id.as_u64() as i64,
+    )
+    .await
+    {
+        let channel = add_reaction
+            .user_id
+            .unwrap()
+            .create_dm_channel(&ctx)
+            .await
+            .unwrap();
+
+        let _ = channel.say(ctx, "This fav is blocked").await;
+        return;
+    }
+
     let created_fav = Fav::create(
         &mut *get_client(&ctx).await.unwrap(),
         *add_reaction

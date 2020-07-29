@@ -4,6 +4,7 @@ use crate::models::tag::Tag;
 use crate::util;
 use crate::util::get_client;
 use crate::OptOut;
+use futures::future::TryFutureExt;
 use itertools::Itertools;
 use lazy_static::lazy_static;
 use rand::prelude::*;
@@ -14,6 +15,7 @@ use serenity::prelude::*;
 use serenity::{
     framework::standard::{macros::command, Args, CommandResult},
     model::channel::Message,
+    model::id::UserId,
 };
 use std::iter::FromIterator;
 use std::time::Duration;
@@ -53,6 +55,7 @@ pub async fn post(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
         Fav::tagged_with(
             &mut *get_client(&ctx).await?,
             *msg.author.id.as_u64() as i64,
+            msg.guild_id.map(|g_id| *g_id.as_u64() as i64),
             labels,
         )
         .await?
@@ -374,35 +377,38 @@ pub async fn untagged(ctx: &Context, msg: &Message, _args: Args) -> CommandResul
 #[description = "Add a fav per link to the message"]
 #[num_args(1)]
 pub async fn add(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
-    lazy_static! {
-        static ref FAV_LINK_REGEX: Regex =
-            Regex::new(r#"https://discordapp.com/channels/(\d+)/(\d+)/(\d+)"#)
-                .expect("couldnt compile quote link regex");
-    }
-    let caps = FAV_LINK_REGEX
-        .captures(&args.rest())
-        .ok_or("no matches, invalid link?")?;
-    let fav_server_id = caps.get(1).map_or("", |m| m.as_str()).parse::<u64>()?;
-    let fav_channel_id = caps.get(2).map_or("", |m| m.as_str()).parse::<u64>()?;
-    let fav_msg_id = caps.get(3).map_or("", |m| m.as_str()).parse::<u64>()?;
+    let (fav_server_id, fav_channel_id, fav_msg_id) = util::parse_message_link(args.rest())?;
 
     let fav_msg = ChannelId(fav_channel_id)
         .message(&ctx.http, fav_msg_id)
         .await
         .expect("cannot find this message");
 
-    Fav::create(
+    if FavBlock::check_blocked(
         &mut *get_client(&ctx).await?,
-        fav_server_id as i64,
         fav_channel_id as i64,
         fav_msg_id as i64,
-        *msg.author.id.as_u64() as i64,
-        *fav_msg.author.id.as_u64() as i64,
     )
-    .await?;
+    .await
+    {
+        // is blocked
+        msg.author
+            .dm(ctx, |m| m.content("This fav is blocked"))
+            .await?;
+    } else {
+        Fav::create(
+            &mut *get_client(&ctx).await?,
+            fav_server_id as i64,
+            fav_channel_id as i64,
+            fav_msg_id as i64,
+            *msg.author.id.as_u64() as i64,
+            *fav_msg.author.id.as_u64() as i64,
+        )
+        .await?;
 
-    if let Err(why) = msg.author.dm(ctx, |m| m.content("Fav saved!")).await {
-        debug!("Error sending message: {:?}", why);
+        if let Err(why) = msg.author.dm(ctx, |m| m.content("Fav saved!")).await {
+            debug!("Error sending message: {:?}", why);
+        }
     }
 
     Ok(())
@@ -470,17 +476,17 @@ pub async fn block(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     .await?;
 
     // send messages to those using the fav
-    let messages = favs_now_blocked
-        .into_iter()
-        .map(|blocked_fav| {
-            msg.channel_id.send_message(&ctx, |m| {
-                let blocked_fav = blocked_fav;
-                m.content(format!("Es wurde gerade ein fav von dir geblockt. https://discordapp.com/channels/{}/{}/{}", blocked_fav.server_id as u64, blocked_fav.channel_id as u64, blocked_fav.msg_id as u64))
-            })
+    futures::stream::iter(favs_now_blocked)
+        .map(|blocked_fav| async move {
+            if let Ok(dm_channel) = UserId(blocked_fav.user_id as u64)
+                .create_dm_channel(&ctx)
+                .await
+            {
+                let _ = dm_channel.say(ctx, format!("Es wurde gerade ein fav von dir geblockt. https://discordapp.com/channels/{}/{}/{}", blocked_fav.server_id as u64, blocked_fav.channel_id as u64, blocked_fav.msg_id as u64)).await;
+            }
         })
-        .collect::<Vec<_>>();
-
-    futures::future::join_all(messages).await;
+        .collect::<Vec<_>>()
+        .await;
 
     Ok(())
 }

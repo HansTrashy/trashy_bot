@@ -23,6 +23,19 @@ impl FavBlock {
             .collect::<Result<Vec<_>, DbError>>()?)
     }
 
+    pub async fn check_blocked(client: &mut Client, channel_id: i64, msg_id: i64) -> bool {
+        match client
+            .query_one(
+                "SELECT * FROM fav_blocks WHERE channel_id = $1 AND msg_id = $2 LIMIT1",
+                &[&channel_id, &msg_id],
+            )
+            .await
+        {
+            Ok(_) => true,
+            Err(_) => false,
+        }
+    }
+
     pub async fn create(
         client: &mut Client,
         server_id: i64,
