@@ -20,8 +20,7 @@ impl Fav {
     ) -> Result<Vec<Self>, DbError> {
         let server_id = server_id.unwrap_or(0);
         Ok(client
-            .query("SELECT favs.id, favs.server_id, favs.channel_id, favs.msg_id, favs.user_id, favs.author_id 
-                FROM favs LEFT JOIN fav_blocks ON favs.server_id = fav_blocks.server_id WHERE user_id = $1 AND (fav_blocks.id IS NULL OR fav_blocks.server_id != $2)", &[&user_id, &server_id])
+            .query("SELECT favs.id, favs.server_id, favs.channel_id, favs.msg_id, favs.user_id, favs.author_id FROM favs LEFT JOIN fav_blocks ON favs.server_id = fav_blocks.server_id AND favs.channel_id = fav_blocks.channel_id AND favs.msg_id = fav_blocks.msg_id WHERE user_id = $1 AND (fav_blocks.id IS NULL OR fav_blocks.server_id != $2)", &[&user_id, &server_id])
             .await?
             .into_iter()
             .map(Self::from_row)
@@ -76,10 +75,7 @@ impl Fav {
         tags: Vec<String>,
     ) -> Result<Vec<Self>, DbError> {
         let server_id = server_id.unwrap_or(0);
-        Ok(client.query("SELECT favs.id, favs.server_id, favs.channel_id, favs.msg_id, favs.user_id, favs.author_id 
-            FROM favs INNER JOIN tags ON favs.id = tags.fav_id 
-            LEFT JOIN fav_blocks ON favs.server_id = fav_blocks.server_id 
-            WHERE favs.user_id = $1 AND tags.label = ANY($2)  AND (fav_blocks.id IS NULL OR fav_blocks.server_id != $3)",
+        Ok(client.query("SELECT favs.id, favs.server_id, favs.channel_id, favs.msg_id, favs.user_id, favs.author_id FROM favs INNER JOIN tags ON favs.id = tags.fav_id LEFT JOIN fav_blocks ON favs.server_id = fav_blocks.server_id AND favs.channel_id = fav_blocks.channel_id AND favs.msg_id = fav_blocks.msg_id WHERE favs.user_id = $1 AND tags.label = ANY($2) AND (fav_blocks.id IS NULL OR fav_blocks.server_id != $3)",
             &[&user_id, &tags, &server_id]).await?.into_iter().map(Self::from_row).collect::<Result<Vec<_>, DbError>>()?)
     }
 
