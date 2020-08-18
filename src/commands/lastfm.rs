@@ -289,6 +289,7 @@ pub async fn tracks(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     let mut content = String::new();
 
     if let Some(tracks) = res.pointer("/toptracks/track").and_then(|a| a.as_array()) {
+        content.push_str(&format!("Overall scrobbles: {}\n", tracks.len()));
         for t in tracks {
             content.push_str(&format!(
                 "Rank: {} | Played: {} | {} - {}\n",
