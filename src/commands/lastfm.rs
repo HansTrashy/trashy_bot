@@ -289,16 +289,19 @@ pub async fn tracks(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     let mut content = String::new();
 
     if let Some(tracks) = res.pointer("/toptracks/track").and_then(|a| a.as_array()) {
-        content.push_str(&format!("Overall scrobbles: {}\n", tracks.len()));
+        let mut overall = 0;
         for t in tracks {
+            let playcount = t.pointer("/playcount").and_then(|a| a.as_str());
+
+            overall += playcount
+                .map(|x| x.parse::<i32>().unwrap_or(0))
+                .unwrap_or(0);
             content.push_str(&format!(
                 "Rank: {} | Played: {} | {} - {}\n",
                 t.pointer("/@attr/rank")
                     .and_then(|a| a.as_str())
                     .unwrap_or("Unknown Rank"),
-                t.pointer("/playcount")
-                    .and_then(|a| a.as_str())
-                    .unwrap_or("-"),
+                playcount.unwrap_or("-"),
                 t.pointer("/artist/name")
                     .and_then(|a| a.as_str())
                     .unwrap_or("Unknown Artist"),
@@ -307,6 +310,7 @@ pub async fn tracks(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
                     .unwrap_or("Unknown Track"),
             ));
         }
+        content.push_str(&format!("Overall scrobbles: {}\n", overall));
     }
 
     msg.channel_id
