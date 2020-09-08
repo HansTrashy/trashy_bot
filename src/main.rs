@@ -68,6 +68,15 @@ impl TypeMapKey for ReqwestClient {
     type Value = reqwest::Client;
 }
 
+struct RunningState;
+impl TypeMapKey for RunningState {
+    type Value = BotState;
+}
+
+struct BotState {
+    running_since: std::time::Instant,
+}
+
 #[derive(Serialize, Deserialize)]
 struct OptOutStore {
     pub set: HashSet<u64>,
@@ -251,6 +260,9 @@ async fn main() {
         data.insert::<OptOut>(Arc::clone(&opt_out));
         data.insert::<DatabasePool>(async_db_pool);
         data.insert::<ReqwestClient>(reqwest::Client::new());
+        data.insert::<RunningState>(BotState {
+            running_since: std::time::Instant::now(),
+        });
     }
 
     startup::on_startup(&client).await;
