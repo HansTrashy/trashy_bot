@@ -1,10 +1,34 @@
 use crate::DatabasePool;
+use crate::ReqwestClient;
 use chrono::Duration;
 use deadpool::managed::Object;
 use deadpool_postgres::ClientWrapper;
 use regex::Regex;
 use serenity::prelude::Context;
+use std::time::Instant;
 use tokio_postgres::error::Error as PgError;
+
+pub async fn timed_request(
+    client: &reqwest::Client,
+    url: &str,
+) -> Result<(serde_json::Value, std::time::Duration), serenity::framework::standard::CommandError> {
+    let pre_request_time = Instant::now();
+    let res: serde_json::Value = client.get(url).send().await?.json().await?;
+
+    Ok((res, pre_request_time.elapsed()))
+}
+
+pub async fn get_reqwest_client(
+    ctx: &Context,
+) -> Result<reqwest::Client, serenity::framework::standard::CommandError> {
+    Ok(ctx
+        .data
+        .read()
+        .await
+        .get::<ReqwestClient>()
+        .ok_or("Failed to get reqwest client")?
+        .clone())
+}
 
 pub async fn get_client(
     ctx: &Context,
@@ -14,7 +38,7 @@ pub async fn get_client(
         .read()
         .await
         .get::<DatabasePool>()
-        .ok_or("Failed to get Pool")?
+        .ok_or("Failed to get pool")?
         .get()
         .await?)
 }

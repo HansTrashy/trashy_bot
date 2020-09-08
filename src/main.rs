@@ -63,6 +63,11 @@ impl TypeMapKey for OptOut {
     type Value = Arc<Mutex<OptOutStore>>;
 }
 
+struct ReqwestClient;
+impl TypeMapKey for ReqwestClient {
+    type Value = reqwest::Client;
+}
+
 #[derive(Serialize, Deserialize)]
 struct OptOutStore {
     pub set: HashSet<u64>,
@@ -245,6 +250,7 @@ async fn main() {
         data.insert::<RulesState>(rules_state);
         data.insert::<OptOut>(Arc::clone(&opt_out));
         data.insert::<DatabasePool>(async_db_pool);
+        data.insert::<ReqwestClient>(reqwest::Client::new());
     }
 
     startup::on_startup(&client).await;

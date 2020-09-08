@@ -1,5 +1,5 @@
 use crate::models::lastfm::Lastfm;
-use crate::util::get_client;
+use crate::util::{get_client, get_reqwest_client, timed_request};
 use crate::LASTFM_API_KEY;
 use serenity::prelude::*;
 use serenity::{
@@ -63,7 +63,7 @@ pub async fn now(ctx: &Context, msg: &Message, _args: Args) -> CommandResult {
             lastfm.username,
             *LASTFM_API_KEY);
 
-    let res: serde_json::Value = reqwest::get(&url).await?.json().await?;
+    let (res, request_time) = timed_request(&get_reqwest_client(&ctx).await?, &url).await?;
 
     // ignore the case where users only played a single title and there is no array
     if let Some(tracks) = res
@@ -88,7 +88,16 @@ pub async fn now(ctx: &Context, msg: &Message, _args: Args) -> CommandResult {
                 );
 
                 msg.channel_id
-                    .send_message(&ctx, |m| m.embed(|e| e.description(&content)))
+                    .send_message(&ctx, |m| {
+                        m.embed(|e| {
+                            e.description(&content).footer(|f| {
+                                f.text(format!(
+                                    "Lastfm response took: {}ms",
+                                    request_time.as_millis()
+                                ))
+                            })
+                        })
+                    })
                     .await?;
             }
         }
@@ -113,7 +122,7 @@ pub async fn recent(ctx: &Context, msg: &Message, _args: Args) -> CommandResult 
             lastfm.username,
             *LASTFM_API_KEY);
 
-    let res: serde_json::Value = reqwest::get(&url).await?.json().await?;
+    let (res, request_time) = timed_request(&get_reqwest_client(&ctx).await?, &url).await?;
 
     let mut content = String::new();
 
@@ -136,7 +145,16 @@ pub async fn recent(ctx: &Context, msg: &Message, _args: Args) -> CommandResult 
     }
 
     msg.channel_id
-        .send_message(&ctx, |m| m.embed(|e| e.description(&content)))
+        .send_message(&ctx, |m| {
+            m.embed(|e| {
+                e.description(&content).footer(|f| {
+                    f.text(format!(
+                        "Lastfm response took: {}ms",
+                        request_time.as_millis()
+                    ))
+                })
+            })
+        })
         .await?;
 
     Ok(())
@@ -172,7 +190,7 @@ pub async fn artists(ctx: &Context, msg: &Message, args: Args) -> CommandResult 
             *LASTFM_API_KEY,
             period);
 
-    let res: serde_json::Value = reqwest::get(&url).await?.json().await?;
+    let (res, request_time) = timed_request(&get_reqwest_client(&ctx).await?, &url).await?;
 
     let mut content = String::new();
 
@@ -191,7 +209,16 @@ pub async fn artists(ctx: &Context, msg: &Message, args: Args) -> CommandResult 
     }
 
     msg.channel_id
-        .send_message(&ctx, |m| m.embed(|e| e.description(&content)))
+        .send_message(&ctx, |m| {
+            m.embed(|e| {
+                e.description(&content).footer(|f| {
+                    f.text(format!(
+                        "Lastfm response took: {}ms",
+                        request_time.as_millis()
+                    ))
+                })
+            })
+        })
         .await?;
 
     Ok(())
@@ -227,7 +254,7 @@ pub async fn albums(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
             *LASTFM_API_KEY,
             period);
 
-    let res: serde_json::Value = reqwest::get(&url).await?.json().await?;
+    let (res, request_time) = timed_request(&get_reqwest_client(&ctx).await?, &url).await?;
 
     let mut content = String::new();
 
@@ -246,7 +273,16 @@ pub async fn albums(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     }
 
     msg.channel_id
-        .send_message(&ctx, |m| m.embed(|e| e.description(&content)))
+        .send_message(&ctx, |m| {
+            m.embed(|e| {
+                e.description(&content).footer(|f| {
+                    f.text(format!(
+                        "Lastfm response took: {}ms",
+                        request_time.as_millis()
+                    ))
+                })
+            })
+        })
         .await?;
 
     Ok(())
@@ -284,7 +320,7 @@ pub async fn tracks(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
             *LASTFM_API_KEY,
             period);
 
-    let res: serde_json::Value = reqwest::get(&url).await?.json().await?;
+    let (res, request_time) = timed_request(&get_reqwest_client(&ctx).await?, &url).await?;
 
     let mut content = String::new();
 
@@ -314,7 +350,16 @@ pub async fn tracks(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     }
 
     msg.channel_id
-        .send_message(&ctx, |m| m.embed(|e| e.description(&content)))
+        .send_message(&ctx, |m| {
+            m.embed(|e| {
+                e.description(&content).footer(|f| {
+                    f.text(format!(
+                        "Lastfm response took: {}ms",
+                        request_time.as_millis()
+                    ))
+                })
+            })
+        })
         .await?;
 
     Ok(())
