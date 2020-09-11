@@ -161,7 +161,13 @@ async fn dispatch_error(ctx: &Context, msg: &Message, error: DispatchError) -> (
     if let DispatchError::Ratelimited(seconds) = error {
         let _ = msg
             .channel_id
-            .say(&ctx.http, &format!("Try again in {} seconds", seconds))
+            .say(
+                &ctx.http,
+                &format!(
+                    "Try again in {} seconds",
+                    chrono::Duration::from_std(seconds).unwrap_or(chrono::Duration::zero())
+                ),
+            )
             .await;
     } else {
         let _ = msg
