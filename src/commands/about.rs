@@ -1,3 +1,4 @@
+use crate::util;
 use crate::RunningState;
 use serenity::prelude::*;
 use serenity::{
@@ -22,7 +23,8 @@ async fn about(ctx: &Context, msg: &Message, _args: Args) -> CommandResult {
         .channel_id
         .say(
             ctx,
-            format!("A really trashy bot!\nRunning for {} seconds.\nSource: https://github.com/HansTrashy/trashy_bot", running_since.elapsed().as_secs()),
+            format!("A really trashy bot!\nRunning for {} seconds.\nSource: https://github.com/HansTrashy/trashy_bot",
+             util::humanize_duration(&chrono::Duration::from_std(running_since.elapsed()).unwrap_or(chrono::Duration::zero()))),
         )
         .await
     {

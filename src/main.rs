@@ -165,7 +165,9 @@ async fn dispatch_error(ctx: &Context, msg: &Message, error: DispatchError) -> (
                 &ctx.http,
                 &format!(
                     "Try again in {} seconds",
-                    chrono::Duration::from_std(seconds).unwrap_or(chrono::Duration::zero())
+                    util::humanize_duration(
+                        &chrono::Duration::from_std(seconds).unwrap_or(chrono::Duration::zero())
+                    )
                 ),
             )
             .await;
