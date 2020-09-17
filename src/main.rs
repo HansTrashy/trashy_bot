@@ -8,6 +8,9 @@
 #![warn(unused)]
 //! Trashy Bot
 
+#[macro_use]
+extern crate tantivy;
+
 use deadpool_postgres::Pool;
 use dotenv::dotenv;
 use lazy_static::lazy_static;
@@ -73,8 +76,37 @@ impl TypeMapKey for RunningState {
     type Value = BotState;
 }
 
+struct XkcdState;
+impl TypeMapKey for XkcdState {
+    type Value = XkcdIndexStorage;
+}
+
 struct BotState {
     running_since: std::time::Instant,
+}
+
+#[derive(Serialize, Deserialize)]
+struct XkcdIndexStorage {
+    pub indexed: u64,
+}
+
+impl XkcdIndexStorage {
+    fn load_or_init() -> Self {
+        match std::fs::read_to_string("xkcd_index.storage") {
+            Ok(data) => {
+                serde_json::from_str::<Self>(&data).expect("could not deserialize xkcd index state")
+            }
+            Err(e) => {
+                warn!("Xkcd index loading error: {}", e);
+                Self { indexed: 0 }
+            }
+        }
+    }
+
+    fn save(&self) {
+        let data = serde_json::to_string(self).expect("could not serialize xkcd index state");
+        std::fs::write("xkcd_index.storage", data).expect("could not write optout state to file");
+    }
 }
 
 #[derive(Serialize, Deserialize)]
@@ -126,6 +158,12 @@ async fn my_help(
 lazy_static! {
     pub static ref LASTFM_API_KEY: String =
         env::var("LASTFM_API_KEY").expect("Expected a lastfm token in the environment");
+}
+
+lazy_static! {
+    pub static ref XKCD_INDEX_PATH: std::path::PathBuf = std::path::PathBuf::from(
+        env::var("XKCD_INDEX").expect("Expected a xkcd index path in the environment")
+    );
 }
 
 #[hook]
@@ -271,6 +309,7 @@ async fn main() {
         data.insert::<RunningState>(BotState {
             running_since: std::time::Instant::now(),
         });
+        data.insert::<XkcdState>(XkcdIndexStorage::load_or_init());
     }
 
     startup::on_startup(&client).await;

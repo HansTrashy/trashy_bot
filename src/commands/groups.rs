@@ -7,7 +7,8 @@ pub mod general {
 
     #[group]
     #[commands(
-        about, roll, choose, xkcd, quote, userinfo, remindme, spongebob, selfmute, katzer, poll
+        about, roll, choose, xkcd, quote, userinfo, remindme, spongebob, selfmute, katzer, poll,
+        index_xkcd
     )]
     pub struct General;
 }
