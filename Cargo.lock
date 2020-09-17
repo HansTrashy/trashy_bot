@@ -193,7 +193,7 @@ dependencies = [
 [[package]]
 name = "command_attr"
 version = "0.3.0-rc.1"
-source = "git+https://github.com/serenity-rs/serenity?branch=next#2eac49923894c7c494714836818ba828d48214ad"
+source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "proc-macro2 1.0.21 (registry+https://github.com/rust-lang/crates.io-index)",
  "quote 1.0.7 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1559,7 +1559,7 @@ dependencies = [
 [[package]]
 name = "serenity"
 version = "0.9.0-rc.1"
-source = "git+https://github.com/serenity-rs/serenity?branch=next#2eac49923894c7c494714836818ba828d48214ad"
+source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "async-trait 0.1.40 (registry+https://github.com/rust-lang/crates.io-index)",
  "async-tungstenite 0.8.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1567,16 +1567,15 @@ dependencies = [
  "bitflags 1.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "bytes 0.5.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "chrono 0.4.15 (registry+https://github.com/rust-lang/crates.io-index)",
- "command_attr 0.3.0-rc.1 (git+https://github.com/serenity-rs/serenity?branch=next)",
+ "command_attr 0.3.0-rc.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "flate2 1.0.17 (registry+https://github.com/rust-lang/crates.io-index)",
  "futures 0.3.5 (registry+https://github.com/rust-lang/crates.io-index)",
+ "log 0.4.11 (registry+https://github.com/rust-lang/crates.io-index)",
  "reqwest 0.10.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde 1.0.116 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde_json 1.0.57 (registry+https://github.com/rust-lang/crates.io-index)",
  "static_assertions 1.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "tokio 0.2.22 (registry+https://github.com/rust-lang/crates.io-index)",
- "tracing 0.1.19 (registry+https://github.com/rust-lang/crates.io-index)",
- "tracing-futures 0.2.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "typemap_rev 0.1.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "url 2.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "uwl 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -2024,7 +2023,7 @@ dependencies = [
  "reqwest 0.10.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde 1.0.116 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde_json 1.0.57 (registry+https://github.com/rust-lang/crates.io-index)",
- "serenity 0.9.0-rc.1 (git+https://github.com/serenity-rs/serenity?branch=next)",
+ "serenity 0.9.0-rc.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "tantivy 0.13.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "tokio 0.2.22 (registry+https://github.com/rust-lang/crates.io-index)",
  "tokio-postgres 0.5.5 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -2355,7 +2354,7 @@ dependencies = [
 "checksum chrono 0.4.15 (registry+https://github.com/rust-lang/crates.io-index)" = "942f72db697d8767c22d46a598e01f2d3b475501ea43d0db4f16d90259182d0b"
 "checksum cloudabi 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)" = "4344512281c643ae7638bbabc3af17a11307803ec8f0fcad9fae512a8bf36467"
 "checksum combine 4.3.2 (registry+https://github.com/rust-lang/crates.io-index)" = "2809f67365382d65fd2b6d9c22577231b954ed27400efeafbe687bda75abcc0b"
-"checksum command_attr 0.3.0-rc.1 (git+https://github.com/serenity-rs/serenity?branch=next)" = "<none>"
+"checksum command_attr 0.3.0-rc.1 (registry+https://github.com/rust-lang/crates.io-index)" = "c538daab2daaf13de61cea91648a62bb11d267ef629f707d5fe3dd080043ab4d"
 "checksum config 0.10.1 (registry+https://github.com/rust-lang/crates.io-index)" = "19b076e143e1d9538dde65da30f8481c2a6c44040edb8e02b9bf1351edb92ce3"
 "checksum cpuid-bool 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)" = "8aebca1129a03dc6dc2b127edd729435bbc4a37e1d5f4d7513165089ceb02634"
 "checksum crc32fast 1.2.0 (registry+https://github.com/rust-lang/crates.io-index)" = "ba125de2af0df55319f41944744ad91c71113bf74a4646efff39afe1f6842db1"
@@ -2508,7 +2507,7 @@ dependencies = [
 "checksum serde_derive 1.0.116 (registry+https://github.com/rust-lang/crates.io-index)" = "f630a6370fd8e457873b4bd2ffdae75408bc291ba72be773772a4c2a065d9ae8"
 "checksum serde_json 1.0.57 (registry+https://github.com/rust-lang/crates.io-index)" = "164eacbdb13512ec2745fb09d51fd5b22b0d65ed294a1dcf7285a360c80a675c"
 "checksum serde_urlencoded 0.6.1 (registry+https://github.com/rust-lang/crates.io-index)" = "9ec5d77e2d4c73717816afac02670d5c4f534ea95ed430442cad02e7a6e32c97"
-"checksum serenity 0.9.0-rc.1 (git+https://github.com/serenity-rs/serenity?branch=next)" = "<none>"
+"checksum serenity 0.9.0-rc.1 (registry+https://github.com/rust-lang/crates.io-index)" = "21e935a7f3f4752257183ee1f3553b10ea5b514a55de0e536dca7f3742b97d18"
 "checksum sha-1 0.9.1 (registry+https://github.com/rust-lang/crates.io-index)" = "170a36ea86c864a3f16dd2687712dd6646f7019f301e57537c7f4dc9f5916770"
 "checksum sha2 0.9.1 (registry+https://github.com/rust-lang/crates.io-index)" = "2933378ddfeda7ea26f48c555bdad8bb446bf8a3d17832dc83e380d444cfb8c1"
 "checksum sharded-slab 0.0.9 (registry+https://github.com/rust-lang/crates.io-index)" = "06d5a3f5166fb5b42a5439f2eee8b9de149e235961e3eb21c5808fc3ea17ff3e"
