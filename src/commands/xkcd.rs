@@ -166,6 +166,9 @@ pub async fn index_xkcd(ctx: &Context, msg: &Message, mut args: Args) -> Command
         .await?;
 
     for i in indexed..=newest_comic.num {
+        if i == 404 {
+            continue;
+        }
         let comic: Comic = reqwest_client
             .get(&format!("https://xkcd.com/{}/info.0.json", i))
             .send()
