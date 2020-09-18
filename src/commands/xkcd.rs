@@ -213,6 +213,14 @@ pub async fn index_xkcd(ctx: &Context, msg: &Message, mut args: Args) -> Command
         index_state.save();
     }
 
+    let _ = msg
+        .channel_id
+        .say(
+            &ctx,
+            &format!("completed indexing up to {}", newest_comic.num),
+        )
+        .await?;
+
     index_writer
         .commit()
         .map_err(|e| format!("Failed to commit changes to index: {:?}", e))?;
