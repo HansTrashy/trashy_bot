@@ -195,28 +195,24 @@ async fn normal_message(_ctx: &Context, msg: &Message) {
 }
 
 #[hook]
-async fn dispatch_error(ctx: &Context, msg: &Message, error: DispatchError) -> () {
-    if let DispatchError::Ratelimited(seconds) = error {
-        let _ = msg
-            .channel_id
-            .say(
-                &ctx.http,
-                &format!(
-                    "Try again in {} seconds",
-                    util::humanize_duration(
-                        &chrono::Duration::from_std(seconds).unwrap_or(chrono::Duration::zero())
-                    )
-                ),
-            )
-            .await;
-    } else {
-        let _ = msg
-            .channel_id
-            .say(
-                &ctx.http,
-                &format!("Something didn't quite work: {:?}", error),
-            )
-            .await;
+async fn dispatch_error(ctx: &Context, msg: &Message, error: DispatchError) {
+    match error {
+        DispatchError::Ratelimited(duration) => {
+            let _ = msg
+                .channel_id
+                .say(
+                    &ctx.http,
+                    &format!(
+                        "Try again in {}",
+                        util::humanize_duration(
+                            &chrono::Duration::from_std(duration)
+                                .unwrap_or(chrono::Duration::zero())
+                        )
+                    ),
+                )
+                .await;
+        }
+        e => trace!(dispatch_error = ?e, "Dispatch error"),
     }
 }
 
