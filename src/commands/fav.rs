@@ -491,6 +491,47 @@ pub async fn block(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     Ok(())
 }
 
+#[command]
+#[only_in("guilds")]
+#[description = "Creates a list of all favs on the server"]
+#[allowed_roles("Mods")]
+pub async fn create_fav_list(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
+    use tokio::io::{self, AsyncWriteExt, BufWriter};
+
+    let favs = Fav::list_all_from_server(
+        &mut *get_client(&ctx).await?,
+        *msg.guild_id
+            .ok_or("this command is only supposed to be called in a server channel")?
+            .as_u64() as i64,
+    )
+    .await?;
+
+    let outfile = tokio::fs::OpenOptions::new()
+        .create_new(true)
+        .write(true)
+        .open("./fav_list.txt")
+        .await?;
+
+    let mut out_buf = BufWriter::new(outfile);
+
+    for fav in favs {
+        let fav_msg = ChannelId(fav.channel_id as u64)
+            .message(&ctx, fav.msg_id as u64)
+            .await?;
+
+        let line = format!(
+            "https://discord.com/channels/{}/{}/{} | {}\n",
+            fav.server_id as u64, fav.channel_id as u64, fav.msg_id as u64, fav_msg.content
+        );
+
+        out_buf.write(line.as_bytes()).await?;
+    }
+
+    out_buf.flush().await?;
+
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use crate::models::fav::Fav;

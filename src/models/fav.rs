@@ -43,6 +43,18 @@ impl Fav {
             .collect::<Result<Vec<_>, DbError>>()?)
     }
 
+    pub async fn list_all_from_server(
+        client: &mut Client,
+        server_id: i64,
+    ) -> Result<Vec<Self>, DbError> {
+        Ok(client
+            .query("SELECT * FROM favs WHERE server_id = $1", &[&server_id])
+            .await?
+            .into_iter()
+            .map(Self::from_row)
+            .collect::<Result<Vec<_>, DbError>>()?)
+    }
+
     pub async fn create(
         client: &mut Client,
         server_id: i64,
