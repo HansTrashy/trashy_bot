@@ -26,8 +26,8 @@ tracing-futures = "0.2.3"
 tantivy = "0.13"
 
 [dependencies.serenity]
-git = "https://github.com/serenity-rs/serenity"
-branch = "next"
+git = "https://github.com/ikkerens/serenity"
+branch = "bugfix/io-error-ignored-fix"
 default-features = false
 features = [
     "builder",
