@@ -24,6 +24,7 @@ use tracing::{debug, trace};
 #[command]
 #[description = "Post a fav"]
 #[example = "taishi wichsen"]
+#[bucket = "fav"]
 pub async fn post(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     let opt_out = if let Some(v) = ctx.data.read().await.get::<OptOut>() {
         v.clone()

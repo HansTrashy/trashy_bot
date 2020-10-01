@@ -253,7 +253,7 @@ async fn main() {
         .help(&MY_HELP)
         .bucket("slotmachine", |b| b.delay(10))
         .await
-        .bucket("blackjack", |b| b.delay(600))
+        .bucket("fav", |b| b.delay(60))
         .await
         .bucket("lastfm", |b| b.delay(1).time_span(10).limit(5))
         .await
