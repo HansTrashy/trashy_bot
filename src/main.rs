@@ -253,9 +253,9 @@ async fn main() {
         .help(&MY_HELP)
         .bucket("slotmachine", |b| b.delay(10))
         .await
-        .bucket("fav", |b| b.delay(60))
+        .bucket("fav", |b| b.delay(10).time_span(30).limit(3))
         .await
-        .bucket("lastfm", |b| b.delay(1).time_span(10).limit(5))
+        .bucket("lastfm", |b| b.delay(2).time_span(20).limit(5))
         .await
         .group(&commands::groups::general::GENERAL_GROUP)
         .group(&commands::groups::config::CONFIG_GROUP)
