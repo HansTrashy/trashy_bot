@@ -13,19 +13,15 @@ use tracing::debug;
 #[description = "Create an account if you do not already own one"]
 #[num_args(0)]
 pub async fn create(ctx: &Context, msg: &Message, _args: Args) -> CommandResult {
+    let pool = get_client(&ctx).await?;
     // check if user already owns a bank
-    if let Ok(bank) = Bank::get(
-        &mut *get_client(&ctx).await?,
-        *msg.author.id.as_u64() as i64,
-    )
-    .await
-    {
+    if let Ok(bank) = Bank::get(&pool, *msg.author.id.as_u64() as i64).await {
         let _ = msg
             .reply(ctx, &format!("Your bank balance: {}", bank.amount))
             .await;
     } else {
         let bank = Bank::create(
-            &mut *get_client(&ctx).await?,
+            &pool,
             *msg.author.id.as_u64() as i64,
             msg.author.name.to_string(),
             1000,
@@ -43,14 +39,10 @@ pub async fn create(ctx: &Context, msg: &Message, _args: Args) -> CommandResult 
 #[aliases("paydaddy")]
 #[num_args(0)]
 pub async fn payday(ctx: &Context, msg: &Message, _args: Args) -> CommandResult {
+    let pool = get_client(&ctx).await?;
     // check if user has a bank & last payday was over 24h ago
 
-    if let Ok(bank) = Bank::get(
-        &mut *get_client(&ctx).await?,
-        *msg.author.id.as_u64() as i64,
-    )
-    .await
-    {
+    if let Ok(bank) = Bank::get(&pool, *msg.author.id.as_u64() as i64).await {
         let hours_diff = Utc::now()
             .naive_utc()
             .signed_duration_since(bank.last_payday)
@@ -63,7 +55,7 @@ pub async fn payday(ctx: &Context, msg: &Message, _args: Args) -> CommandResult 
             };
 
             Bank::update(
-                &mut *get_client(&ctx).await?,
+                &pool,
                 *msg.author.id.as_u64() as i64,
                 updated_amount,
                 Utc::now().naive_utc(),
@@ -94,7 +86,8 @@ pub async fn payday(ctx: &Context, msg: &Message, _args: Args) -> CommandResult 
 #[description = "Lists the leading players"]
 #[num_args(0)]
 pub async fn leaderboard(ctx: &Context, msg: &Message, _args: Args) -> CommandResult {
-    let results = Bank::top10(&mut *get_client(&ctx).await?).await?;
+    let pool = get_client(&ctx).await?;
+    let results = Bank::top10(&pool).await?;
 
     let mut rendered_leaderboard = String::from("Top Ten:\n");
     for (i, r) in results.iter().enumerate() {
@@ -113,6 +106,7 @@ pub async fn leaderboard(ctx: &Context, msg: &Message, _args: Args) -> CommandRe
 #[description = "Transfers amount x to all listed users"]
 #[example = "1000 @user1 @user2"]
 pub async fn transfer(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
+    let pool = get_client(&ctx).await?;
     let amount_to_transfer = match args.single::<i64>() {
         Ok(v) if v > 0 => v,
         Ok(_) => {
@@ -129,37 +123,19 @@ pub async fn transfer(ctx: &Context, msg: &Message, mut args: Args) -> CommandRe
 
     let mentions_count = msg.mentions.len() as i64;
 
-    if let Ok(bank) = Bank::get(
-        &mut *get_client(&ctx).await?,
-        *msg.author.id.as_u64() as i64,
-    )
-    .await
-    {
+    if let Ok(bank) = Bank::get(&pool, *msg.author.id.as_u64() as i64).await {
         // check if user has enough balance
         if mentions_count * amount_to_transfer <= bank.amount {
             let updated_amount = bank.amount - mentions_count * amount_to_transfer;
 
             // remove the needed money
-            Bank::update(
-                &mut *get_client(&ctx).await?,
-                bank.user_id,
-                updated_amount,
-                bank.last_payday,
-            )
-            .await?;
+            Bank::update(&pool, bank.user_id, updated_amount, bank.last_payday).await?;
 
             for mention in &msg.mentions {
-                if let Ok(bank) =
-                    Bank::get(&mut *get_client(&ctx).await?, *mention.id.as_u64() as i64).await
-                {
+                if let Ok(bank) = Bank::get(&pool, *mention.id.as_u64() as i64).await {
                     let mentioned_user_amount = bank.amount + amount_to_transfer;
-                    Bank::update(
-                        &mut *get_client(&ctx).await?,
-                        bank.user_id,
-                        mentioned_user_amount,
-                        bank.last_payday,
-                    )
-                    .await?;
+                    Bank::update(&pool, bank.user_id, mentioned_user_amount, bank.last_payday)
+                        .await?;
                 }
             }
 

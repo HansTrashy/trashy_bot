@@ -18,6 +18,7 @@ use tokio::time::delay_for;
 #[min_args(1)]
 pub async fn remindme(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     let duration = util::parse_duration(&args.single::<String>()?);
+    let pool = get_client(&ctx).await?;
 
     match duration {
         None => {
@@ -30,7 +31,7 @@ pub async fn remindme(ctx: &Context, msg: &Message, mut args: Args) -> CommandRe
             let message = content_safe(&ctx, args.rest().to_string(), &defaults).await;
 
             Reminder::create(
-                &mut *get_client(&ctx).await?,
+                &pool,
                 *msg.channel_id.as_u64() as i64,
                 *msg.id.as_u64() as i64,
                 *msg.author.id.as_u64() as i64,
@@ -45,7 +46,7 @@ pub async fn remindme(ctx: &Context, msg: &Message, mut args: Args) -> CommandRe
 
             delay_for(duration.to_std()?).await;
 
-            let _ = Reminder::delete(&mut *get_client(&ctx).await?, *msg.id.as_u64() as i64).await;
+            let _ = Reminder::delete(&pool, *msg.id.as_u64() as i64).await;
 
             let _ = msg
                 .channel_id

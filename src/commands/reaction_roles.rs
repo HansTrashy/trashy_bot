@@ -35,13 +35,14 @@ pub async fn create(ctx: &Context, msg: &Message, mut args: Args) -> CommandResu
     let role_group_arg = args.single::<String>()?;
     let role_arg = args.single::<String>()?;
     let description_arg = args.single_quoted::<String>().ok();
+    let pool = get_client(&ctx).await?;
 
     let guild = msg.guild(&ctx).await.ok_or("No Guild found")?;
     debug!("trying to find role: '{:?}'", &role_arg);
     let role = guild.role_by_name(&role_arg).ok_or("Role not found")?;
 
     ReactionRole::create(
-        &mut *get_client(&ctx).await?,
+        &pool,
         *msg.channel(&ctx.cache)
             .await
             .ok_or("no channel")?
@@ -69,11 +70,12 @@ pub async fn create(ctx: &Context, msg: &Message, mut args: Args) -> CommandResu
 pub async fn description(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     let role_arg = args.single::<String>()?;
     let description = args.single_quoted::<String>().ok();
+    let pool = get_client(&ctx).await?;
 
     if let Some(guild) = msg.guild(&ctx.cache).await {
         if let Some(role) = guild.role_by_name(&role_arg) {
             ReactionRole::change_description(
-                &mut *get_client(&ctx).await?,
+                &pool,
                 *msg.guild_id.unwrap().as_u64() as i64,
                 *role.id.as_u64() as i64,
                 description,
@@ -92,11 +94,12 @@ pub async fn description(ctx: &Context, msg: &Message, mut args: Args) -> Comman
 #[example = "role_name"]
 pub async fn remove(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     let role_arg = args.rest();
+    let pool = get_client(&ctx).await?;
 
     if let Some(guild) = msg.guild(&ctx.cache).await {
         if let Some(role) = guild.role_by_name(role_arg) {
             ReactionRole::delete(
-                &mut *get_client(&ctx).await?,
+                &pool,
                 *msg.guild_id.unwrap().as_u64() as i64,
                 *role.id.as_u64() as i64,
             )
@@ -111,7 +114,8 @@ pub async fn remove(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
 #[allowed_roles("Mods")]
 #[description = "Lists all reaction roles"]
 pub async fn list(ctx: &Context, msg: &Message, _args: Args) -> CommandResult {
-    let results = ReactionRole::list(&mut *get_client(&ctx).await?).await?;
+    let pool = get_client(&ctx).await?;
+    let results = ReactionRole::list(&pool).await?;
 
     let mut output = String::new();
     for r in results {
@@ -136,7 +140,8 @@ pub async fn list(ctx: &Context, msg: &Message, _args: Args) -> CommandResult {
 #[allowed_roles("Mods")]
 #[description = "Posts the reaction role groups"]
 pub async fn postgroups(ctx: &Context, msg: &Message, _args: Args) -> CommandResult {
-    let mut results = ReactionRole::list(&mut *get_client(&ctx).await?).await?;
+    let pool = get_client(&ctx).await?;
+    let mut results = ReactionRole::list(&pool).await?;
     results.sort_by_key(|r| r.role_group.to_owned());
     // post a message for each group and react under them with the respective emojis
 

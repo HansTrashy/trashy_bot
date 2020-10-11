@@ -1,12 +1,10 @@
 use crate::DatabasePool;
 use crate::ReqwestClient;
 use chrono::Duration;
-use deadpool::managed::Object;
-use deadpool_postgres::ClientWrapper;
 use regex::Regex;
 use serenity::prelude::Context;
+use sqlx::postgres::PgPool;
 use std::time::Instant;
-use tokio_postgres::error::Error as PgError;
 
 pub async fn timed_request(
     client: &reqwest::Client,
@@ -30,17 +28,14 @@ pub async fn get_reqwest_client(
         .clone())
 }
 
-pub async fn get_client(
-    ctx: &Context,
-) -> Result<Object<ClientWrapper, PgError>, Box<dyn std::error::Error + Send + Sync>> {
+pub async fn get_client(ctx: &Context) -> Result<PgPool, Box<dyn std::error::Error + Send + Sync>> {
     Ok(ctx
         .data
         .read()
         .await
         .get::<DatabasePool>()
         .ok_or("Failed to get pool")?
-        .get()
-        .await?)
+        .clone())
 }
 
 static OTHER_MOD_CMD: [char; 3] = ['%', '=', '$'];
@@ -99,16 +94,14 @@ pub fn humanize_duration(duration: &Duration) -> String {
     }
 }
 
-lazy_static::lazy_static! {
-    static ref MESSAGE_LINK_REGEX: Regex =
-        Regex::new(r#"https://(?:discord.com|discordapp.com)/channels/(\d+)/(\d+)/(\d+)"#)
-            .expect("could not compile quote link regex");
-}
+// lazy_static::lazy_static! {
+//     static ref MESSAGE_LINK_REGEX: Regex =
+//         Regex::new(r#"https://(?:discord.com|discordapp.com)/channels/(\d+)/(\d+)/(\d+)"#)
+//             .expect("could not compile quote link regex");
+// }
 
-pub fn parse_message_link(link: &str) -> Result<(u64, u64, u64), String> {
-    let caps = MESSAGE_LINK_REGEX
-        .captures(link)
-        .ok_or("No captures, invalid link?")?;
+pub fn parse_message_link(regex: &Regex, link: &str) -> Result<(u64, u64, u64), String> {
+    let caps = regex.captures(link).ok_or("No captures, invalid link?")?;
     let server_id = caps
         .get(1)
         .map_or("", |m| m.as_str())

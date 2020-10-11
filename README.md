@@ -6,17 +6,10 @@ No external dependencies (at least until voice is implemented again?)
 
 *Remember to do a `cargo clean` and check that the env vars are  updated*
 
-## Env setup
+## Configuration Setup
 
-Create a `.env` file after the following example in the project root:
+Copy the `config.template.toml` file and rename to it to `config.toml` then make necessary changes
 
-    DISCORD_TOKEN=****
-    TWITCH_TOKEN=****
-    PG_HOST=localhost
-    PG_USER=*user*
-    PG_PASSWORD=*pw*
-    PG_DBNAME=trashy_bot
-    PG_POOL.MAX_SIZE=4
-    PG_POOL.TIMEOUTS.WAIT.SECS=5
-    PG_POOL.TIMEOUTS.WAIT.NANOS=0
+## Sqlx Database setup
 
+Set `DATABASE_URL` in env vars for supporting the macros (A `.env` file works for this)

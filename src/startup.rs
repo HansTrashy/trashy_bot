@@ -9,18 +9,16 @@ use tokio::time::delay_for;
 use tracing::error;
 
 pub async fn on_startup(client: &serenity::Client) {
-    let mut db_client = client
+    let pool = client
         .data
         .read()
         .await
         .get::<DatabasePool>()
         .expect("Failed to get Pool")
-        .get()
-        .await
-        .expect("no connection for startup available");
+        .clone();
 
     // restart reminders
-    for r in Reminder::list(&mut db_client).await.unwrap() {
+    for r in Reminder::list(&pool).await.unwrap() {
         let http = client.cache_and_http.http.clone();
         let data = client.data.clone();
         if r.end_time <= Utc::now() {
@@ -39,16 +37,14 @@ pub async fn on_startup(client: &serenity::Client) {
                     })
                     .await;
 
-                let mut db_client = data
+                let pool = data
                     .read()
                     .await
                     .get::<DatabasePool>()
                     .expect("Failed to get Pool")
-                    .get()
-                    .await
-                    .expect("no connection for startup available");
+                    .clone();
 
-                let _ = Reminder::delete(&mut db_client, source_msg_id).await;
+                let _ = Reminder::delete(&pool, source_msg_id).await;
             });
         } else {
             let duration = r.end_time.signed_duration_since(Utc::now());
@@ -69,24 +65,22 @@ pub async fn on_startup(client: &serenity::Client) {
                     })
                     .await;
 
-                let mut db_client = data
+                let pool = data
                     .read()
                     .await
                     .get::<DatabasePool>()
                     .expect("Failed to get Pool")
-                    .get()
-                    .await
-                    .expect("no connection for startup available");
+                    .clone();
 
-                let _ = Reminder::delete(&mut db_client, source_msg_id).await;
+                let _ = Reminder::delete(&pool, source_msg_id).await;
             });
         }
     }
 
     // restart unmute futures
-    let server_configs = ServerConfig::list(&mut db_client).await.unwrap();
+    let server_configs = ServerConfig::list(&pool).await.unwrap();
 
-    for m in Mute::list(&mut db_client).await.unwrap() {
+    for m in Mute::list(&pool).await.unwrap() {
         let http = client.cache_and_http.http.clone();
         let data = client.data.clone();
         if let Some(config) = server_configs
@@ -113,16 +107,14 @@ pub async fn on_startup(client: &serenity::Client) {
                     Err(e) => error!("could not get member: {:?}", e),
                 };
 
-                let mut db_client = data
+                let pool = data
                     .read()
                     .await
                     .get::<DatabasePool>()
                     .expect("Failed to get Pool")
-                    .get()
-                    .await
-                    .expect("no connection for startup available");
+                    .clone();
 
-                let _ = Mute::delete(&mut db_client, m.server_id, m.user_id).await;
+                let _ = Mute::delete(&pool, m.server_id, m.user_id).await;
             };
 
             if m_clone.end_time <= Utc::now() {
@@ -137,4 +129,52 @@ pub async fn on_startup(client: &serenity::Client) {
             }
         }
     }
+}
+
+pub async fn init_xkcd(config: &crate::config::Config) {
+    use crate::XKCD_INDEX;
+    use crate::XKCD_INDEX_READER;
+    use crate::XKCD_INDEX_SCHEMA;
+    use tantivy::schema::*;
+
+    let mut schema_builder = Schema::builder();
+    schema_builder.add_text_field("title", TEXT | STORED);
+    schema_builder.add_text_field("alt", TEXT | STORED);
+    schema_builder.add_text_field("img", STORED);
+    schema_builder.add_u64_field("number", IntOptions::default().set_stored().set_indexed());
+    XKCD_INDEX_SCHEMA
+        .set(schema_builder.build())
+        .map_err(|_| "could not init xkcd index schema")
+        .unwrap();
+
+    let schema = XKCD_INDEX_SCHEMA.get().expect("not initialized");
+
+    let index = if std::path::Path::new(&config.xkcd_index).is_dir() {
+        // Use existing index
+        tantivy::Index::open_in_dir(&config.xkcd_index)
+            .map_err(|e| format!("Failed to load tantivy index: {}", e))
+            .expect("could not load xkcd index")
+    } else {
+        // create index from scratch
+        tokio::fs::create_dir_all(&config.xkcd_index)
+            .await
+            .expect("could not create folder for xkcd index");
+        tantivy::Index::create_in_dir(&config.xkcd_index, schema.clone())
+            .map_err(|e| format!("Failed to create tantivy index: {}", e))
+            .expect("Could not create xkcd index")
+    };
+
+    XKCD_INDEX.set(index).unwrap();
+    let index = XKCD_INDEX.get().expect("xkcd index not initialized");
+
+    let reader: tantivy::IndexReader = index
+        .reader_builder()
+        .reload_policy(tantivy::ReloadPolicy::OnCommit)
+        .try_into()
+        .expect("failed to init index reader");
+
+    XKCD_INDEX_READER
+        .set(reader)
+        .map_err(|_| "could not init xkcd index reader")
+        .unwrap();
 }

@@ -1,8 +1,10 @@
-use tokio_postgres::{row::Row, Client};
+use futures::stream::TryStreamExt;
+use sqlx::postgres::PgPool;
+use sqlx::Done;
 
-pub type DbError = Box<dyn std::error::Error + Send + Sync>;
+pub type DbError = sqlx::Error;
 
-#[derive(Debug)]
+#[derive(Debug, sqlx::FromRow)]
 pub struct Shiny {
     pub id: i64,
     pub server_id: i64,
@@ -12,60 +14,46 @@ pub struct Shiny {
 }
 
 impl Shiny {
-    pub async fn get(client: &mut Client, user_id: i64) -> Result<Self, DbError> {
-        Ok(Self::from_row(
-            client
-                .query_one("SELECT * FROM shinys WHERE user_id = $1", &[&user_id])
-                .await?, // .map_err(|e| e.to_string())?,
-        )?)
+    pub async fn get(pool: &PgPool, user_id: i64) -> Result<Self, DbError> {
+        sqlx::query_as!(Self, "SELECT * FROM shinys WHERE user_id = $1", user_id)
+            .fetch_one(pool)
+            .await
     }
 
-    pub async fn list(client: &mut Client, server_id: i64) -> Result<Vec<Self>, DbError> {
-        Ok(client
-            .query("SELECT * FROM shinys WHERE server_id = $1", &[&server_id])
-            .await?
-            .into_iter()
-            .map(Self::from_row)
-            .collect::<Result<Vec<_>, DbError>>()?)
+    pub async fn list(pool: &PgPool, server_id: i64) -> Result<Vec<Self>, DbError> {
+        sqlx::query_as!(Self, "SELECT * FROM shinys WHERE server_id = $1", server_id)
+            .fetch_all(pool)
+            .await
     }
 
     pub async fn create(
-        client: &mut Client,
+        pool: &PgPool,
         server_id: i64,
         user_id: i64,
         username: String,
         amount: i64,
     ) -> Result<Self, DbError> {
-        Ok(Self::from_row(client.query_one(
-            "INSERT INTO shinys (server_id, user_id, username, amount) VALUES ($1, $2, $3, $4) RETURNING *",
-            &[&server_id, &user_id, &username, &amount],
-        ).await?)?)
+        sqlx::query_as!(Self, "INSERT INTO shinys (server_id, user_id, username, amount) VALUES ($1, $2, $3, $4) RETURNING *", server_id, user_id, username, amount)
+            .fetch_one(pool).await
     }
 
-    pub async fn update(client: &mut Client, user_id: i64, amount: i64) -> Result<Self, DbError> {
-        Ok(Self::from_row(
-            client
-                .query_one(
-                    "UPDATE shinys SET amount = $2 WHERE user_id = $1",
-                    &[&user_id, &amount],
-                )
-                .await?,
-        )?)
+    pub async fn update(pool: &PgPool, user_id: i64, amount: i64) -> Result<Self, DbError> {
+        sqlx::query_as!(
+            Self,
+            "UPDATE shinys SET amount = $1 WHERE user_id = $2 RETURNING *",
+            amount,
+            user_id
+        )
+        .fetch_one(pool)
+        .await
     }
 
-    pub async fn delete(client: &mut Client, user_id: i64) -> Result<u64, DbError> {
-        Ok(client
-            .execute("DELETE FROM shinys WHERE user_id = $2", &[&user_id])
-            .await?)
-    }
-
-    fn from_row(row: Row) -> Result<Self, DbError> {
-        Ok(Self {
-            id: row.try_get("id").map_err(|e| e.to_string())?,
-            server_id: row.try_get("server_id").map_err(|e| e.to_string())?,
-            user_id: row.try_get("user_id").map_err(|e| e.to_string())?,
-            username: row.try_get("username").map_err(|e| e.to_string())?,
-            amount: row.try_get("amount").map_err(|e| e.to_string())?,
-        })
+    pub async fn delete(pool: &PgPool, user_id: i64) -> Result<u64, DbError> {
+        Ok(
+            sqlx::query!("DELETE FROM shinys WHERE user_id = $1", user_id)
+                .execute(pool)
+                .await?
+                .rows_affected(),
+        )
     }
 }

@@ -1,6 +1,5 @@
-use crate::util;
 use crate::XkcdState;
-use crate::XKCD_INDEX_PATH;
+use crate::{XKCD_INDEX, XKCD_INDEX_READER, XKCD_INDEX_SCHEMA};
 use serde::Deserialize;
 use serenity::prelude::*;
 use serenity::{
@@ -9,9 +8,7 @@ use serenity::{
 };
 use tantivy::collector::TopDocs;
 use tantivy::query::QueryParser;
-use tantivy::schema::*;
 use tantivy::Index;
-use tantivy::ReloadPolicy;
 use tracing::error;
 
 #[derive(Debug, Deserialize)]
@@ -29,30 +26,6 @@ pub struct Comic {
     day: String,
 }
 
-lazy_static::lazy_static! {
-    static ref XKCD_INDEX: tantivy::Index = Index::open_in_dir(&*XKCD_INDEX_PATH)
-        .expect("could not open xkcd index");
-}
-
-lazy_static::lazy_static! {
-    static ref XKCD_INDEX_READER: tantivy::IndexReader = XKCD_INDEX
-        .reader_builder()
-        .reload_policy(ReloadPolicy::OnCommit)
-        .try_into().expect("could not create reader for xkcd index");
-}
-
-lazy_static::lazy_static! {
-    static ref XKCD_INDEX_SCHEMA: tantivy::schema::Schema = {
-        let mut schema_builder = Schema::builder();
-        schema_builder.add_text_field("title", TEXT | STORED);
-        schema_builder.add_text_field("alt", TEXT | STORED);
-        schema_builder.add_text_field("img", STORED);
-        schema_builder.add_u64_field("number", IntOptions::default().set_stored().set_indexed());
-
-        schema_builder.build()
-    };
-}
-
 #[command]
 #[description = "Post the xkcd comic specified"]
 #[example = "547"]
@@ -62,14 +35,20 @@ pub async fn xkcd(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
 
     // let reqwest_client = &util::get_reqwest_client(&ctx).await?;
     // try to load index
-    let searcher = XKCD_INDEX_READER.searcher();
 
-    let number = XKCD_INDEX_SCHEMA.get_field("number").unwrap();
-    let title = XKCD_INDEX_SCHEMA.get_field("title").unwrap();
-    let alt = XKCD_INDEX_SCHEMA.get_field("alt").unwrap();
-    let img = XKCD_INDEX_SCHEMA.get_field("img").unwrap();
+    let index = XKCD_INDEX.get().ok_or("index not initialized")?;
+    let searcher = XKCD_INDEX_READER
+        .get()
+        .ok_or("index reader not initialized")?
+        .searcher();
+    let schema = XKCD_INDEX_SCHEMA.get().ok_or("schema not initialized")?;
 
-    let query_parser = QueryParser::for_index(&*XKCD_INDEX, vec![title, alt]);
+    let number = schema.get_field("number").unwrap();
+    let title = schema.get_field("title").unwrap();
+    let alt = schema.get_field("alt").unwrap();
+    let img = schema.get_field("img").unwrap();
+
+    let query_parser = QueryParser::for_index(&index, vec![title, alt]);
 
     let mut top_docs = {
         let query = query_parser
@@ -122,6 +101,15 @@ pub async fn xkcd(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
 #[command]
 #[owners_only]
 pub async fn index_xkcd(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
+    let xkcd_index_path = ctx
+        .data
+        .read()
+        .await
+        .get::<crate::Config>()
+        .ok_or("failed to access config")?
+        .xkcd_index
+        .clone();
+
     let indexed = ctx
         .data
         .read()
@@ -138,14 +126,19 @@ pub async fn index_xkcd(ctx: &Context, msg: &Message, mut args: Args) -> Command
         .ok_or("Failed to get reqwest client")?
         .clone();
 
-    let index = if XKCD_INDEX_PATH.is_dir() {
+    let schema = XKCD_INDEX_SCHEMA
+        .get()
+        .ok_or("index schema not init")?
+        .clone();
+
+    let index = if std::path::Path::new(&xkcd_index_path).is_dir() {
         // Use existing index
-        Index::open_in_dir(&*XKCD_INDEX_PATH)
+        Index::open_in_dir(&xkcd_index_path)
             .map_err(|e| format!("Failed to load tantivy index: {}", e))?
     } else {
         // create index from scratch
-        tokio::fs::create_dir_all(&*XKCD_INDEX_PATH).await?;
-        Index::create_in_dir(&*XKCD_INDEX_PATH, XKCD_INDEX_SCHEMA.clone())
+        tokio::fs::create_dir_all(&xkcd_index_path).await?;
+        Index::create_in_dir(&xkcd_index_path, schema.clone())
             .map_err(|e| format!("Failed to create tantivy index: {}", e))?
     };
 
@@ -153,10 +146,10 @@ pub async fn index_xkcd(ctx: &Context, msg: &Message, mut args: Args) -> Command
         .writer(50_000_000)
         .map_err(|e| format!("failed to create index writer: {:?}", e))?;
 
-    let title = XKCD_INDEX_SCHEMA.get_field("title").unwrap();
-    let alt = XKCD_INDEX_SCHEMA.get_field("alt").unwrap();
-    let img = XKCD_INDEX_SCHEMA.get_field("img").unwrap();
-    let number = XKCD_INDEX_SCHEMA.get_field("number").unwrap();
+    let title = schema.get_field("title").unwrap();
+    let alt = schema.get_field("alt").unwrap();
+    let img = schema.get_field("img").unwrap();
+    let number = schema.get_field("number").unwrap();
 
     let newest_comic: Comic = reqwest_client
         .get("https://xkcd.com/info.0.json")

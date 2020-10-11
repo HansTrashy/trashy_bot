@@ -1,8 +1,9 @@
-use tokio_postgres::{row::Row, Client};
+use sqlx::postgres::PgPool;
+use sqlx::Done;
 
-pub type DbError = Box<dyn std::error::Error + Send + Sync>;
+pub type DbError = sqlx::Error;
 
-#[derive(Debug)]
+#[derive(Debug, sqlx::FromRow)]
 pub struct ReactionRole {
     pub id: i64,
     pub server_id: i64,
@@ -14,41 +15,31 @@ pub struct ReactionRole {
 }
 
 impl ReactionRole {
-    pub async fn get(
-        client: &mut Client,
-        server_id: i64,
-        role_name: String,
-    ) -> Result<Self, DbError> {
-        Ok(Self::from_row(
-            client
-                .query_one(
-                    "SELECT * FROM reaction_roles WHERE server_id = $1 AND role_name = $2",
-                    &[&server_id, &role_name],
-                )
-                .await?,
-        )?)
+    pub async fn get(pool: &PgPool, server_id: i64, role_name: String) -> Result<Self, DbError> {
+        sqlx::query_as!(
+            Self,
+            "SELECT * FROM reaction_roles WHERE server_id = $1 AND role_name = $2",
+            server_id,
+            role_name,
+        )
+        .fetch_one(pool)
+        .await
     }
 
-    pub async fn list(client: &mut Client) -> Result<Vec<Self>, DbError> {
-        Ok(client
-            .query("SELECT * FROM reaction_roles", &[])
-            .await?
-            .into_iter()
-            .map(Self::from_row)
-            .collect::<Result<Vec<_>, DbError>>()?)
+    pub async fn list(pool: &PgPool) -> Result<Vec<Self>, DbError> {
+        sqlx::query_as!(Self, "SELECT * FROM reaction_roles")
+            .fetch_all(pool)
+            .await
     }
 
-    pub async fn list_by_emoji(client: &mut Client, emoji: &str) -> Result<Vec<Self>, DbError> {
-        Ok(client
-            .query("SELECT * FROM reaction_roles WHERE emoji = $1", &[&emoji])
-            .await?
-            .into_iter()
-            .map(Self::from_row)
-            .collect::<Result<Vec<_>, DbError>>()?)
+    pub async fn list_by_emoji(pool: &PgPool, emoji: &str) -> Result<Vec<Self>, DbError> {
+        sqlx::query_as!(Self, "SELECT * FROM reaction_roles WHERE emoji = $1", emoji)
+            .fetch_all(pool)
+            .await
     }
 
     pub async fn create(
-        client: &mut Client,
+        pool: &PgPool,
         server_id: i64,
         role_id: i64,
         role_name: String,
@@ -56,44 +47,44 @@ impl ReactionRole {
         emoji: String,
         description: Option<String>,
     ) -> Result<Self, DbError> {
-        Ok(Self::from_row(client.query_one(
+        sqlx::query_as!(
+            Self,
             "INSERT INTO reaction_roles (server_id, role_id, role_name, role_group, emoji, role_description) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *",
-            &[&server_id, &role_id, &role_name, &role_group, &emoji, &description],
-        ).await?)?)
+            server_id,
+            role_id,
+            role_name,
+            role_group,
+            emoji,
+            description,
+        )
+        .fetch_one(pool).await
     }
 
     pub async fn change_description(
-        client: &mut Client,
+        pool: &PgPool,
         server_id: i64,
         role_id: i64,
         description: Option<String>,
     ) -> Result<u64, DbError> {
-        Ok(client
-            .execute(
-                "UPDATE reaction_roles SET role_description = $3 WHERE server_id = $1 AND role_id = $2",
-                &[&server_id, &role_id, &description],
-            )
-            .await?)
+        Ok(sqlx::query!(
+            "UPDATE reaction_roles SET role_description = $1 WHERE server_id = $2 AND role_id = $3",
+            description,
+            server_id,
+            role_id,
+        )
+        .execute(pool)
+        .await?
+        .rows_affected())
     }
 
-    pub async fn delete(client: &mut Client, server_id: i64, role_id: i64) -> Result<u64, DbError> {
-        Ok(client
-            .execute(
-                "DELETE FROM reaction_roles WHERE server_id = $1 AND role_id = $2",
-                &[&server_id, &role_id],
-            )
-            .await?)
-    }
-
-    fn from_row(row: Row) -> Result<Self, DbError> {
-        Ok(Self {
-            id: row.try_get("id").map_err(|e| e.to_string())?,
-            server_id: row.try_get("server_id").map_err(|e| e.to_string())?,
-            role_id: row.try_get("role_id").map_err(|e| e.to_string())?,
-            role_name: row.try_get("role_name").map_err(|e| e.to_string())?,
-            role_group: row.try_get("role_group").map_err(|e| e.to_string())?,
-            emoji: row.try_get("emoji").map_err(|e| e.to_string())?,
-            role_description: row.try_get("role_description").map_err(|e| e.to_string())?,
-        })
+    pub async fn delete(pool: &PgPool, server_id: i64, role_id: i64) -> Result<u64, DbError> {
+        Ok(sqlx::query!(
+            "DELETE FROM reaction_roles WHERE server_id = $1 AND role_id = $2",
+            server_id,
+            role_id
+        )
+        .execute(pool)
+        .await?
+        .rows_affected())
     }
 }

@@ -13,6 +13,7 @@ use serenity::{
 #[num_args(1)]
 #[example = "1000"]
 pub async fn slot(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
+    let pool = get_client(&ctx).await?;
     let amount_to_bet = match args.single::<i64>() {
         Ok(v) if v > 0 => v,
         Ok(_) => {
@@ -28,12 +29,7 @@ pub async fn slot(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
     };
 
     // check if user already owns a bank & has enough balance
-    if let Ok(bank) = Bank::get(
-        &mut *get_client(&ctx).await?,
-        *msg.author.id.as_u64() as i64,
-    )
-    .await
-    {
+    if let Ok(bank) = Bank::get(&pool, *msg.author.id.as_u64() as i64).await {
         if bank.amount >= amount_to_bet {
             // roll
             let full_reels: Vec<Vec<i64>> = (0..3)
@@ -59,13 +55,7 @@ pub async fn slot(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
             let delta = payout - amount_to_bet;
             let updated_amount = bank.amount + delta;
 
-            Bank::update(
-                &mut *get_client(&ctx).await?,
-                bank.user_id,
-                updated_amount,
-                bank.last_payday,
-            )
-            .await?;
+            Bank::update(&pool, bank.user_id, updated_amount, bank.last_payday).await?;
 
             let slot_machine_output = display_reels(&full_reels, payout, updated_amount);
             msg.channel_id

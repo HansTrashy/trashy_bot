@@ -25,11 +25,11 @@ use tracing::{debug, error};
 pub async fn mute(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     let duration = util::parse_duration(&args.single::<String>()?);
     let mute_message = args.rest();
+    let pool = get_client(&ctx).await?;
 
     if let Some(duration) = duration {
         if let Some(guild_id) = msg.guild_id {
-            match ServerConfig::get(&mut *get_client(&ctx).await?, *guild_id.as_u64() as i64).await
-            {
+            match ServerConfig::get(&pool, *guild_id.as_u64() as i64).await {
                 Ok(server_config) => {
                     let guild_config: Guild = serde_json::from_value(server_config.config).unwrap();
 
@@ -48,7 +48,7 @@ pub async fn mute(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
 
                         for user in &msg.mentions {
                             match Mute::create(
-                                &mut *get_client(&ctx).await?,
+                                &pool,
                                 *guild_id.as_u64() as i64,
                                 *user.id.as_u64() as i64,
                                 end_time,
@@ -107,6 +107,7 @@ async fn remove_mute(
     mute_role: u64,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     delay_for(duration.to_std()?).await;
+    let pool = get_client(&ctx).await?;
 
     match guild_id.member(&ctx, user_id).await {
         Ok(mut member) => {
@@ -115,12 +116,7 @@ async fn remove_mute(
         Err(e) => error!("could not get member: {:?}", e),
     };
 
-    Mute::delete(
-        &mut *get_client(&ctx).await?,
-        *guild_id.as_u64() as i64,
-        user_id as i64,
-    )
-    .await?;
+    Mute::delete(&pool, *guild_id.as_u64() as i64, user_id as i64).await?;
 
     Ok(())
 }
@@ -249,7 +245,8 @@ async fn create_unmute_message(users: &[Member]) -> String {
 #[allowed_roles("Mods")]
 pub async fn unmute(ctx: &Context, msg: &Message, _args: Args) -> CommandResult {
     if let Some(guild_id) = msg.guild_id {
-        match ServerConfig::get(&mut *get_client(&ctx).await?, *guild_id.as_u64() as i64).await {
+        let pool = get_client(&ctx).await?;
+        match ServerConfig::get(&pool, *guild_id.as_u64() as i64).await {
             Ok(server_config) => {
                 let guild_config: Guild = serde_json::from_value(server_config.config).unwrap();
 
@@ -268,7 +265,7 @@ pub async fn unmute(ctx: &Context, msg: &Message, _args: Args) -> CommandResult 
                     for user in &msg.mentions {
                         //TODO: this should be done in a single statement
                         let _ = Mute::delete(
-                            &mut *get_client(&ctx).await?,
+                            &pool,
                             *guild_id.as_u64() as i64,
                             *user.id.as_u64() as i64,
                         )
@@ -304,7 +301,8 @@ pub async fn kick(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     let kick_message = args.rest();
 
     if let Some(guild_id) = msg.guild_id {
-        match ServerConfig::get(&mut *get_client(&ctx).await?, *guild_id.as_u64() as i64).await {
+        let pool = get_client(&ctx).await?;
+        match ServerConfig::get(&pool, *guild_id.as_u64() as i64).await {
             Ok(server_config) => {
                 let guild_config: Guild = serde_json::from_value(server_config.config).unwrap();
 
@@ -346,7 +344,8 @@ pub async fn ban(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     let ban_msg = args.rest();
 
     if let Some(guild_id) = msg.guild_id {
-        match ServerConfig::get(&mut *get_client(&ctx).await?, *guild_id.as_u64() as i64).await {
+        let pool = get_client(&ctx).await?;
+        match ServerConfig::get(&pool, *guild_id.as_u64() as i64).await {
             Ok(server_config) => {
                 let guild_config: Guild = serde_json::from_value(server_config.config).unwrap();
 

@@ -1,6 +1,5 @@
 use crate::models::lastfm::Lastfm;
 use crate::util::{get_client, get_reqwest_client, timed_request};
-use crate::LASTFM_API_KEY;
 use serenity::prelude::*;
 use serenity::{
     framework::standard::{macros::command, Args, CommandResult},
@@ -15,14 +14,10 @@ use tracing::info;
 #[num_args(1)]
 pub async fn register(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     let username = args.single::<String>()?;
+    let pool = get_client(&ctx).await?;
 
-    if let Ok(user) = Lastfm::get(
-        &mut *get_client(&ctx).await?,
-        *msg.author.id.as_u64() as i64,
-    )
-    .await
-    {
-        let lastfm = Lastfm::update(&mut *get_client(&ctx).await?, user.id, username).await?;
+    if let Ok(user) = Lastfm::get(&pool, *msg.author.id.as_u64() as i64).await {
+        let lastfm = Lastfm::update(&pool, user.id, username).await?;
 
         msg.reply(
             ctx,
@@ -30,12 +25,7 @@ pub async fn register(ctx: &Context, msg: &Message, mut args: Args) -> CommandRe
         )
         .await?;
     } else {
-        let lastfm = Lastfm::create(
-            &mut *get_client(&ctx).await?,
-            *msg.author.id.as_u64() as i64,
-            username,
-        )
-        .await?;
+        let lastfm = Lastfm::create(&pool, *msg.author.id.as_u64() as i64, username).await?;
 
         msg.reply(
             ctx,
@@ -52,16 +42,21 @@ pub async fn register(ctx: &Context, msg: &Message, mut args: Args) -> CommandRe
 #[num_args(0)]
 #[bucket = "lastfm"]
 pub async fn now(ctx: &Context, msg: &Message, _args: Args) -> CommandResult {
-    let lastfm = Lastfm::get(
-        &mut *get_client(&ctx).await?,
-        *msg.author.id.as_u64() as i64,
-    )
-    .await?;
+    let pool = get_client(&ctx).await?;
+    let lastfm = Lastfm::get(&pool, *msg.author.id.as_u64() as i64).await?;
+    let lastfm_api_key = ctx
+        .data
+        .read()
+        .await
+        .get::<crate::Config>()
+        .ok_or("Failed to access config")?
+        .lastfm_api_key
+        .clone();
 
     // prepare for the lastfm api
     let url = format!("http://ws.audioscrobbler.com/2.0/?method=user.getrecenttracks&user={}&api_key={}&format=json",
             lastfm.username,
-            *LASTFM_API_KEY);
+            &lastfm_api_key);
 
     let (res, request_time) = timed_request(&get_reqwest_client(&ctx).await?, &url).await?;
 
@@ -111,16 +106,21 @@ pub async fn now(ctx: &Context, msg: &Message, _args: Args) -> CommandResult {
 #[num_args(0)]
 #[bucket = "lastfm"]
 pub async fn recent(ctx: &Context, msg: &Message, _args: Args) -> CommandResult {
-    let lastfm = Lastfm::get(
-        &mut *get_client(&ctx).await?,
-        *msg.author.id.as_u64() as i64,
-    )
-    .await?;
+    let pool = get_client(&ctx).await?;
+    let lastfm = Lastfm::get(&pool, *msg.author.id.as_u64() as i64).await?;
+    let lastfm_api_key = ctx
+        .data
+        .read()
+        .await
+        .get::<crate::Config>()
+        .ok_or("Failed to access config")?
+        .lastfm_api_key
+        .clone();
 
     // prepare for the lastfm api
     let url = format!("http://ws.audioscrobbler.com/2.0/?method=user.getrecenttracks&user={}&api_key={}&format=json&limit=10",
             lastfm.username,
-            *LASTFM_API_KEY);
+            &lastfm_api_key);
 
     let (res, request_time) = timed_request(&get_reqwest_client(&ctx).await?, &url).await?;
 
@@ -177,17 +177,22 @@ pub async fn artists(ctx: &Context, msg: &Message, args: Args) -> CommandResult 
         "12m" => "12month",
         _ => "overall",
     };
+    let pool = get_client(&ctx).await?;
+    let lastfm_api_key = ctx
+        .data
+        .read()
+        .await
+        .get::<crate::Config>()
+        .ok_or("Failed to access config")?
+        .lastfm_api_key
+        .clone();
 
-    let lastfm = Lastfm::get(
-        &mut *get_client(&ctx).await?,
-        *msg.author.id.as_u64() as i64,
-    )
-    .await?;
+    let lastfm = Lastfm::get(&pool, *msg.author.id.as_u64() as i64).await?;
 
     // prepare for the lastfm api
     let url = format!("http://ws.audioscrobbler.com/2.0/?method=user.gettopartists&user={}&api_key={}&format=json&limit=10&period={}",
             lastfm.username,
-            *LASTFM_API_KEY,
+            &lastfm_api_key,
             period);
 
     let (res, request_time) = timed_request(&get_reqwest_client(&ctx).await?, &url).await?;
@@ -241,17 +246,22 @@ pub async fn albums(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
         "12m" => "12month",
         _ => "overall",
     };
+    let pool = get_client(&ctx).await?;
+    let lastfm_api_key = ctx
+        .data
+        .read()
+        .await
+        .get::<crate::Config>()
+        .ok_or("Failed to access config")?
+        .lastfm_api_key
+        .clone();
 
-    let lastfm = Lastfm::get(
-        &mut *get_client(&ctx).await?,
-        *msg.author.id.as_u64() as i64,
-    )
-    .await?;
+    let lastfm = Lastfm::get(&pool, *msg.author.id.as_u64() as i64).await?;
 
     // prepare for the lastfm api
     let url = format!("http://ws.audioscrobbler.com/2.0/?method=user.gettopalbums&user={}&api_key={}&format=json&limit=10&period={}",
             lastfm.username,
-            *LASTFM_API_KEY,
+            &lastfm_api_key,
             period);
 
     let (res, request_time) = timed_request(&get_reqwest_client(&ctx).await?, &url).await?;
@@ -305,19 +315,24 @@ pub async fn tracks(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
         "12m" => "12month",
         _ => "overall",
     };
+    let pool = get_client(&ctx).await?;
+    let lastfm_api_key = ctx
+        .data
+        .read()
+        .await
+        .get::<crate::Config>()
+        .ok_or("Failed to access config")?
+        .lastfm_api_key
+        .clone();
 
     info!("period: {:?}", period);
 
-    let lastfm = Lastfm::get(
-        &mut *get_client(&ctx).await?,
-        *msg.author.id.as_u64() as i64,
-    )
-    .await?;
+    let lastfm = Lastfm::get(&pool, *msg.author.id.as_u64() as i64).await?;
 
     // prepare for the lastfm api
     let url = format!("http://ws.audioscrobbler.com/2.0/?method=user.gettoptracks&user={}&api_key={}&format=json&limit=10&period={}",
             lastfm.username,
-            *LASTFM_API_KEY,
+            &lastfm_api_key,
             period);
 
     let (res, request_time) = timed_request(&get_reqwest_client(&ctx).await?, &url).await?;

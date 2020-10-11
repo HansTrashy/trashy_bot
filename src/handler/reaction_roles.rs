@@ -27,7 +27,7 @@ pub async fn add_role(ctx: Context, add_reaction: Reaction) {
         info!("On correct message reacted!");
         if let ReactionType::Unicode(ref s) = add_reaction.emoji {
             // check if rr registered for this emoji
-            let results = ReactionRole::list_by_emoji(&mut *get_client(&ctx).await.unwrap(), s)
+            let results = ReactionRole::list_by_emoji(&get_client(&ctx).await.unwrap(), s)
                 .await
                 .expect("could not get by emojis");
 
@@ -74,7 +74,7 @@ pub async fn remove_role(ctx: Context, remove_reaction: Reaction) {
         info!("On correct message reacted!");
         if let ReactionType::Unicode(ref s) = remove_reaction.emoji {
             // check if rr registered for this emoji
-            let results = ReactionRole::list_by_emoji(&mut *get_client(&ctx).await.unwrap(), s)
+            let results = ReactionRole::list_by_emoji(&get_client(&ctx).await.unwrap(), s)
                 .await
                 .expect("could not get by emojis");
 

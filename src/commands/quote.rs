@@ -19,7 +19,10 @@ use tracing::{debug, trace};
 pub async fn quote(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     check_optout(ctx, msg, *msg.author.id.as_u64()).await?;
 
-    let (quote_server_id, quote_channel_id, quote_msg_id) = util::parse_message_link(args.rest())?;
+    let regex = crate::MESSAGE_REGEX.get().expect("regex not init");
+
+    let (quote_server_id, quote_channel_id, quote_msg_id) =
+        util::parse_message_link(regex, args.rest())?;
 
     if let Ok(quoted_msg) = ChannelId(quote_channel_id)
         .message(&ctx.http, quote_msg_id)

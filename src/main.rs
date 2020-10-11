@@ -8,12 +8,24 @@
 #![warn(unused)]
 //! Trashy Bot
 
+#[cfg_attr(unix, global_allocator)]
+#[cfg(target_family = "unix")]
+static GLOBAL: jemallocator::Jemalloc = jemallocator::Jemalloc;
+
 #[macro_use]
 extern crate tantivy;
 
-use deadpool_postgres::Pool;
-use dotenv::dotenv;
-use lazy_static::lazy_static;
+mod commands;
+mod config;
+mod handler;
+mod migrations;
+mod models;
+mod reaction_roles;
+mod rules;
+mod startup;
+mod util;
+
+use once_cell::sync::OnceCell;
 use serde::{Deserialize, Serialize};
 use serenity::{
     client::bridge::gateway::ShardManager,
@@ -27,19 +39,11 @@ use serenity::{
     model::{channel::Message, id::UserId},
     prelude::*,
 };
+use sqlx::postgres::{PgPool, PgPoolOptions};
 use std::collections::HashSet;
-use std::{env, sync::Arc};
+use std::sync::Arc;
 use tokio::sync::Mutex;
-use tracing::{debug, error, info, instrument, trace, warn, Level};
-
-mod commands;
-mod handler;
-mod migrations;
-mod models;
-mod reaction_roles;
-mod rules;
-mod startup;
-mod util;
+use tracing::{debug, error, trace, warn};
 
 struct ShardManagerContainer;
 impl TypeMapKey for ShardManagerContainer {
@@ -48,7 +52,12 @@ impl TypeMapKey for ShardManagerContainer {
 
 struct DatabasePool;
 impl TypeMapKey for DatabasePool {
-    type Value = Pool;
+    type Value = PgPool;
+}
+
+struct Config;
+impl TypeMapKey for Config {
+    type Value = config::Config;
 }
 
 struct ReactionRolesState;
@@ -135,6 +144,11 @@ impl OptOutStore {
     }
 }
 
+static XKCD_INDEX: OnceCell<tantivy::Index> = OnceCell::new();
+static XKCD_INDEX_READER: OnceCell<tantivy::IndexReader> = OnceCell::new();
+static XKCD_INDEX_SCHEMA: OnceCell<tantivy::schema::Schema> = OnceCell::new();
+static MESSAGE_REGEX: OnceCell<regex::Regex> = OnceCell::new();
+
 #[help]
 #[individual_command_tip = "If you want more information about a specific command, just pass the command as argument."]
 #[command_not_found_text = "Could not find: `{}`."]
@@ -153,17 +167,6 @@ async fn my_help(
 ) -> CommandResult {
     let _ = help_commands::with_embeds(context, msg, args, help_options, groups, owners).await;
     Ok(())
-}
-
-lazy_static! {
-    pub static ref LASTFM_API_KEY: String =
-        env::var("LASTFM_API_KEY").expect("Expected a lastfm token in the environment");
-}
-
-lazy_static! {
-    pub static ref XKCD_INDEX_PATH: std::path::PathBuf = std::path::PathBuf::from(
-        env::var("XKCD_INDEX").expect("Expected a xkcd index path in the environment")
-    );
 }
 
 #[hook]
@@ -218,13 +221,18 @@ async fn dispatch_error(ctx: &Context, msg: &Message, error: DispatchError) {
 
 #[tokio::main]
 async fn main() {
-    dotenv().ok();
+    let config: config::Config = toml::from_str(
+        &tokio::fs::read_to_string("config.toml")
+            .await
+            .expect("Could not load config file"),
+    )
+    .expect("failed to parse config");
 
     tracing_subscriber::fmt()
-        .with_env_filter(tracing_subscriber::EnvFilter::from_default_env())
+        .with_env_filter(&config.log_level)
         .init();
 
-    let token = env::var("DISCORD_TOKEN").expect("Expected a discord token in the environment");
+    let token = &config.discord_token;
     let http = Http::new_with_token(&token);
 
     let (owners, bot_id) = match http.get_current_application_info().await {
@@ -237,7 +245,7 @@ async fn main() {
         Err(why) => panic!("Could not access application info: {:?}", why),
     };
 
-    let framework = StandardFramework::new()
+    let mut framework = StandardFramework::new()
         .configure(|c| {
             c.with_whitespace(true)
                 .on_mention(Some(bot_id))
@@ -250,13 +258,27 @@ async fn main() {
         .unrecognised_command(unknown_command)
         .normal_message(normal_message)
         .on_dispatch_error(dispatch_error)
-        .help(&MY_HELP)
-        .bucket("slotmachine", |b| b.delay(10))
-        .await
-        .bucket("fav", |b| b.delay(10).time_span(30).limit(3))
-        .await
-        .bucket("lastfm", |b| b.delay(2).time_span(20).limit(5))
-        .await
+        .help(&MY_HELP);
+
+    for bucket in &config.buckets {
+        framework = framework
+            .bucket(&bucket.name, |mut b| {
+                if let Some(delay) = bucket.delay {
+                    b = b.delay(delay);
+                }
+                if let Some(time_span) = bucket.time_span {
+                    b = b.time_span(time_span);
+                }
+                if let Some(limit) = bucket.limit {
+                    b = b.limit(limit);
+                }
+
+                b
+            })
+            .await;
+    }
+
+    framework = framework
         .group(&commands::groups::general::GENERAL_GROUP)
         .group(&commands::groups::config::CONFIG_GROUP)
         .group(&commands::groups::greenbook::GREENBOOK_GROUP)
@@ -278,20 +300,25 @@ async fn main() {
     let rr_state = Arc::new(Mutex::new(self::reaction_roles::State::load_set()));
     let rules_state = Arc::new(Mutex::new(self::rules::State::load()));
 
-    let async_db_pool = deadpool_postgres::Config::from_env("PG")
-        .expect("PG env vars not found")
-        .create_pool(tokio_postgres::NoTls)
-        .expect("could not create async db pool");
-
-    {
-        let mut db_client = async_db_pool.get().await.unwrap();
-        migrations::run(&mut db_client)
-            .await
-            .expect("could not run migrations");
-    }
-    debug!("Database pool created");
+    let pool = PgPoolOptions::new()
+        .max_connections(config.db_pool_max_size)
+        .connect(&config.db_url)
+        .await
+        .expect("could not setup db pool");
+    //TODO: run migrations
 
     let opt_out = Arc::new(Mutex::new(OptOutStore::load_or_init()));
+
+    startup::init_xkcd(&config).await;
+
+    MESSAGE_REGEX
+        .set(
+            regex::Regex::new(
+                r#"https://(?:discord.com|discordapp.com)/channels/(\d+)/(\d+)/(\d+)"#,
+            )
+            .expect("could not compile quote link regex"),
+        )
+        .unwrap();
 
     {
         let mut data = client.data.write().await;
@@ -300,12 +327,13 @@ async fn main() {
         data.insert::<ReactionRolesState>(rr_state);
         data.insert::<RulesState>(rules_state);
         data.insert::<OptOut>(Arc::clone(&opt_out));
-        data.insert::<DatabasePool>(async_db_pool);
+        data.insert::<DatabasePool>(pool);
         data.insert::<ReqwestClient>(reqwest::Client::new());
         data.insert::<RunningState>(BotState {
             running_since: std::time::Instant::now(),
         });
         data.insert::<XkcdState>(XkcdIndexStorage::load_or_init());
+        data.insert::<Config>(config);
     }
 
     startup::on_startup(&client).await;
@@ -314,6 +342,3 @@ async fn main() {
         error!("Client error: {:?}", why);
     }
 }
-
-#[cfg(test)]
-mod tests {}

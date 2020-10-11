@@ -6,7 +6,6 @@ use crate::util::get_client;
 use crate::OptOut;
 use futures::future::TryFutureExt;
 use itertools::Itertools;
-use lazy_static::lazy_static;
 use rand::prelude::*;
 use regex::Regex;
 use serenity::futures::stream::StreamExt;
@@ -26,6 +25,7 @@ use tracing::{debug, trace};
 #[example = "taishi wichsen"]
 #[bucket = "fav"]
 pub async fn post(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
+    let pool = get_client(&ctx).await?;
     let opt_out = if let Some(v) = ctx.data.read().await.get::<OptOut>() {
         v.clone()
     } else {
@@ -47,14 +47,14 @@ pub async fn post(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
 
     let results = if labels.is_empty() {
         Fav::list(
-            &mut *get_client(&ctx).await?,
+            &pool,
             *msg.author.id.as_u64() as i64,
             msg.guild_id.map(|g_id| *g_id.as_u64() as i64),
         )
         .await?
     } else {
         Fav::tagged_with(
-            &mut *get_client(&ctx).await?,
+            &pool,
             *msg.author.id.as_u64() as i64,
             msg.guild_id.map(|g_id| *g_id.as_u64() as i64),
             labels,
@@ -159,16 +159,17 @@ pub async fn post(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
         })
         .await;
 
-    let c1 = collector_delete.for_each(|reaction| {
-        let ctx = ctx.clone();
+    let c1 = collector_delete.for_each(|_reaction| {
         let chosen_fav_id = chosen_fav.id;
+        let pool = pool.clone();
         async move {
-            let _ = Fav::delete(&mut *get_client(&ctx).await.unwrap(), chosen_fav_id).await;
+            let _ = Fav::delete(&pool, chosen_fav_id).await;
         }
     });
     let c2 = collector_label.for_each(|reaction| {
         let ctx = ctx.clone();
         let chosen_fav_id = chosen_fav.id;
+        let pool = pool.clone();
         async move {
             let reaction = reaction.as_inner_ref();
             if let Ok(dm_channel) = reaction.user_id.unwrap().create_dm_channel(&ctx).await {
@@ -183,13 +184,11 @@ pub async fn post(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
                     .await
                 {
                     // clear old tags for this fav
-                    let _ = Tag::delete(&mut *get_client(&ctx).await.unwrap(), chosen_fav_id).await;
+                    let _ = Tag::delete(&pool, chosen_fav_id).await;
 
                     // TODO: make this a single statement
                     for tag in label_reply.content.split(' ') {
-                        let _ =
-                            Tag::create(&mut *get_client(&ctx).await.unwrap(), chosen_fav_id, tag)
-                                .await;
+                        let _ = Tag::create(&pool, chosen_fav_id, tag).await;
                     }
 
                     let _ = label_reply.reply(&ctx, "added the tags!").await;
@@ -236,12 +235,9 @@ pub async fn untagged(ctx: &Context, msg: &Message, _args: Args) -> CommandResul
             panic!("no optout");
         }
     };
+    let pool = get_client(&ctx).await?;
 
-    let results = Fav::untagged(
-        &mut *get_client(&ctx).await.unwrap(),
-        *msg.author.id.as_u64() as i64,
-    )
-    .await?;
+    let results = Fav::untagged(&pool, *msg.author.id.as_u64() as i64).await?;
 
     if results.is_empty() {
         let _ = msg.reply(ctx, "Du hat keine untagged Favs!").await;
@@ -327,16 +323,17 @@ pub async fn untagged(ctx: &Context, msg: &Message, _args: Args) -> CommandResul
             .await;
 
         let c1 = collector_delete.for_each(|_| {
-            let ctx = ctx.clone();
+            let pool = pool.clone();
             let fav_id = fav.id;
             async move {
                 trace!(fav = fav_id, "Delete Tag for fav");
-                let _ = Fav::delete(&mut *get_client(&ctx).await.unwrap(), fav_id).await;
+                let _ = Fav::delete(&pool, fav_id).await;
             }
         });
         let c2 = collector_label.for_each(|reaction| {
             let ctx = ctx.clone();
             let fav_id = fav.id;
+            let pool = pool.clone();
             async move {
                 let reaction = reaction.as_inner_ref();
                 if let Ok(dm_channel) = reaction.user_id.unwrap().create_dm_channel(&ctx).await {
@@ -351,13 +348,12 @@ pub async fn untagged(ctx: &Context, msg: &Message, _args: Args) -> CommandResul
                         .await
                     {
                         // clear old tags for this fav
-                        let r = Tag::delete(&mut *get_client(&ctx).await.unwrap(), fav_id).await;
+                        let r = Tag::delete(&pool, fav_id).await;
                         trace!(tag_deletion = ?r, "Tags deleted");
 
                         // TODO: make this a single statement
                         for tag in label_reply.content.split(' ') {
-                            let r = Tag::create(&mut *get_client(&ctx).await.unwrap(), fav_id, tag)
-                                .await;
+                            let r = Tag::create(&pool, fav_id, tag).await;
 
                             trace!(tag_creation = ?r, "Tag created");
                         }
@@ -378,27 +374,24 @@ pub async fn untagged(ctx: &Context, msg: &Message, _args: Args) -> CommandResul
 #[description = "Add a fav per link to the message"]
 #[num_args(1)]
 pub async fn add(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
-    let (fav_server_id, fav_channel_id, fav_msg_id) = util::parse_message_link(args.rest())?;
+    let regex = crate::MESSAGE_REGEX.get().expect("regex not init");
+    let (fav_server_id, fav_channel_id, fav_msg_id) = util::parse_message_link(regex, args.rest())?;
 
     let fav_msg = ChannelId(fav_channel_id)
         .message(&ctx.http, fav_msg_id)
         .await
         .expect("cannot find this message");
 
-    if FavBlock::check_blocked(
-        &mut *get_client(&ctx).await?,
-        fav_channel_id as i64,
-        fav_msg_id as i64,
-    )
-    .await
-    {
+    let pool = get_client(&ctx).await?;
+
+    if FavBlock::check_blocked(&pool, fav_channel_id as i64, fav_msg_id as i64).await {
         // is blocked
         msg.author
             .dm(ctx, |m| m.content("This fav is blocked"))
             .await?;
     } else {
         Fav::create(
-            &mut *get_client(&ctx).await?,
+            &pool,
             fav_server_id as i64,
             fav_channel_id as i64,
             fav_msg_id as i64,
@@ -420,13 +413,10 @@ pub async fn add(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
 #[description = "Shows your used tags so you do not have to remember them all"]
 #[num_args(0)]
 pub async fn tags(ctx: &Context, msg: &Message, _args: Args) -> CommandResult {
+    let pool = get_client(&ctx).await?;
     let mut messages = Vec::new();
     {
-        let mut fav_tags = Tag::of_user(
-            &mut *get_client(&ctx).await?,
-            *msg.author.id.as_u64() as i64,
-        )
-        .await?;
+        let mut fav_tags = Tag::of_user(&pool, *msg.author.id.as_u64() as i64).await?;
 
         fav_tags.sort_unstable_by(|a, b| a.label.partial_cmp(&b.label).unwrap());
         let mut message_content = String::new();
@@ -457,11 +447,13 @@ pub async fn tags(ctx: &Context, msg: &Message, _args: Args) -> CommandResult {
 #[description = "Adds a fav to the blocklist"]
 #[allowed_roles("Mods")]
 pub async fn block(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
-    let (_, block_channel_id, block_msg_id) = util::parse_message_link(args.rest())?;
+    let regex = crate::MESSAGE_REGEX.get().expect("regex not init");
+    let (_, block_channel_id, block_msg_id) = util::parse_message_link(regex, args.rest())?;
+    let pool = get_client(&ctx).await?;
 
     // add to blocklist
     let fav_block = FavBlock::create(
-        &mut *get_client(&ctx).await?,
+        &pool,
         *msg.guild_id.unwrap().as_u64() as i64,
         block_channel_id as i64,
         block_msg_id as i64,
@@ -469,12 +461,8 @@ pub async fn block(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     .await?;
 
     // check who used it as fav
-    let favs_now_blocked = Fav::list_by_channel_msg(
-        &mut *get_client(&ctx).await?,
-        fav_block.channel_id,
-        fav_block.msg_id,
-    )
-    .await?;
+    let favs_now_blocked =
+        Fav::list_by_channel_msg(&pool, fav_block.channel_id, fav_block.msg_id).await?;
 
     // send messages to those using the fav
     futures::stream::iter(favs_now_blocked)
@@ -497,10 +485,11 @@ pub async fn block(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
 #[description = "Creates a list of all favs on the server"]
 #[allowed_roles("Mods")]
 pub async fn create_fav_list(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
-    use tokio::io::{self, AsyncWriteExt, BufWriter};
+    use tokio::io::{AsyncWriteExt, BufWriter};
+    let pool = get_client(&ctx).await?;
 
     let favs = Fav::list_all_from_server(
-        &mut *get_client(&ctx).await?,
+        &pool,
         *msg.guild_id
             .ok_or("this command is only supposed to be called in a server channel")?
             .as_u64() as i64,

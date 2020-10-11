@@ -1,0 +1,25 @@
+log_level = 'info'
+prefix = '$'
+delimiter = ' '
+discord_token = '' # enter dicsord token
+lastfm_api_key = '' # enter lastfm api key
+xkcd_index = './xkcd_index'
+db_url = 'postgres://dbuser:dbpw@localhost/trashy_bot' # change depending on your setup
+db_pool_max_size = 10
+
+# bucket definition, dely, time_span and limit are all optionally supported
+[[buckets]]
+name = "slotmachine"
+delay = 10
+
+[[buckets]]
+name = "fav"
+delay = 2
+time_span = 60
+limit = 5
+
+[[buckets]]
+name = "lastfm"
+delay = 2
+time_span = 20
+limit = 5

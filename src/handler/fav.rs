@@ -7,8 +7,9 @@ use std::time::Duration;
 use tracing::trace;
 
 pub async fn add(ctx: Context, add_reaction: Reaction) {
+    let pool = get_client(&ctx).await.unwrap();
     if FavBlock::check_blocked(
-        &mut *get_client(&ctx).await.unwrap(),
+        &pool,
         *add_reaction.channel_id.as_u64() as i64,
         *add_reaction.message_id.as_u64() as i64,
     )
@@ -26,7 +27,7 @@ pub async fn add(ctx: Context, add_reaction: Reaction) {
     }
 
     let created_fav = Fav::create(
-        &mut *get_client(&ctx).await.unwrap(),
+        &pool,
         *add_reaction
             .channel(&ctx)
             .await
@@ -65,8 +66,7 @@ pub async fn add(ctx: Context, add_reaction: Reaction) {
 
             // TODO: make this a single statement
             for tag in label_reply.content.split(' ') {
-                let r =
-                    Tag::create(&mut *get_client(&ctx).await.unwrap(), created_fav.id, tag).await;
+                let r = Tag::create(&pool, created_fav.id, tag).await;
 
                 trace!(tag_creation = ?r, "Tag created");
             }

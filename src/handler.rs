@@ -27,18 +27,15 @@ pub struct Handler;
 
 #[async_trait]
 impl EventHandler for Handler {
-    async fn ready(&self, mut ctx: Context, ready: Ready) {
+    async fn ready(&self, ctx: Context, ready: Ready) {
         ctx.set_activity(Activity::listening("$help")).await;
         info!("{} is connected!", ready.user.name);
     }
 
     async fn guild_member_addition(&self, ctx: Context, guild_id: GuildId, mut new_member: Member) {
-        if let Ok(mut config) = ServerConfig::get(
-            &mut *get_client(&ctx).await.unwrap(),
-            *guild_id.as_u64() as i64,
-        )
-        .await
-        {
+        let pool = get_client(&ctx).await.unwrap();
+
+        if let Ok(mut config) = ServerConfig::get(&pool, *guild_id.as_u64() as i64).await {
             let g_cfg: Guild = serde_json::from_value(config.config.take()).unwrap();
 
             let user_info = UserInfo {
@@ -80,12 +77,8 @@ impl EventHandler for Handler {
                     .await;
             }
 
-            let mute = Mute::get(
-                &mut *get_client(&ctx).await.unwrap(),
-                *guild_id.as_u64() as i64,
-                *member_id.as_u64() as i64,
-            )
-            .await;
+            let mute =
+                Mute::get(&pool, *guild_id.as_u64() as i64, *member_id.as_u64() as i64).await;
 
             if let Ok(_mute) = mute {
                 if let Some(mute_role) = g_cfg.mute_role {
@@ -102,12 +95,8 @@ impl EventHandler for Handler {
         user: User,
         _old_member: Option<Member>,
     ) {
-        if let Ok(mut config) = ServerConfig::get(
-            &mut *get_client(&ctx).await.unwrap(),
-            *guild_id.as_u64() as i64,
-        )
-        .await
-        {
+        let pool = get_client(&ctx).await.unwrap();
+        if let Ok(mut config) = ServerConfig::get(&pool, *guild_id.as_u64() as i64).await {
             let g_cfg: Guild = serde_json::from_value(config.config.take()).unwrap();
 
             let user_info = UserInfo {

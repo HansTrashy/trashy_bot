@@ -4,3 +4,4 @@
 *.log
 *.storage
 /xkcd_index
+config.toml

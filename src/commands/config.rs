@@ -23,8 +23,8 @@ pub struct Guild {
 #[allowed_roles("Mods")]
 pub async fn show_config(ctx: &Context, msg: &Message, _args: Args) -> CommandResult {
     if let Some(server_id) = msg.guild_id {
-        let server_config =
-            ServerConfig::get(&mut *get_client(&ctx).await?, *server_id.as_u64() as i64).await;
+        let pool = get_client(&ctx).await?;
+        let server_config = ServerConfig::get(&pool, *server_id.as_u64() as i64).await;
 
         if let Ok(server_config) = server_config {
             let _ = msg
@@ -57,9 +57,10 @@ pub async fn show_config(ctx: &Context, msg: &Message, _args: Args) -> CommandRe
 #[allowed_roles("Mods")]
 pub async fn set_modlog(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     let modlog_channel = args.parse::<u64>()?;
+    let pool = get_client(&ctx).await?;
 
     if let Some(server_id) = msg.guild_id {
-        match ServerConfig::get(&mut *get_client(&ctx).await?, *server_id.as_u64() as i64).await {
+        match ServerConfig::get(&pool, *server_id.as_u64() as i64).await {
             Ok(mut config) => {
                 let mut old_guild_config: Guild =
                     serde_json::from_value(config.config.take()).unwrap();
@@ -67,7 +68,7 @@ pub async fn set_modlog(ctx: &Context, msg: &Message, args: Args) -> CommandResu
                 old_guild_config.modlog_channel = Some(modlog_channel);
 
                 let updated_config = ServerConfig::update(
-                    &mut *get_client(&ctx).await?,
+                    &pool,
                     *server_id.as_u64() as i64,
                     serde_json::to_value(old_guild_config).unwrap(),
                 )
@@ -89,7 +90,7 @@ pub async fn set_modlog(ctx: &Context, msg: &Message, args: Args) -> CommandResu
                 guild_config.modlog_channel = Some(modlog_channel);
 
                 let inserted_config = ServerConfig::create(
-                    &mut *get_client(&ctx).await?,
+                    &pool,
                     *server_id.as_u64() as i64,
                     serde_json::to_value(guild_config).unwrap(),
                 )
@@ -113,9 +114,10 @@ pub async fn set_modlog(ctx: &Context, msg: &Message, args: Args) -> CommandResu
 #[allowed_roles("Mods")]
 pub async fn set_userlog(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     let userlog_channel = args.parse::<u64>()?;
+    let pool = get_client(&ctx).await?;
 
     if let Some(server_id) = msg.guild_id {
-        match ServerConfig::get(&mut *get_client(&ctx).await?, *server_id.as_u64() as i64).await {
+        match ServerConfig::get(&pool, *server_id.as_u64() as i64).await {
             Ok(mut config) => {
                 let mut old_guild_config: Guild =
                     serde_json::from_value(config.config.take()).unwrap();
@@ -123,7 +125,7 @@ pub async fn set_userlog(ctx: &Context, msg: &Message, args: Args) -> CommandRes
                 old_guild_config.userlog_channel = Some(userlog_channel);
 
                 let inserted_config = ServerConfig::update(
-                    &mut *get_client(&ctx).await?,
+                    &pool,
                     *server_id.as_u64() as i64,
                     serde_json::to_value(old_guild_config).unwrap(),
                 )
@@ -145,7 +147,7 @@ pub async fn set_userlog(ctx: &Context, msg: &Message, args: Args) -> CommandRes
                 guild_config.modlog_channel = Some(userlog_channel);
 
                 let inserted_config = ServerConfig::create(
-                    &mut *get_client(&ctx).await?,
+                    &pool,
                     *server_id.as_u64() as i64,
                     serde_json::to_value(guild_config).unwrap(),
                 )
@@ -171,9 +173,10 @@ pub async fn set_userlog(ctx: &Context, msg: &Message, args: Args) -> CommandRes
 #[allowed_roles("Mods")]
 pub async fn set_muterole(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     let mute_role = args.parse::<u64>()?;
+    let pool = get_client(&ctx).await?;
 
     if let Some(server_id) = msg.guild_id {
-        match ServerConfig::get(&mut *get_client(&ctx).await?, *server_id.as_u64() as i64).await {
+        match ServerConfig::get(&pool, *server_id.as_u64() as i64).await {
             Ok(mut config) => {
                 let mut old_guild_config: Guild =
                     serde_json::from_value(config.config.take()).unwrap();
@@ -181,7 +184,7 @@ pub async fn set_muterole(ctx: &Context, msg: &Message, args: Args) -> CommandRe
                 old_guild_config.mute_role = Some(mute_role);
 
                 let inserted_config = ServerConfig::update(
-                    &mut *get_client(&ctx).await?,
+                    &pool,
                     *server_id.as_u64() as i64,
                     serde_json::to_value(old_guild_config).unwrap(),
                 )
@@ -203,7 +206,7 @@ pub async fn set_muterole(ctx: &Context, msg: &Message, args: Args) -> CommandRe
                 guild_config.mute_role = Some(mute_role);
 
                 let inserted_config = ServerConfig::create(
-                    &mut *get_client(&ctx).await?,
+                    &pool,
                     *server_id.as_u64() as i64,
                     serde_json::to_value(guild_config).unwrap(),
                 )
