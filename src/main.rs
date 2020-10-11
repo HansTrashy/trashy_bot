@@ -8,10 +8,6 @@
 #![warn(unused)]
 //! Trashy Bot
 
-#[cfg_attr(unix, global_allocator)]
-#[cfg(target_family = "unix")]
-static GLOBAL: jemallocator::Jemalloc = jemallocator::Jemalloc;
-
 #[macro_use]
 extern crate tantivy;
 

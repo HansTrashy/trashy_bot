@@ -8,9 +8,6 @@ edition = "2018"
 lto = "fat"
 codegen-units = 1
 
-[target.'cfg(unix)'.dependencies]
-jemallocator = "0.3.2"
-
 [dependencies]
 rand = "0.7"
 chrono = "0.4"
