@@ -5,6 +5,7 @@ use serenity::{
 };
 
 #[command]
+#[description = "Post the 'Confused Cat' image"]
 async fn katzer(ctx: &Context, msg: &Message, _args: Args) -> CommandResult {
     let _ = msg.channel_id.send_message(&ctx, |m| {
         m.embed(|e| e.image("https://cdn.discordapp.com/attachments/217015995385118721/632308780477972480/sinnbild.png"))

@@ -5,3 +5,5 @@
 *.storage
 /xkcd_index
 config.toml
+.idea
+*.iml

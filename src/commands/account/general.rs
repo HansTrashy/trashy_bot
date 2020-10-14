@@ -10,7 +10,7 @@ use serenity::{
 use tracing::debug;
 
 #[command]
-#[description = "Create an account if you do not already own one"]
+#[description = "Create a slot account"]
 #[num_args(0)]
 pub async fn create(ctx: &Context, msg: &Message, _args: Args) -> CommandResult {
     let pool = get_client(&ctx).await?;
@@ -36,6 +36,7 @@ pub async fn create(ctx: &Context, msg: &Message, _args: Args) -> CommandResult 
 }
 
 #[command]
+#[description = "Receive your daily allowance credits"]
 #[aliases("paydaddy")]
 #[num_args(0)]
 pub async fn payday(ctx: &Context, msg: &Message, _args: Args) -> CommandResult {
@@ -76,14 +77,14 @@ pub async fn payday(ctx: &Context, msg: &Message, _args: Args) -> CommandResult 
     } else {
         let _ = msg.reply(
             ctx,
-            "You do not own a bank, please create one using the createaccount command",
+            "Create your own bank first by running 'acc create'",
         );
     }
     Ok(())
 }
 
 #[command]
-#[description = "Lists the leading players"]
+#[description = "List the leading players"]
 #[num_args(0)]
 pub async fn leaderboard(ctx: &Context, msg: &Message, _args: Args) -> CommandResult {
     let pool = get_client(&ctx).await?;
@@ -103,20 +104,21 @@ pub async fn leaderboard(ctx: &Context, msg: &Message, _args: Args) -> CommandRe
 }
 
 #[command]
-#[description = "Transfers amount x to all listed users"]
-#[example = "1000 @user1 @user2"]
+#[description = "Transfer credits from your bank to a list of other users"]
+#[usage = "*amount* *from_user_mention* *to_user_mention*"]
+#[example = "1000 @HansTrashy @ApoY2k"]
 pub async fn transfer(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     let pool = get_client(&ctx).await?;
     let amount_to_transfer = match args.single::<i64>() {
         Ok(v) if v > 0 => v,
         Ok(_) => {
             // log
-            let _ = msg.channel_id.say(&ctx, "Ungültiger Transferbetrag!").await;
+            let _ = msg.channel_id.say(&ctx, "Invalid credit amount!").await;
             return Ok(());
         }
         Err(_e) => {
             // log
-            let _ = msg.channel_id.say(&ctx, "Ungültiger Transferbetrag!").await;
+            let _ = msg.channel_id.say(&ctx, "Invalid credit amount!").await;
             return Ok(());
         }
     };
@@ -150,11 +152,11 @@ pub async fn transfer(ctx: &Context, msg: &Message, mut args: Args) -> CommandRe
             )
             .await?;
         } else {
-            msg.reply(ctx, "Du hast nicht genügend credits für den Transfer!")
+            msg.reply(ctx, "You cannot transfer more credits than you have in your bank!")
                 .await?;
         }
     } else {
-        msg.reply(ctx, "Du besitzt noch keine Bank!").await?;
+        msg.reply(ctx, "Create your own bank first by running 'acc create'").await?;
     }
     Ok(())
 }

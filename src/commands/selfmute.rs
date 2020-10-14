@@ -17,7 +17,7 @@ use tracing::error;
 
 #[command]
 #[num_args(1)]
-#[description = "Mutes youself for the given duration supports (d, h, m, s)"]
+#[description = "Mute youself for the given duration. Allowed units: d, h, m, s"]
 #[usage = "*duration*"]
 #[example = "1h"]
 #[only_in("guilds")]
@@ -44,7 +44,7 @@ pub async fn selfmute(ctx: &Context, msg: &Message, mut args: Args) -> CommandRe
                         Ok(mut member) => {
                             member.add_role(&ctx, RoleId(*mute_role)).await?;
                         }
-                        Err(e) => error!("could not get member: {:?}", e),
+                        Err(e) => error!("Could not get member: {:?}", e),
                     };
 
                     let end_time = Utc::now() + duration;
@@ -67,9 +67,9 @@ pub async fn selfmute(ctx: &Context, msg: &Message, mut args: Args) -> CommandRe
                             member
                                 .remove_role(&ctx, RoleId(*mute_role))
                                 .await
-                                .expect("could not remove role");
+                                .expect("Could not remove role");
                         }
-                        Err(e) => error!("could not get member: {:?}", e),
+                        Err(e) => error!("Could not get member: {:?}", e),
                     };
 
                     Mute::delete(
@@ -81,7 +81,7 @@ pub async fn selfmute(ctx: &Context, msg: &Message, mut args: Args) -> CommandRe
                 }
             }
             Err(_e) => {
-                msg.reply(ctx, "server config missing").await?;
+                msg.reply(ctx, "Server config missing").await?;
             }
         }
     }

@@ -11,7 +11,7 @@ use serenity::{
 use std::iter::FromIterator;
 
 #[command]
-#[description = "Sends you the Rules in German"]
+#[description = "Sends you the rules in german"]
 #[num_args(0)]
 #[only_in("guilds")]
 pub async fn de(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
@@ -78,7 +78,7 @@ pub async fn en(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
 
 #[command]
 #[allowed_roles("Mods")]
-#[description = "Sets the rules"]
+#[description = "Set the rules"]
 #[only_in("guilds")]
 pub async fn setde(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
     let rules = match ctx.data.read().await.get::<RulesState>() {
@@ -95,7 +95,7 @@ pub async fn setde(ctx: &mut Context, msg: &Message, args: Args) -> CommandResul
 
 #[command]
 #[allowed_roles("Mods")]
-#[description = "Adds to the rules"]
+#[description = "Add to the rules"]
 #[only_in("guilds")]
 pub async fn addde(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
     let rules = match ctx.data.read().await.get::<RulesState>() {
@@ -113,7 +113,7 @@ pub async fn addde(ctx: &mut Context, msg: &Message, args: Args) -> CommandResul
 
 #[command]
 #[allowed_roles("Mods")]
-#[description = "Sets the rules"]
+#[description = "Set the rules"]
 #[only_in("guilds")]
 pub async fn seten(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
     let rules = match ctx.data.read().await.get::<RulesState>() {
@@ -130,7 +130,7 @@ pub async fn seten(ctx: &mut Context, msg: &Message, args: Args) -> CommandResul
 
 #[command]
 #[allowed_roles("Mods")]
-#[description = "Adds to the rules"]
+#[description = "Add to the rules"]
 #[only_in("guilds")]
 pub async fn adden(ctx: &mut Context, msg: &Message, args: Args) -> CommandResult {
     let rules = match ctx.data.read().await.get::<RulesState>() {
@@ -148,7 +148,7 @@ pub async fn adden(ctx: &mut Context, msg: &Message, args: Args) -> CommandResul
 
 #[command]
 #[allowed_roles("Mods")]
-#[description = "The bot will post the rules into the channel"]
+#[description = "Post the rules into the channel"]
 #[num_args(1)]
 #[example = "de"]
 #[only_in("guilds")]

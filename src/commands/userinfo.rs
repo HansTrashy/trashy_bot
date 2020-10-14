@@ -22,7 +22,9 @@ pub struct MemberInfo {
 
 #[command]
 #[description = "Display information about the user"]
+#[usage = "*user_mention*"]
 #[only_in("guilds")]
+#[example = "@HansTrashy"]
 pub async fn userinfo(ctx: &Context, msg: &Message, _args: Args) -> CommandResult {
     let user = msg.mentions.get(0).ok_or("No user mentioned")?;
 

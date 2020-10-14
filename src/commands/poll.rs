@@ -13,8 +13,8 @@ use std::sync::Arc;
 use std::time::Duration;
 
 #[command]
-#[description = "adhoc poll"]
-#[usage = "command \"question\" \"answer\" \"answer"]
+#[description = "Create an adhoc poll"]
+#[usage = "*\"question\"* *\"answer_1\"* *\"answer_2\"*"]
 #[example = "\"Do you freeze bread?\" \"Yes\" \"No\""]
 #[only_in("guilds")]
 async fn poll(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
@@ -96,7 +96,7 @@ fn reaction_to_num(reaction: &Arc<ReactionAction>) -> Option<usize> {
 
 fn render_poll_results(question: &str, poll_results: &HashMap<String, usize>) -> String {
     let mut rendered = String::new();
-    rendered.push_str(&format!("On the Question of: {}\n", question));
+    rendered.push_str(&format!("On the question of: {}\n", question));
     rendered.push_str("people answered: \n");
     for (answer, votes) in poll_results {
         rendered.push_str(&format!("{} with {} vote(s)!\n", answer, votes));

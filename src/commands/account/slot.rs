@@ -9,8 +9,9 @@ use serenity::{
 };
 
 #[command]
-#[description = "Gamble for worthless points"]
+#[description = "Slot gamble game for worthless internet credits"]
 #[num_args(1)]
+#[usage = "*bet_amount*"]
 #[example = "1000"]
 pub async fn slot(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     let pool = get_client(&ctx).await?;
@@ -18,12 +19,12 @@ pub async fn slot(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
         Ok(v) if v > 0 => v,
         Ok(_) => {
             // log
-            let _ = msg.channel_id.say(&ctx, "Ungültiger Wetteinsatz!");
+            let _ = msg.channel_id.say(&ctx, "Invalid bet!");
             return Ok(());
         }
         Err(_e) => {
             // log
-            let _ = msg.channel_id.say(&ctx, "Ungültiger Wetteinsatz!");
+            let _ = msg.channel_id.say(&ctx, "Invalid bet!");
             return Ok(());
         }
     };
@@ -73,7 +74,7 @@ pub async fn slot(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
         }
     } else {
         msg.channel_id
-            .say(&ctx, "Create your own bank first")
+            .say(&ctx, "Create your own bank first by running 'acc create'")
             .await?;
     }
 
@@ -97,7 +98,7 @@ fn get_payout(full_reels: &[Vec<i64>], betted_amount: i64) -> i64 {
 
 fn display_reels(full_reels: &[Vec<i64>], payout: i64, updated_amount: i64) -> String {
     format!(
-        "{} | {} | {} \n{} | {} | {}\n {} | {} | {}\n\n Gewonnen: {}\nBank: {}",
+        "{} | {} | {} \n{} | {} | {}\n {} | {} | {}\n\n Won: {}\nBank: {}",
         number_to_emoji(full_reels[0][0]),
         number_to_emoji(full_reels[1][0]),
         number_to_emoji(full_reels[2][0]),

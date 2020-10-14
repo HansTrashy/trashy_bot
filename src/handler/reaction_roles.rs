@@ -29,7 +29,7 @@ pub async fn add_role(ctx: Context, add_reaction: Reaction) {
             // check if rr registered for this emoji
             let results = ReactionRole::list_by_emoji(&get_client(&ctx).await.unwrap(), s)
                 .await
-                .expect("could not get by emojis");
+                .expect("Could not get by emojis");
 
             if !results.is_empty() {
                 info!("Found role for this emoji!");
@@ -76,7 +76,7 @@ pub async fn remove_role(ctx: Context, remove_reaction: Reaction) {
             // check if rr registered for this emoji
             let results = ReactionRole::list_by_emoji(&get_client(&ctx).await.unwrap(), s)
                 .await
-                .expect("could not get by emojis");
+                .expect("Could not get by emojis");
 
             if !results.is_empty() {
                 info!("Found role for this emoji!");

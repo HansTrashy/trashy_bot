@@ -33,7 +33,7 @@ pub async fn choose(ctx: &Context, msg: &Message, mut args: Args) -> CommandResu
     let args = args
         .iter::<String>()
         .collect::<Result<Vec<_>, _>>()
-        .expect("could not parse args");
+        .expect("Could not parse args");
 
     if args.windows(2).all(|w| w[0] == w[1]) {
         return match msg
@@ -75,7 +75,7 @@ pub async fn choose(ctx: &Context, msg: &Message, mut args: Args) -> CommandResu
             }
         }
     } else {
-        error!("nothing was chosen");
+        error!("Nothing was chosen");
         Ok(())
     }
 }
