@@ -102,9 +102,9 @@ pub async fn on_startup(client: &serenity::Client) {
                         member
                             .remove_role(&http, RoleId(config.mute_role.unwrap()))
                             .await
-                            .expect("could not remove role");
+                            .expect("Could not remove role");
                     }
-                    Err(e) => error!("could not get member: {:?}", e),
+                    Err(e) => error!("Could not get member: {:?}", e),
                 };
 
                 let pool = data
@@ -144,37 +144,37 @@ pub async fn init_xkcd(config: &crate::config::Config) {
     schema_builder.add_u64_field("number", IntOptions::default().set_stored().set_indexed());
     XKCD_INDEX_SCHEMA
         .set(schema_builder.build())
-        .map_err(|_| "could not init xkcd index schema")
+        .map_err(|_| "Could not init xkcd index schema")
         .unwrap();
 
-    let schema = XKCD_INDEX_SCHEMA.get().expect("not initialized");
+    let schema = XKCD_INDEX_SCHEMA.get().expect("XKCD index schema not initialized");
 
     let index = if std::path::Path::new(&config.xkcd_index).is_dir() {
         // Use existing index
         tantivy::Index::open_in_dir(&config.xkcd_index)
             .map_err(|e| format!("Failed to load tantivy index: {}", e))
-            .expect("could not load xkcd index")
+            .expect("Could not load xkcd index")
     } else {
         // create index from scratch
         tokio::fs::create_dir_all(&config.xkcd_index)
             .await
-            .expect("could not create folder for xkcd index");
+            .expect("Could not create folder for xkcd index");
         tantivy::Index::create_in_dir(&config.xkcd_index, schema.clone())
             .map_err(|e| format!("Failed to create tantivy index: {}", e))
             .expect("Could not create xkcd index")
     };
 
     XKCD_INDEX.set(index).unwrap();
-    let index = XKCD_INDEX.get().expect("xkcd index not initialized");
+    let index = XKCD_INDEX.get().expect("XKCD index not initialized");
 
     let reader: tantivy::IndexReader = index
         .reader_builder()
         .reload_policy(tantivy::ReloadPolicy::OnCommit)
         .try_into()
-        .expect("failed to init index reader");
+        .expect("Failed to init index reader");
 
     XKCD_INDEX_READER
         .set(reader)
-        .map_err(|_| "could not init xkcd index reader")
+        .map_err(|_| "Could not init xkcd index reader")
         .unwrap();
 }

@@ -22,6 +22,7 @@ use tracing::{debug, trace};
 
 #[command]
 #[description = "Post a fav"]
+#[usage = "*tag*"]
 #[example = "taishi wichsen"]
 #[bucket = "fav"]
 pub async fn post(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {

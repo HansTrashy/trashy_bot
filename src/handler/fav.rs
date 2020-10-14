@@ -48,12 +48,12 @@ pub async fn add(ctx: Context, add_reaction: Reaction) {
             .as_u64() as i64,
     )
     .await
-    .expect("could not create fav");
+    .expect("Could not create fav");
 
     if let Ok(dm_channel) = add_reaction.user_id.unwrap().create_dm_channel(&ctx).await {
-        trace!(user = ?add_reaction.user_id, "Requesting labels from user");
+        trace!(user = ?add_reaction.user_id, "Requesting tags from user");
 
-        let _ = dm_channel.say(&ctx, "Send me your labels!").await;
+        let _ = dm_channel.say(&ctx, "Send me your tags!").await;
 
         if let Some(label_reply) = dm_channel
             .id
@@ -68,10 +68,10 @@ pub async fn add(ctx: Context, add_reaction: Reaction) {
             for tag in label_reply.content.split(' ') {
                 let r = Tag::create(&pool, created_fav.id, tag).await;
 
-                trace!(tag_creation = ?r, "Tag created");
+                trace!(tag_creation = ?r, "Tag created!");
             }
 
-            let _ = label_reply.reply(&ctx, "added the tags!").await;
+            let _ = label_reply.reply(&ctx, "Tags added!").await;
         }
     }
 }

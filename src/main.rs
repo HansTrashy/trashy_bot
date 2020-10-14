@@ -222,7 +222,7 @@ async fn main() {
             .await
             .expect("Could not load config file"),
     )
-    .expect("failed to parse config");
+    .expect("Failed to parse config");
 
     tracing_subscriber::fmt()
         .with_env_filter(&config.log_level)
@@ -300,7 +300,7 @@ async fn main() {
         .max_connections(config.db_pool_max_size)
         .connect(&config.db_url)
         .await
-        .expect("could not setup db pool");
+        .expect("Could not setup db pool");
     //TODO: run migrations
 
     let opt_out = Arc::new(Mutex::new(OptOutStore::load_or_init()));
@@ -312,7 +312,7 @@ async fn main() {
             regex::Regex::new(
                 r#"https://(?:discord.com|discordapp.com)/channels/(\d+)/(\d+)/(\d+)"#,
             )
-            .expect("could not compile quote link regex"),
+            .expect("Could not compile quote link regex"),
         )
         .unwrap();
 

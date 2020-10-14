@@ -13,13 +13,13 @@ use tracing::{debug, trace};
 
 #[command]
 #[description = "Quote a message"]
-#[usage = "command message-link"]
+#[usage = "*message_link*"]
 #[example = "https://discord.com/channels/_/_/_"]
 #[only_in("guilds")]
 pub async fn quote(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     check_optout(ctx, msg, *msg.author.id.as_u64()).await?;
 
-    let regex = crate::MESSAGE_REGEX.get().expect("regex not init");
+    let regex = crate::MESSAGE_REGEX.get().expect("Regex not initialized");
 
     let (quote_server_id, quote_channel_id, quote_msg_id) =
         util::parse_message_link(regex, args.rest())?;
@@ -73,7 +73,7 @@ pub async fn quote(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
 
         match msg.delete(ctx).await {
             Ok(_) => (),
-            Err(_) => debug!("deleting in dms is not supported"),
+            Err(_) => debug!("Deleting in dms is not supported"),
         }
 
         let http = ctx.http.clone();
@@ -92,7 +92,7 @@ pub async fn quote(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
                     let reaction = reaction.as_inner_ref();
                     if let Ok(dm_channel) = reaction.user_id.unwrap().create_dm_channel(http).await
                     {
-                        trace!(user = ?reaction.user_id, "sending info source for quote");
+                        trace!(user = ?reaction.user_id, "Sending info source for quote");
                         let _ = dm_channel
                             .say(
                                 http,
@@ -107,7 +107,7 @@ pub async fn quote(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
             })
             .await;
     } else {
-        msg.reply(ctx, "Sorry, i can not find this message.")
+        msg.reply(ctx, "Sorry, I can not find this message.")
             .await?;
         trace!("Could not find quote message");
     }
@@ -121,7 +121,7 @@ async fn check_optout(ctx: &Context, msg: &Message, id: u64) -> CommandResult {
         .read()
         .await
         .get::<OptOut>()
-        .expect("expected optout")
+        .expect("Expected optout")
         .lock()
         .await
         .set
@@ -137,7 +137,7 @@ async fn check_optout(ctx: &Context, msg: &Message, id: u64) -> CommandResult {
         debug!("OptOut check unsuccessful");
         Err("Fav/Quote OptOut is active".into())
     } else {
-        trace!("user id not contained in optout set");
+        trace!("User id not contained in optout set");
         Ok(())
     }
 }

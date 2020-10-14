@@ -11,8 +11,7 @@ use serenity::{
 //TODO: this need some rework too, shinies are updated by their user_ids across servers, so every server creates probably a new entry and then updates all of them
 
 #[command]
-#[description = "Lists Shiny counts"]
-#[example("")]
+#[description = "List shiny counts"]
 #[only_in("guilds")]
 async fn list(ctx: &Context, msg: &Message, _args: Args) -> CommandResult {
     if let Some(server_id) = msg.guild_id {
@@ -38,7 +37,7 @@ async fn list(ctx: &Context, msg: &Message, _args: Args) -> CommandResult {
 }
 
 #[command]
-#[description = "Increases your shiny charity count"]
+#[description = "Increase your shiny charity count"]
 #[example("1000")]
 #[only_in("guilds")]
 #[usage("*amount*")]
@@ -81,7 +80,7 @@ async fn respond(ctx: &Context, msg: &Message, shiny: Shiny) {
 #[example("1000 @HansTrashy")]
 #[only_in("guilds")]
 #[allowed_roles("Mods")]
-#[usage("*amount*")]
+#[usage("*amount* *user_mention*")]
 async fn setshiny(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     let amount = args.single::<i64>()?;
     let pool = get_client(&ctx).await?;
@@ -124,7 +123,7 @@ async fn setshiny(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
 #[example("@HansTrashy")]
 #[only_in("guilds")]
 #[allowed_roles("Mods")]
-#[usage("*user1* *user2*")]
+#[usage("*user_mention_1* *user_mention_2*")]
 async fn removeshiny(ctx: &Context, msg: &Message, _args: Args) -> CommandResult {
     let mut response = Vec::new();
     let pool = get_client(&ctx).await?;

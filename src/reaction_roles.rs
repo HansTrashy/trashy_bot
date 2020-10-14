@@ -14,7 +14,7 @@ impl State {
         // also save those settings
         let data = serde_json::to_string(&(channel_id, &message_ids))
             .expect("Could not serialize rr state");
-        std::fs::write("rr_state.storage", data).expect("coult not write rr state to file");
+        std::fs::write("rr_state.storage", data).expect("Could not write rr state to file");
 
         Self::Set {
             channel_id,
@@ -26,7 +26,7 @@ impl State {
         match std::fs::read_to_string("rr_state.storage") {
             Ok(data) => {
                 let (channel_id, message_ids): (u64, Vec<u64>) =
-                    serde_json::from_str(&data).expect("could not deserialize rr state");
+                    serde_json::from_str(&data).expect("Could not deserialize rr state");
                 Self::Set {
                     channel_id,
                     message_ids,

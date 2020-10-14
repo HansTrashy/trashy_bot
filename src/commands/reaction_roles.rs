@@ -19,17 +19,17 @@ pub async fn testing(ctx: &Context, msg: &Message, mut args: Args) -> CommandRes
     let role_arg = args.single::<String>()?;
 
     let guild = msg.guild(&ctx).await.ok_or("No Guild found")?;
-    debug!(role_arg = ?role_arg, "trying to find role");
+    debug!(role_arg = ?role_arg, "Trying to find role");
     let role = guild.role_by_name(&role_arg).ok_or("Role not found")?;
-    debug!(role = ?role, "found role");
+    debug!(role = ?role, "Found role");
 
     Ok(())
 }
 
 #[command]
 #[allowed_roles("Mods")]
-#[description = "Creates a new reaction role"]
-#[example = "🧀 group_name role_name"]
+#[description = "Create a new reaction role"]
+#[usage = "🧀 *group_name* *role_name*"]
 pub async fn create(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     let emoji_arg = args.single::<String>()?;
     let role_group_arg = args.single::<String>()?;
@@ -38,16 +38,16 @@ pub async fn create(ctx: &Context, msg: &Message, mut args: Args) -> CommandResu
     let pool = get_client(&ctx).await?;
 
     let guild = msg.guild(&ctx).await.ok_or("No Guild found")?;
-    debug!("trying to find role: '{:?}'", &role_arg);
+    debug!("Trying to find role: '{:?}'", &role_arg);
     let role = guild.role_by_name(&role_arg).ok_or("Role not found")?;
 
     ReactionRole::create(
         &pool,
         *msg.channel(&ctx.cache)
             .await
-            .ok_or("no channel")?
+            .ok_or("No channel")?
             .guild()
-            .ok_or("no guild")?
+            .ok_or("No guild")?
             .guild_id
             .as_u64() as i64,
         *role.id.as_u64() as i64,
@@ -65,8 +65,8 @@ pub async fn create(ctx: &Context, msg: &Message, mut args: Args) -> CommandResu
 
 #[command]
 #[allowed_roles("Mods")]
-#[description = "changes the description of a reaction role"]
-#[example = "role_name description"]
+#[description = "Change the description of a reaction role"]
+#[usage = "*role_name* *description*"]
 pub async fn description(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     let role_arg = args.single::<String>()?;
     let description = args.single_quoted::<String>().ok();
@@ -90,8 +90,8 @@ pub async fn description(ctx: &Context, msg: &Message, mut args: Args) -> Comman
 
 #[command]
 #[allowed_roles("Mods")]
-#[description = "Removes a reaction role"]
-#[example = "role_name"]
+#[description = "Remove a reaction role"]
+#[usage = "*role_name*"]
 pub async fn remove(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     let role_arg = args.rest();
     let pool = get_client(&ctx).await?;
@@ -112,7 +112,7 @@ pub async fn remove(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
 
 #[command]
 #[allowed_roles("Mods")]
-#[description = "Lists all reaction roles"]
+#[description = "List all reaction roles"]
 pub async fn list(ctx: &Context, msg: &Message, _args: Args) -> CommandResult {
     let pool = get_client(&ctx).await?;
     let results = ReactionRole::list(&pool).await?;
@@ -138,7 +138,7 @@ pub async fn list(ctx: &Context, msg: &Message, _args: Args) -> CommandResult {
 
 #[command]
 #[allowed_roles("Mods")]
-#[description = "Posts the reaction role groups"]
+#[description = "Post the reaction role groups"]
 pub async fn postgroups(ctx: &Context, msg: &Message, _args: Args) -> CommandResult {
     let pool = get_client(&ctx).await?;
     let mut results = ReactionRole::list(&pool).await?;
@@ -167,7 +167,7 @@ pub async fn postgroups(ctx: &Context, msg: &Message, _args: Args) -> CommandRes
             .channel_id
             .send_message(&ctx, |m| {
                 m.embed(|e| {
-                    e.title(&format!("Rollengruppe: {}", reaction_group_name))
+                    e.title(&format!("Role group: {}", reaction_group_name))
                         .description(rendered_roles)
                         .color((0, 120, 220))
                 })

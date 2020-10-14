@@ -10,7 +10,7 @@ use tracing::info;
 #[command]
 #[description = "Link your lastfm account to your discord account"]
 #[example = "HansTrashy"]
-#[usage = "*lastfmusername*"]
+#[usage = "*lastf_musername*"]
 #[num_args(1)]
 pub async fn register(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     let username = args.single::<String>()?;
@@ -29,7 +29,7 @@ pub async fn register(ctx: &Context, msg: &Message, mut args: Args) -> CommandRe
 
         msg.reply(
             ctx,
-            format!("added {} as your lastfm username!", lastfm.username),
+            format!("Added {} as your lastfm username!", lastfm.username),
         )
         .await?;
     }

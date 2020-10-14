@@ -12,7 +12,7 @@ use serenity::{
 use tokio::time::delay_for;
 
 #[command]
-#[description = "Reminds you after the given time with the given text. Allows (w, d, h, m, s)"]
+#[description = "Set reminder for the given time with the given text. Allowed units: w, d, h, m, s"]
 #[example("15m Pizza ist fertig!")]
 #[usage("*duration* *message*")]
 #[min_args(1)]
