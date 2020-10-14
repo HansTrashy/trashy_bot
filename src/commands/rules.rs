@@ -149,6 +149,7 @@ pub async fn adden(ctx: &mut Context, msg: &Message, args: Args) -> CommandResul
 #[command]
 #[allowed_roles("Mods")]
 #[description = "Post the rules into the channel"]
+#[usage = "(de|en)"]
 #[num_args(1)]
 #[example = "de"]
 #[only_in("guilds")]

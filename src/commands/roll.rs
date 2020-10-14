@@ -11,6 +11,7 @@ use tracing::error;
 #[num_args(2)]
 #[usage = "*number_of_dice* *number_of_sides*"]
 #[example = "1 6"]
+#[example = "6 12"]
 async fn roll(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     let amount_of_dice = args.single::<u64>()?;
     let number_of_eyes = args.single::<u64>()?;

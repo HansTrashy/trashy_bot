@@ -27,9 +27,10 @@ pub struct Comic {
 }
 
 #[command]
-#[description = "Post the xkcd comic specified"]
-#[usage = "*xkcd_id*"]
+#[description = "Post the xkcd comic. Either by comic id or by search text (alt/title)"]
+#[usage = "(xkcd_id|search_text)"]
 #[example = "547"]
+#[example = "tables"]
 #[num_args(1)]
 pub async fn xkcd(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     let xkcd_query = args.rest();
