@@ -506,16 +506,17 @@ pub async fn create_fav_list(ctx: &Context, msg: &Message, args: Args) -> Comman
     let mut out_buf = BufWriter::new(outfile);
 
     for fav in favs {
-        let fav_msg = ChannelId(fav.channel_id as u64)
+        if let Ok(fav_msg) = ChannelId(fav.channel_id as u64)
             .message(&ctx, fav.msg_id as u64)
-            .await?;
+            .await
+        {
+            let line = format!(
+                "https://discord.com/channels/{}/{}/{} | {}\n",
+                fav.server_id as u64, fav.channel_id as u64, fav.msg_id as u64, fav_msg.content
+            );
 
-        let line = format!(
-            "https://discord.com/channels/{}/{}/{} | {}\n",
-            fav.server_id as u64, fav.channel_id as u64, fav.msg_id as u64, fav_msg.content
-        );
-
-        out_buf.write(line.as_bytes()).await?;
+            let _ = out_buf.write(line.as_bytes()).await;
+        }
     }
 
     out_buf.flush().await?;
