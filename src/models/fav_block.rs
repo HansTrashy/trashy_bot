@@ -12,16 +12,6 @@ pub struct FavBlock {
 }
 
 impl FavBlock {
-    pub async fn list(pool: &PgPool, server_id: i64) -> Result<Vec<Self>, DbError> {
-        sqlx::query_as!(
-            Self,
-            "SELECT * FROM fav_blocks WHERE server_id = $1",
-            server_id
-        )
-        .fetch_all(pool)
-        .await
-    }
-
     pub async fn check_blocked(pool: &PgPool, channel_id: i64, msg_id: i64) -> bool {
         match sqlx::query!(
             "SELECT * FROM fav_blocks WHERE channel_id = $1 AND msg_id = $2",
@@ -51,12 +41,5 @@ impl FavBlock {
         )
         .fetch_one(pool)
         .await
-    }
-
-    pub async fn delete(pool: &PgPool, id: i64) -> Result<u64, DbError> {
-        Ok(sqlx::query!("DELETE FROM fav_blocks WHERE id = $1", id)
-            .execute(pool)
-            .await?
-            .rows_affected())
     }
 }
