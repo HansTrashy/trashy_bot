@@ -1,7 +1,6 @@
 use crate::models::reaction_role::ReactionRole;
 use crate::reaction_roles::State as RRState;
 use crate::util::get_client;
-use crate::DatabasePool;
 use crate::ReactionRolesState;
 use serenity::model::channel::ReactionType;
 use serenity::prelude::*;
