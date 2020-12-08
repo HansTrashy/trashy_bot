@@ -73,16 +73,6 @@ pub mod greenbook {
     pub struct Greenbook;
 }
 
-// pub mod rules {
-//     use crate::commands::rules::*;
-//     use serenity::framework::standard::macros::group;
-
-//     #[group]
-//     #[prefix("rules")]
-//     #[commands(de, en, setde, addde, seten, adden, post)]
-//     pub struct Rules;
-// }
-
 pub mod roles {
     use crate::commands::reaction_roles::*;
     use serenity::framework::standard::macros::group;

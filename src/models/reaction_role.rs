@@ -15,17 +15,6 @@ pub struct ReactionRole {
 }
 
 impl ReactionRole {
-    pub async fn get(pool: &PgPool, server_id: i64, role_name: String) -> Result<Self, DbError> {
-        sqlx::query_as!(
-            Self,
-            "SELECT * FROM reaction_roles WHERE server_id = $1 AND role_name = $2",
-            server_id,
-            role_name,
-        )
-        .fetch_one(pool)
-        .await
-    }
-
     pub async fn list(pool: &PgPool) -> Result<Vec<Self>, DbError> {
         sqlx::query_as!(Self, "SELECT * FROM reaction_roles")
             .fetch_all(pool)
