@@ -1,6 +1,5 @@
 use crate::models::bank::Bank;
 use crate::util::get_client;
-use crate::DatabasePool;
 use rand::prelude::*;
 use serenity::prelude::*;
 use serenity::{

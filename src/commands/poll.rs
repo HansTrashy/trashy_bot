@@ -5,7 +5,6 @@ use serenity::{
     framework::standard::{macros::command, Args, CommandResult},
     futures::stream::StreamExt,
     model::channel::Message,
-    model::channel::MessageReaction,
     model::user::User,
 };
 use std::collections::HashMap;

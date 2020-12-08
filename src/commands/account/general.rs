@@ -1,6 +1,5 @@
 use crate::models::bank::Bank;
 use crate::util::get_client;
-use crate::DatabasePool;
 use chrono::prelude::*;
 use serenity::prelude::*;
 use serenity::{

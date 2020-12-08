@@ -1,6 +1,5 @@
 use crate::models::shiny::Shiny;
 use crate::util::get_client;
-use crate::DatabasePool;
 use serenity::{
     framework::standard::{macros::command, Args, CommandResult},
     model::prelude::*,
