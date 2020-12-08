@@ -1,5 +1,4 @@
 use sqlx::postgres::PgPool;
-use sqlx::Done;
 
 pub type DbError = sqlx::Error;
 
