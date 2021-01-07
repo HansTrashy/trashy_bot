@@ -487,7 +487,7 @@ pub async fn block(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
 #[only_in("guilds")]
 #[description = "Creates a list of all favs on the server"]
 #[allowed_roles("Mods")]
-pub async fn create_fav_list(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
+pub async fn create_fav_list(ctx: &Context, msg: &Message) -> CommandResult {
     use tokio::io::{AsyncWriteExt, BufWriter};
     let pool = get_client(&ctx).await?;
 

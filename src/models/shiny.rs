@@ -1,4 +1,3 @@
-use futures::stream::TryStreamExt;
 use sqlx::postgres::PgPool;
 use sqlx::Done;
 

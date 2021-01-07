@@ -15,16 +15,6 @@ pub struct Reminder {
 }
 
 impl Reminder {
-    pub async fn get(pool: &PgPool, source_msg_id: i64) -> Result<Self, DbError> {
-        sqlx::query_as!(
-            Self,
-            "SELECT * FROM reminders WHERE source_msg_id = $1",
-            source_msg_id
-        )
-        .fetch_one(pool)
-        .await
-    }
-
     pub async fn list(pool: &PgPool) -> Result<Vec<Self>, DbError> {
         sqlx::query_as!(Self, "SELECT * FROM reminders")
             .fetch_all(pool)
