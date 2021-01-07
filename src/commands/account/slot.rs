@@ -34,7 +34,7 @@ pub async fn slot(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
             // roll
             let full_reels: Vec<Vec<i64>> = (0..3)
                 .map(|_| {
-                    let roll = rand::thread_rng().gen_range(0, 7);
+                    let roll = rand::thread_rng().gen_range(0..7);
                     let prev;
                     let next;
                     if roll == 6 {
@@ -135,7 +135,7 @@ mod tests {
 
         let full_reels: Vec<Vec<i32>> = (0..3)
             .map(|_| {
-                let roll = rng.gen_range(0, 7);
+                let roll = rng.gen_range(0..7);
                 let prev;
                 let next;
                 if roll == 6 {

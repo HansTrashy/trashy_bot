@@ -196,7 +196,7 @@ async fn normal_message(_ctx: &Context, msg: &Message) {
 #[hook]
 async fn dispatch_error(ctx: &Context, msg: &Message, error: DispatchError) {
     match error {
-        DispatchError::Ratelimited(duration) => {
+        DispatchError::Ratelimited(info) => {
             let _ = msg
                 .channel_id
                 .say(
@@ -204,7 +204,7 @@ async fn dispatch_error(ctx: &Context, msg: &Message, error: DispatchError) {
                     &format!(
                         "Try again in {}",
                         util::humanize_duration(
-                            &chrono::Duration::from_std(duration)
+                            &chrono::Duration::from_std(info.rate_limit)
                                 .unwrap_or(chrono::Duration::zero())
                         )
                     ),

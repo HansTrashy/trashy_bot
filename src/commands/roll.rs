@@ -35,7 +35,7 @@ async fn roll(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
         // prevent rng to be held across an await point
         let mut rng = rand::thread_rng();
         for _ in 0..amount_of_dice {
-            dice_rolls.push(rng.gen_range(1, number_of_eyes + 1));
+            dice_rolls.push(rng.gen_range(1..(number_of_eyes + 1)));
         }
     }
 

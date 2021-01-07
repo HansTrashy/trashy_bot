@@ -15,7 +15,7 @@ use serenity::{
     model::id::RoleId,
     model::prelude::*,
 };
-use tokio::time::delay_for;
+use tokio::time::sleep;
 use tracing::{debug, error};
 
 #[command]
@@ -105,7 +105,7 @@ async fn remove_mute(
     duration: chrono::Duration,
     mute_role: u64,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    delay_for(duration.to_std()?).await;
+    sleep(duration.to_std()?).await;
     let pool = get_client(&ctx).await?;
 
     match guild_id.member(&ctx, user_id).await {

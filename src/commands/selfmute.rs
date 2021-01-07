@@ -11,7 +11,7 @@ use serenity::{
     model::id::RoleId,
     model::prelude::*,
 };
-use tokio::time::delay_for;
+use tokio::time::sleep;
 use tracing::error;
 
 #[command]
@@ -59,7 +59,7 @@ pub async fn selfmute(ctx: &Context, msg: &Message, mut args: Args) -> CommandRe
                     msg.react(ctx, ReactionType::Unicode("✅".to_string()))
                         .await?;
 
-                    delay_for(duration.to_std()?).await;
+                    sleep(duration.to_std()?).await;
 
                     match guild_id.member(ctx, msg.author.id).await {
                         Ok(mut member) => {
