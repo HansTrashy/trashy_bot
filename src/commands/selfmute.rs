@@ -3,7 +3,6 @@ use crate::models::mute::Mute;
 use crate::models::server_config::ServerConfig;
 use crate::util;
 use crate::util::get_client;
-use crate::DatabasePool;
 use chrono::{Duration, Utc};
 use serenity::prelude::*;
 use serenity::{

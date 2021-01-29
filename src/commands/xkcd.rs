@@ -32,7 +32,7 @@ pub struct Comic {
 #[example = "547"]
 #[example = "tables"]
 #[num_args(1)]
-pub async fn xkcd(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
+pub async fn xkcd(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     let xkcd_query = args.rest();
 
     // let reqwest_client = &util::get_reqwest_client(&ctx).await?;
@@ -59,7 +59,7 @@ pub async fn xkcd(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
 
         let top_docs = searcher
             .search(&query, &TopDocs::with_limit(1))
-            .map_err(|e| format!("Failed index search"))?;
+            .map_err(|e| format!("Failed index search: {:?}", e))?;
 
         top_docs
     };
@@ -102,7 +102,7 @@ pub async fn xkcd(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
 
 #[command]
 #[owners_only]
-pub async fn index_xkcd(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
+pub async fn index_xkcd(ctx: &Context, msg: &Message) -> CommandResult {
     let xkcd_index_path = ctx
         .data
         .read()

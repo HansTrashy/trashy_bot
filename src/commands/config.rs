@@ -1,9 +1,6 @@
 use crate::models::server_config::ServerConfig;
 use crate::util::get_client;
-use crate::DatabasePool;
 use serde::{Deserialize, Serialize};
-use serenity::model::gateway::Activity;
-use serenity::model::user::OnlineStatus;
 use serenity::prelude::*;
 use serenity::{
     framework::standard::{macros::command, Args, CommandResult},

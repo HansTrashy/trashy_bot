@@ -286,7 +286,7 @@ async fn main() {
         .group(&commands::groups::lastfm::LASTFM_GROUP);
     debug!("Framework created");
 
-    let mut client = Client::new(&token)
+    let mut client = Client::builder(&token)
         .cache_update_timeout(std::time::Duration::from_millis(500))
         .event_handler(handler::Handler)
         .framework(framework)
