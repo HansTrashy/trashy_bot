@@ -53,7 +53,7 @@ pub async fn add(ctx: Context, add_reaction: Reaction) {
     if let Ok(dm_channel) = add_reaction.user_id.unwrap().create_dm_channel(&ctx).await {
         trace!(user = ?add_reaction.user_id, "Requesting tags from user");
 
-        let _ = dm_channel.say(&ctx, "Send me your tags!").await;
+        let _ = dm_channel.say(&ctx, "Send me your tags! (space-separated, e.g. 'user fun')").await;
 
         if let Some(label_reply) = dm_channel
             .id
@@ -71,7 +71,7 @@ pub async fn add(ctx: Context, add_reaction: Reaction) {
                 trace!(tag_creation = ?r, "Tag created!");
             }
 
-            let _ = label_reply.reply(&ctx, "Tags added!").await;
+            let _ = label_reply.reply(&ctx, "Tags added! To edit tags, react with 🏷️ on the posted fav").await;
         }
     }
 }
