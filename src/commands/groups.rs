@@ -79,6 +79,6 @@ pub mod roles {
 
     #[group]
     #[prefix("roles")]
-    #[commands(list, create, remove, postgroups, description, testing)]
+    #[commands(list, create, remove, postgroups, description)]
     pub struct Roles;
 }

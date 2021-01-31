@@ -13,20 +13,6 @@ use tracing::debug;
 
 #[command]
 #[allowed_roles("Mods")]
-#[description = "Testing function"]
-pub async fn testing(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
-    let role_arg = args.single::<String>()?;
-
-    let guild = msg.guild(&ctx).await.ok_or("No Guild found")?;
-    debug!(role_arg = ?role_arg, "Trying to find role");
-    let role = guild.role_by_name(&role_arg).ok_or("Role not found")?;
-    debug!(role = ?role, "Found role");
-
-    Ok(())
-}
-
-#[command]
-#[allowed_roles("Mods")]
 #[description = "Create a new reaction role"]
 #[usage = "🧀 *group_name* *role_name*"]
 pub async fn create(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
