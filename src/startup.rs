@@ -5,7 +5,7 @@ use crate::DatabasePool;
 use chrono::Utc;
 use serenity::model::{id::ChannelId, id::GuildId, id::RoleId, id::UserId};
 use serenity::utils::MessageBuilder;
-use tokio::time::sleep;
+use tokio::time::delay_for;
 use tracing::error;
 
 pub async fn on_startup(client: &serenity::Client) {
@@ -49,7 +49,7 @@ pub async fn on_startup(client: &serenity::Client) {
         } else {
             let duration = r.end_time.signed_duration_since(Utc::now());
             tokio::spawn(async move {
-                sleep(duration.to_std().unwrap()).await;
+                delay_for(duration.to_std().unwrap()).await;
 
                 let source_msg_id = r.source_msg_id;
                 let _ = ChannelId(r.channel_id as u64)
@@ -122,7 +122,7 @@ pub async fn on_startup(client: &serenity::Client) {
             } else {
                 let duration = m_clone.end_time.signed_duration_since(Utc::now());
                 let delayed_fut = async move {
-                    sleep(duration.to_std().unwrap()).await;
+                    delay_for(duration.to_std().unwrap()).await;
                     remove_mute_fut.await;
                 };
                 tokio::spawn(delayed_fut);
