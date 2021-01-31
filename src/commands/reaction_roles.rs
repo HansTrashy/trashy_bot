@@ -123,11 +123,46 @@ pub async fn list(ctx: &Context, msg: &Message, _args: Args) -> CommandResult {
 
 #[command]
 #[allowed_roles("Mods")]
+#[description = "Resets the Role Groups posted to None"]
+pub async fn resetgroups(ctx: &Context, msg: &Message, _args: Args) -> CommandResult {
+    {
+        let data = ctx.data.read().await;
+
+        let state = data
+            .get::<ReactionRolesState>()
+            .ok_or("Failed to acces roles state")?;
+        *state.lock().await = RRState::set(Vec::new());
+    }
+
+    let _ = msg
+        .react(&ctx, ReactionType::Unicode("✅".to_string()))
+        .await;
+
+    Ok(())
+}
+
+#[command]
+#[allowed_roles("Mods")]
 #[description = "Post the reaction role groups"]
-pub async fn postgroups(ctx: &Context, msg: &Message, _args: Args) -> CommandResult {
+pub async fn postgroups(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
+    let group_to_post = args.single::<String>()?;
     let pool = get_client(&ctx).await?;
     let mut results = ReactionRole::list(&pool).await?;
     results.sort_by_key(|r| r.role_group.to_owned());
+
+    let mut rr_message_ids = {
+        let data = ctx.data.read().await;
+
+        let state = data
+            .get::<ReactionRolesState>()
+            .ok_or("Failed to acces roles state")?;
+        let ids = match state.lock().await.get() {
+            Some(ids) => ids,
+            None => Vec::new(),
+        };
+        ids
+    };
+
     // post a message for each group and react under them with the respective emojis
 
     let reaction_groups = results.into_iter().fold(HashMap::new(), |mut acc, role| {
@@ -137,34 +172,48 @@ pub async fn postgroups(ctx: &Context, msg: &Message, _args: Args) -> CommandRes
         acc
     });
 
-    let mut rr_message_ids = Vec::new();
-    for (reaction_group_name, roles) in reaction_groups {
-        let mut rendered_roles = String::new();
-        for r in &roles {
-            rendered_roles.push_str(&format!("{} | {}", r.emoji, r.role_name));
-            if let Some(description) = &r.role_description {
-                rendered_roles.push_str(&format!(" | {}", description));
-            }
-            rendered_roles.push_str("\n");
-        }
+    match reaction_groups.get(&group_to_post) {
+        Some(roles) => {
+            // let mut rendered_roles = String::new();
+            // for r in roles {
+            //     rendered_roles.push_str(&format!("{} | {}", r.emoji, r.role_name));
+            //     if let Some(description) = &r.role_description {
+            //         rendered_roles.push_str(&format!(" | {}", description));
+            //     }
+            //     rendered_roles.push_str("\n");
+            // }
 
-        let group_message = msg
-            .channel_id
-            .send_message(&ctx, |m| {
-                m.embed(|e| {
-                    e.title(&format!("Role group: {}", reaction_group_name))
-                        .description(rendered_roles)
-                        .color((0, 120, 220))
+            let group_message = msg
+                .channel_id
+                .send_message(&ctx, |m| {
+                    m.embed(|e| {
+                        let mut e = e.title(&format!("Role group: {}", group_to_post));
+
+                        for r in roles {
+                            e = e.field(
+                                format!("{}-{}", r.emoji.clone(), r.role_name.clone()),
+                                r.role_description.as_ref().unwrap_or(&"---".to_string()),
+                                true,
+                            );
+                        }
+
+                        e.color((0, 120, 220))
+                    })
                 })
-            })
-            .await?;
-
-        rr_message_ids.push(*group_message.id.as_u64());
-
-        for r in &roles {
-            group_message
-                .react(ctx, ReactionType::Unicode(r.emoji.clone()))
                 .await?;
+
+            rr_message_ids.push(*group_message.id.as_u64());
+
+            for r in roles {
+                group_message
+                    .react(ctx, ReactionType::Unicode(r.emoji.clone()))
+                    .await?;
+            }
+        }
+        None => {
+            let _ = msg
+                .reply(&ctx, "Sorry, i cant find a group with that name!")
+                .await;
         }
     }
 
@@ -172,7 +221,7 @@ pub async fn postgroups(ctx: &Context, msg: &Message, _args: Args) -> CommandRes
 
     match ctx.data.read().await.get::<ReactionRolesState>() {
         Some(v) => {
-            *v.lock().await = RRState::set(*msg.channel_id.as_u64(), rr_message_ids);
+            *v.lock().await = RRState::set(rr_message_ids);
         }
         None => panic!("No reaction role state available!"),
     }
