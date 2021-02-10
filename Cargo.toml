@@ -25,6 +25,7 @@ tracing-subscriber = { version = "0.2", features = ["env-filter"] }
 tracing-futures = "0.2"
 tantivy = "0.13"
 toml = "0.5"
+nom = "6.0"
 
 [dependencies.serenity]
 version = "0.10.0"
