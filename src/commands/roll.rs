@@ -8,10 +8,10 @@ use serenity::{
     framework::standard::{macros::command, Args, CommandResult},
     model::channel::Message,
 };
+use tracing::error;
 
 #[command]
 #[description = "Roll some dice"]
-#[num_args(2)]
 #[usage = "*dice_str* *dice_str*"]
 #[example = "1d6"]
 #[example = "2d20-3"]
@@ -35,8 +35,10 @@ async fn roll(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
 
             msg.reply(ctx, &format!("Your Roll: {}", total)).await?;
         }
-        Err(_) => {
-            let _ = msg.reply(ctx, "Sorry that is not a valid die roll!").await;
+        Err(e) => {
+            error!(?e, "Failed parsing input");
+            msg.reply(ctx, "Sorry that is not a valid die roll!")
+                .await?;
         }
     }
 
