@@ -40,9 +40,10 @@ pub async fn selfmute(ctx: &Context, msg: &Message, mut args: Args) -> CommandRe
 
                 if let Some(mute_role) = &guild_config.mute_role {
                     match guild_id.member(ctx, msg.author.id).await {
-                        Ok(mut member) => {
-                            member.add_role(&ctx, RoleId(*mute_role)).await?;
-                        }
+                        Ok(mut member) => match member.add_role(&ctx, RoleId(*mute_role)).await {
+                            Ok(_) => (),
+                            Err(e) => error!(?e, "Could not add role to member"),
+                        },
                         Err(e) => error!("Could not get member: {:?}", e),
                     };
 
@@ -56,17 +57,18 @@ pub async fn selfmute(ctx: &Context, msg: &Message, mut args: Args) -> CommandRe
                     )
                     .await?;
 
-                    msg.react(ctx, ReactionType::Unicode("✅".to_string()))
-                        .await?;
+                    let _ = msg
+                        .react(ctx, ReactionType::Unicode("✅".to_string()))
+                        .await;
 
                     delay_for(duration.to_std()?).await;
 
                     match guild_id.member(ctx, msg.author.id).await {
                         Ok(mut member) => {
-                            member
-                                .remove_role(&ctx, RoleId(*mute_role))
-                                .await
-                                .expect("Could not remove role");
+                            match member.remove_role(&ctx, RoleId(*mute_role)).await {
+                                Ok(_) => (),
+                                Err(e) => error!(?e, "Could not remove role from member"),
+                            }
                         }
                         Err(e) => error!("Could not get member: {:?}", e),
                     };

@@ -37,7 +37,10 @@ pub async fn mute(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
                         for user in &msg.mentions {
                             match guild_id.member(ctx, user).await {
                                 Ok(mut member) => {
-                                    let _ = member.add_role(&ctx, RoleId(*mute_role)).await;
+                                    match member.add_role(&ctx, RoleId(*mute_role)).await {
+                                        Ok(_) => (),
+                                        Err(e) => error!(?e, "failed to add mute role to member"),
+                                    }
                                     found_members.push(member);
                                 }
                                 Err(e) => error!("could not get member: {:?}", e),
@@ -109,9 +112,10 @@ async fn remove_mute(
     let pool = get_client(&ctx).await?;
 
     match guild_id.member(&ctx, user_id).await {
-        Ok(mut member) => {
-            let _ = member.remove_role(&ctx, RoleId(mute_role)).await;
-        }
+        Ok(mut member) => match member.remove_role(&ctx, RoleId(mute_role)).await {
+            Ok(_) => (),
+            Err(e) => error!(?e, "failed to remove mute role"),
+        },
         Err(e) => error!("could not get member: {:?}", e),
     };
 
@@ -280,8 +284,9 @@ pub async fn unmute(ctx: &Context, msg: &Message, _args: Args) -> CommandResult 
                         }
                     }
 
-                    msg.react(ctx, ReactionType::Unicode("✅".to_string()))
-                        .await?;
+                    let _ = msg
+                        .react(ctx, ReactionType::Unicode("✅".to_string()))
+                        .await;
                 }
             }
             Err(_e) => {
