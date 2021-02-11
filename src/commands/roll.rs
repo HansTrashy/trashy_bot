@@ -37,7 +37,7 @@ async fn roll(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
         }
         Err(e) => {
             error!(?e, "Failed parsing input");
-            msg.reply(ctx, "Sorry that is not a valid die roll!")
+            msg.reply(ctx, "Sorry that is not a valid dice roll!")
                 .await?;
         }
     }
