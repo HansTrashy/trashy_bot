@@ -6,7 +6,7 @@ use serenity::{
     model::{channel::Reaction, channel::ReactionType},
     prelude::*,
 };
-use tracing::debug;
+use tracing::{debug, error};
 
 pub async fn add_role(ctx: Context, add_reaction: Reaction) {
     let rr_message_ids = match ctx.data.read().await.get::<ReactionRolesState>() {
@@ -34,16 +34,19 @@ pub async fn add_role(ctx: Context, add_reaction: Reaction) {
                     .ok()
                     .and_then(|c| c.guild())
                 {
+                    debug!("found guild for reaction");
                     if let Ok(mut member) = guild
                         .guild_id
                         .member(&ctx, add_reaction.user_id.unwrap())
                         .await
                     {
-                        member
-                            .add_role(&ctx, results[0].role_id as u64)
-                            .await
-                            .unwrap();
+                        let result = member.add_role(&ctx, results[0].role_id as u64).await;
+                        debug!(?result, "added role to user");
+                    } else {
+                        error!("failed to access member");
                     }
+                } else {
+                    error!("failed to access guild");
                 }
             }
         }
@@ -76,16 +79,19 @@ pub async fn remove_role(ctx: Context, remove_reaction: Reaction) {
                     .ok()
                     .and_then(|c| c.guild())
                 {
+                    debug!("found guild for reaction");
                     if let Ok(mut member) = guild
                         .guild_id
                         .member(&ctx, remove_reaction.user_id.unwrap())
                         .await
                     {
-                        member
-                            .remove_role(&ctx, results[0].role_id as u64)
-                            .await
-                            .unwrap();
+                        let result = member.remove_role(&ctx, results[0].role_id as u64).await;
+                        debug!(?result, "added role to user");
+                    } else {
+                        error!("failed to access member");
                     }
+                } else {
+                    error!("failed to access guild");
                 }
             }
         }
