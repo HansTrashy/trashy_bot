@@ -9,7 +9,7 @@ use serenity::{
 use tantivy::collector::TopDocs;
 use tantivy::query::QueryParser;
 use tantivy::Index;
-use tokio::time::delay_for;
+use tokio::time::sleep;
 use tracing::error;
 
 #[derive(Debug, Deserialize)]
@@ -191,12 +191,12 @@ pub async fn index_xkcd(ctx: &Context, msg: &Message) -> CommandResult {
         }
 
         // be nice on the api usage
-        delay_for(std::time::Duration::from_millis(500)).await;
+        sleep(std::time::Duration::from_millis(500)).await;
         if i % 5 == 0 {
-            delay_for(std::time::Duration::from_secs(2)).await;
+            sleep(std::time::Duration::from_secs(2)).await;
         }
         if i % 100 == 0 {
-            delay_for(std::time::Duration::from_secs(10)).await;
+            sleep(std::time::Duration::from_secs(10)).await;
         }
     }
 

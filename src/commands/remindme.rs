@@ -9,7 +9,7 @@ use serenity::{
     model::prelude::*,
     prelude::*,
 };
-use tokio::time::delay_for;
+use tokio::time::sleep;
 
 #[command]
 #[description = "Set reminder for the given time with the given text. Allowed units: w, d, h, m, s"]
@@ -44,7 +44,7 @@ pub async fn remindme(ctx: &Context, msg: &Message, mut args: Args) -> CommandRe
                 .react(ctx, ReactionType::Unicode("✅".to_string()))
                 .await;
 
-            delay_for(duration.to_std()?).await;
+            sleep(duration.to_std()?).await;
 
             let _ = Reminder::delete(&pool, *msg.id.as_u64() as i64).await;
 
