@@ -48,19 +48,14 @@ pub async fn remindme(ctx: &Context, msg: &Message, mut args: Args) -> CommandRe
 
             let _ = Reminder::delete(&pool, *msg.id.as_u64() as i64).await;
 
-            let _ = msg
-                .channel_id
-                .send_message(ctx, |m| {
-                    m.content(
-                        MessageBuilder::new()
-                            .push("Hey, ")
-                            .mention(&msg.author.id)
-                            .push("! You wanted me to remind you that: ")
-                            .push(message)
-                            .build(),
-                    )
-                })
-                .await;
+            msg.reply_ping(
+                ctx,
+                MessageBuilder::new()
+                    .push("Reminder: ")
+                    .push(message)
+                    .build(),
+            )
+            .await?;
         }
     }
     Ok(())
