@@ -24,6 +24,7 @@ mod util;
 use once_cell::sync::OnceCell;
 use serde::{Deserialize, Serialize};
 use serenity::{
+    client::bridge::gateway::GatewayIntents,
     client::bridge::gateway::ShardManager,
     client::Context,
     framework::standard::{
@@ -290,6 +291,7 @@ async fn main() {
         .cache_update_timeout(std::time::Duration::from_millis(500))
         .event_handler(handler::Handler)
         .framework(framework)
+        .intents(GatewayIntents::all())
         .await
         .expect("Err creating client");
 
