@@ -75,7 +75,7 @@ pub async fn now(ctx: &Context, msg: &Message, _args: Args) -> CommandResult {
         .clone();
 
     // prepare for the lastfm api
-    let url = format!("http://ws.audioscrobbler.com/2.0/?method=user.getrecenttracks&user={}&api_key={}&format=json",
+    let url = format!("http://ws.audioscrobbler.com/2.0/?method=user.getrecenttracks&user={}&api_key={}&format=json&limit=1",
             lastfm.username,
             &lastfm_api_key);
 
@@ -93,25 +93,45 @@ pub async fn now(ctx: &Context, msg: &Message, _args: Args) -> CommandResult {
                 .unwrap_or("")
                 == "true"
             {
-                let content = format!(
-                    "Artist: {} - {}",
-                    t.pointer("/artist/#text")
-                        .and_then(|a| a.as_str())
-                        .unwrap_or("Unknown Artist"),
-                    t.pointer("/name")
-                        .and_then(|a| a.as_str())
-                        .unwrap_or("Unknown Title")
-                );
+                let thumbnail_url = t
+                    .pointer("/image")
+                    .and_then(|a| a.as_array())
+                    .and_then(|a| a.get(2))
+                    .and_then(|v| v.pointer("/#text"))
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("");
 
                 msg.channel_id
                     .send_message(&ctx, |m| {
                         m.embed(|e| {
-                            e.description(&content).footer(|f| {
-                                f.text(format!(
-                                    "Lastfm response took: {}ms",
-                                    request_time.as_millis()
-                                ))
-                            })
+                            e.thumbnail(thumbnail_url)
+                                .field(
+                                    "Artist",
+                                    t.pointer("/artist/#text")
+                                        .and_then(|a| a.as_str())
+                                        .unwrap_or("Unknown Artist"),
+                                    false,
+                                )
+                                .field(
+                                    "Album",
+                                    t.pointer("/album/#text")
+                                        .and_then(|a| a.as_str())
+                                        .unwrap_or("Unknown Album"),
+                                    false,
+                                )
+                                .field(
+                                    "Title",
+                                    t.pointer("/name")
+                                        .and_then(|a| a.as_str())
+                                        .unwrap_or("Unknown Title"),
+                                    false,
+                                )
+                                .footer(|f| {
+                                    f.text(format!(
+                                        "Lastfm response took: {}ms",
+                                        request_time.as_millis()
+                                    ))
+                                })
                         })
                     })
                     .await?;
