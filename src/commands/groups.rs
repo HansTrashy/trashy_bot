@@ -19,7 +19,7 @@ pub mod lastfm {
 
     #[group]
     #[prefix("lastfm")]
-    #[commands(register, now, recent, artists, albums, tracks)]
+    #[commands(register, now, recent, artists, albums, tracks, delete)]
     pub struct Lastfm;
 }
 

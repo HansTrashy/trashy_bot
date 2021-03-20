@@ -38,4 +38,13 @@ impl Lastfm {
         .fetch_one(pool)
         .await
     }
+
+    pub async fn delete(pool: &PgPool, user_id: i64) -> Result<u64, DbError> {
+        Ok(
+            sqlx::query!("DELETE FROM lastfms WHERE user_id = $1", user_id)
+                .execute(pool)
+                .await?
+                .rows_affected(),
+        )
+    }
 }

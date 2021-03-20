@@ -5,7 +5,28 @@ use serenity::{
     framework::standard::{macros::command, Args, CommandResult},
     model::channel::Message,
 };
-use tracing::info;
+use tracing::{error, info};
+
+#[command]
+#[description = "Remove Accoutns for user_id"]
+#[usage = "*discord_user_id*"]
+#[num_args(1)]
+#[only_in("guilds")]
+#[allowed_roles("Mods")]
+pub async fn delete(ctx: &Context, msg: &Message, _args: Args) -> CommandResult {
+    let pool = get_client(&ctx).await?;
+    match Lastfm::delete(&pool, *msg.author.id.as_u64() as i64).await {
+        Ok(n) => {
+            msg.reply(ctx, format!("Removed {} entries for this user ", n))
+                .await?;
+        }
+        Err(e) => {
+            error!(?e, "failed to remove user lastfm");
+        }
+    }
+
+    Ok(())
+}
 
 #[command]
 #[description = "Link your lastfm account to your discord account"]
