@@ -381,13 +381,9 @@ pub async fn tracks(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     let mut content = String::new();
 
     if let Some(tracks) = res.pointer("/toptracks/track").and_then(|a| a.as_array()) {
-        let mut overall = 0;
         for t in tracks {
             let playcount = t.pointer("/playcount").and_then(|a| a.as_str());
 
-            overall += playcount
-                .map(|x| x.parse::<i32>().unwrap_or(0))
-                .unwrap_or(0);
             content.push_str(&format!(
                 "Rank: {} | Played: {} | {} - {}\n",
                 t.pointer("/@attr/rank")
@@ -402,7 +398,6 @@ pub async fn tracks(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
                     .unwrap_or("Unknown Track"),
             ));
         }
-        content.push_str(&format!("Overall scrobbles: {}\n", overall));
     }
 
     msg.channel_id
