@@ -35,7 +35,15 @@ impl EventHandler for Handler {
     }
 
     async fn message(&self, ctx: Context, msg: Message) {
-        if [385838671770943489].contains(msg.channel_id.as_u64()) && msg.content.ends_with("?") {
+        if [
+            217015995385118721,
+            474566635479498773,
+            227058629184978944,
+            464503073830862849,
+        ]
+        .contains(msg.channel_id.as_u64())
+            && msg.content.ends_with("?")
+        {
             {
                 let mut rng = rand::thread_rng();
                 let hit = rng.gen_range(1..=100);
