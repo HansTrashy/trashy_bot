@@ -7,8 +7,10 @@ use crate::models::mute::Mute;
 use crate::models::server_config::ServerConfig;
 use crate::util::get_client;
 use chrono::Utc;
+use rand::Rng;
 use serenity::{
     async_trait,
+    model::channel::Message,
     model::{
         channel::Reaction,
         channel::ReactionType,
@@ -30,6 +32,27 @@ impl EventHandler for Handler {
     async fn ready(&self, ctx: Context, ready: Ready) {
         ctx.set_activity(Activity::listening("$help")).await;
         info!("{} is connected!", ready.user.name);
+    }
+
+    async fn message(&self, ctx: Context, msg: Message) {
+        if [
+            826846452486635601,
+            826846452486635601,
+            826846452486635601,
+            826846452486635601,
+        ]
+        .contains(msg.channel_id.as_u64())
+            && msg.content.ends_with("?")
+        {
+            {
+                let mut rng = rand::thread_rng();
+                let hit = rng.gen_range(1..=100);
+                if hit <= 50 {
+                    return;
+                }
+            }
+            let _ = msg.reply(&ctx, "Bitte die SuFu benutzen!").await;
+        }
     }
 
     async fn guild_member_addition(&self, ctx: Context, guild_id: GuildId, mut new_member: Member) {
