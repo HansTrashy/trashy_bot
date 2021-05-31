@@ -23,10 +23,9 @@ sqlx = { version = "0.5", default-features = false, features = [ "runtime-tokio-
 tracing = "0.1"
 tracing-subscriber = { version = "0.2", features = ["env-filter"] }
 tracing-futures = "0.2"
-tantivy = "0.13"
+tantivy = "0.14"
 toml = "0.5"
-nom = "6.0"
-funty="=1.1.0" # workaround for breaking change
+nom = "6.1"
 
 [dependencies.serenity]
 version = "0.10.0"

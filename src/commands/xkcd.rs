@@ -74,7 +74,11 @@ pub async fn xkcd(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     let title = retrieved_doc.get_first(title).unwrap().text().unwrap();
     let alt = retrieved_doc.get_first(alt).unwrap().text().unwrap();
     let img = retrieved_doc.get_first(img).unwrap().text().unwrap();
-    let number = retrieved_doc.get_first(number).unwrap().u64_value();
+    let number = retrieved_doc
+        .get_first(number)
+        .unwrap()
+        .u64_value()
+        .ok_or("number is not of type u64")?;
 
     let xkcd_link = format!("https://xkcd.com/{}", number);
 
