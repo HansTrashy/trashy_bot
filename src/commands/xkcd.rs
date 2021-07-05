@@ -36,6 +36,11 @@ pub struct Comic {
 pub async fn xkcd(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     let xkcd_query = args.rest();
 
+    let xkcd_query = match xkcd_query.parse::<u64>() {
+        Ok(number) => format!("number:{}", number),
+        Err(_e) => xkcd_query.to_string(),
+    };
+
     // let reqwest_client = &util::get_reqwest_client(&ctx).await?;
     // try to load index
 
