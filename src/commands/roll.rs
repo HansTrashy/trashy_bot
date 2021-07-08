@@ -21,6 +21,7 @@ async fn roll(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     match parse_multiple_dice_str(dice_str.as_bytes()) {
         Ok((_, dice)) => {
             let mut total: isize = 0;
+            let mut papertrail: Vec<String> = Vec::new();
             {
                 // dont hold rng over await points
                 let mut rng = rand::thread_rng();
@@ -29,11 +30,28 @@ async fn roll(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
                     for _ in 0..die.number {
                         rolls.push(rng.gen_range(1..=(die.sides as isize)));
                     }
+                    let signed_die_flat = if die.flat < 0 {
+                        vec!["(-)".to_string(), die.flat.to_string()]
+                    } else {
+                        vec![die.flat.to_string()]
+                    };
+
+                    papertrail.extend(
+                        rolls
+                            .iter()
+                            .map(|x| x.to_string())
+                            .chain(signed_die_flat.into_iter())
+                            .collect::<Vec<_>>(),
+                    );
                     total += rolls.iter().sum::<isize>() + die.flat;
                 }
             }
 
-            msg.reply(ctx, &format!("Your Roll: {}", total)).await?;
+            msg.reply(
+                ctx,
+                &format!("Your Roll ({}): {}", papertrail.join("+"), total),
+            )
+            .await?;
         }
         Err(e) => {
             error!(?e, "Failed parsing input");
