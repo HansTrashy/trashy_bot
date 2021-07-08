@@ -30,17 +30,12 @@ async fn roll(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
                     for _ in 0..die.number {
                         rolls.push(rng.gen_range(1..=(die.sides as isize)));
                     }
-                    let signed_die_flat = if die.flat < 0 {
-                        vec!["(-)".to_string(), die.flat.to_string()]
-                    } else {
-                        vec![die.flat.to_string()]
-                    };
 
                     papertrail.extend(
                         rolls
                             .iter()
                             .map(|x| x.to_string())
-                            .chain(signed_die_flat.into_iter())
+                            .chain(vec![die.flat.to_string()].into_iter())
                             .collect::<Vec<_>>(),
                     );
                     total += rolls.iter().sum::<isize>() + die.flat;
