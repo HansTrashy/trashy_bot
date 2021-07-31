@@ -28,7 +28,8 @@ toml = "0.5"
 nom = "6.1"
 
 [dependencies.serenity]
-version = "0.10.0"
+git = "https://github.com/serenity-rs/serenity"
+branch = "current"
 default-features = false
 features = [
     "builder",
@@ -42,4 +43,5 @@ features = [
     "standard_framework",
     "utils",
     "rustls_backend",
+    "unstable_discord_api",
 ]
