@@ -290,6 +290,7 @@ async fn main() {
     let mut client = Client::builder(&token)
         .cache_update_timeout(std::time::Duration::from_millis(500))
         .event_handler(handler::Handler)
+        .application_id(config.application_id)
         .framework(framework)
         .intents(GatewayIntents::all())
         .await

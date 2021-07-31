@@ -6,6 +6,7 @@ pub struct Config {
     pub prefix: String,
     pub delimiter: char,
     pub discord_token: String,
+    pub application_id: u64,
     pub lastfm_api_key: String,
     pub xkcd_index: String,
     pub db_url: String,
