@@ -18,13 +18,14 @@ use tokio::time::sleep;
 #[min_args(1)]
 pub async fn remindme(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     let duration = util::parse_duration(&args.single::<String>()?);
-    let pool = get_client(&ctx).await?;
+    let pool = get_client(ctx).await?;
 
     match duration {
         None => {
-            let _ = msg
-                .reply(ctx, "Unknown time unit. Allowed units are: s,m,h,d,w")
-                .await;
+            std::mem::drop(
+                msg.reply(ctx, "Unknown time unit. Allowed units are: s,m,h,d,w")
+                    .await,
+            );
         }
         Some(duration) => {
             let defaults = ContentSafeOptions::default();
@@ -40,13 +41,14 @@ pub async fn remindme(ctx: &Context, msg: &Message, mut args: Args) -> CommandRe
             )
             .await?;
 
-            let _ = msg
-                .react(ctx, ReactionType::Unicode("✅".to_string()))
-                .await;
+            std::mem::drop(
+                msg.react(ctx, ReactionType::Unicode("\u{2705}".to_string()))
+                    .await,
+            );
 
             sleep(duration.to_std()?).await;
 
-            let _ = Reminder::delete(&pool, *msg.id.as_u64() as i64).await;
+            std::mem::drop(Reminder::delete(&pool, *msg.id.as_u64() as i64).await);
 
             msg.reply_ping(
                 ctx,

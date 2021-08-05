@@ -1,11 +1,16 @@
 #![deny(clippy::all)]
 #![warn(clippy::nursery)]
 #![warn(clippy::pedantic)]
+#![allow(clippy::cast_sign_loss)]
+#![allow(clippy::too_many_lines)]
+#![allow(clippy::cast_possible_wrap)]
 #![deny(nonstandard_style)]
 #![deny(future_incompatible)]
 #![deny(rust_2018_idioms)]
 #![warn(missing_docs)]
 #![warn(unused)]
+// TODO: remove this when sqlx fixed the macro calls with `_expr`
+#![allow(clippy::used_underscore_binding)]
 //! Trashy Bot
 
 #[macro_use]
@@ -162,7 +167,9 @@ async fn my_help(
     groups: &[&'static CommandGroup],
     owners: HashSet<UserId>,
 ) -> CommandResult {
-    let _ = help_commands::with_embeds(context, msg, args, help_options, groups, owners).await;
+    std::mem::drop(
+        help_commands::with_embeds(context, msg, args, help_options, groups, owners).await,
+    );
     Ok(())
 }
 
@@ -198,19 +205,20 @@ async fn normal_message(_ctx: &Context, msg: &Message) {
 async fn dispatch_error(ctx: &Context, msg: &Message, error: DispatchError) {
     match error {
         DispatchError::Ratelimited(info) => {
-            let _ = msg
-                .channel_id
-                .say(
-                    &ctx.http,
-                    &format!(
-                        "Try again in {}",
-                        util::humanize_duration(
-                            &chrono::Duration::from_std(info.rate_limit)
-                                .unwrap_or(chrono::Duration::zero())
-                        )
-                    ),
-                )
-                .await;
+            std::mem::drop(
+                msg.channel_id
+                    .say(
+                        &ctx.http,
+                        &format!(
+                            "Try again in {}",
+                            util::humanize_duration(
+                                &chrono::Duration::from_std(info.rate_limit)
+                                    .unwrap_or_else(|_| chrono::Duration::zero())
+                            )
+                        ),
+                    )
+                    .await,
+            );
         }
         e => trace!(dispatch_error = ?e, "Dispatch error"),
     }
@@ -229,8 +237,7 @@ async fn main() {
         .with_env_filter(&config.log_level)
         .init();
 
-    let token = &config.discord_token;
-    let http = Http::new_with_token(&token);
+    let http = Http::new_with_token(&config.discord_token);
 
     let (owners, bot_id) = match http.get_current_application_info().await {
         Ok(info) => {
@@ -287,7 +294,7 @@ async fn main() {
         .group(&commands::groups::lastfm::LASTFM_GROUP);
     debug!("Framework created");
 
-    let mut client = Client::builder(&token)
+    let mut client = Client::builder(&config.discord_token)
         .cache_update_timeout(std::time::Duration::from_millis(500))
         .event_handler(handler::Handler)
         .application_id(config.application_id)
@@ -304,7 +311,6 @@ async fn main() {
         .connect(&config.db_url)
         .await
         .expect("Could not setup db pool");
-    //TODO: run migrations
 
     let opt_out = Arc::new(Mutex::new(OptOutStore::load_or_init()));
 
@@ -335,7 +341,7 @@ async fn main() {
         data.insert::<Config>(config);
     }
 
-    startup::on_startup(&client).await;
+    startup::init(&client).await;
 
     if let Err(why) = client.start().await {
         error!("Client error: {:?}", why);

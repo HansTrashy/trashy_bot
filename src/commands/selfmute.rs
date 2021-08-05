@@ -22,7 +22,7 @@ use tracing::error;
 #[only_in("guilds")]
 pub async fn selfmute(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     let duration = util::parse_duration(&args.single::<String>()?).expect("invalid duration");
-    let pool = get_client(&ctx).await?;
+    let pool = get_client(ctx).await?;
 
     if duration > Duration::hours(24) || duration < Duration::seconds(60) {
         msg.reply(
@@ -57,9 +57,10 @@ pub async fn selfmute(ctx: &Context, msg: &Message, mut args: Args) -> CommandRe
                     )
                     .await?;
 
-                    let _ = msg
-                        .react(ctx, ReactionType::Unicode("✅".to_string()))
-                        .await;
+                    std::mem::drop(
+                        msg.react(ctx, ReactionType::Unicode("\u{2705}".to_string()))
+                            .await,
+                    );
 
                     sleep(duration.to_std()?).await;
 

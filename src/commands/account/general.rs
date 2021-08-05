@@ -12,12 +12,13 @@ use tracing::debug;
 #[description = "Create a slot account"]
 #[num_args(0)]
 pub async fn create(ctx: &Context, msg: &Message, _args: Args) -> CommandResult {
-    let pool = get_client(&ctx).await?;
+    let pool = get_client(ctx).await?;
     // check if user already owns a bank
     if let Ok(bank) = Bank::get(&pool, *msg.author.id.as_u64() as i64).await {
-        let _ = msg
-            .reply(ctx, &format!("Your bank balance: {}", bank.amount))
-            .await;
+        std::mem::drop(
+            msg.reply(ctx, &format!("Your bank balance: {}", bank.amount))
+                .await,
+        );
     } else {
         let bank = Bank::create(
             &pool,
@@ -29,7 +30,7 @@ pub async fn create(ctx: &Context, msg: &Message, _args: Args) -> CommandResult 
         .await;
         debug!("Created bank entry {:?}", bank);
 
-        let _ = msg.reply(ctx, "Created bank!").await;
+        std::mem::drop(msg.reply(ctx, "Created bank!").await);
     }
     Ok(())
 }
@@ -39,7 +40,7 @@ pub async fn create(ctx: &Context, msg: &Message, _args: Args) -> CommandResult 
 #[aliases("paydaddy")]
 #[num_args(0)]
 pub async fn payday(ctx: &Context, msg: &Message, _args: Args) -> CommandResult {
-    let pool = get_client(&ctx).await?;
+    let pool = get_client(ctx).await?;
     // check if user has a bank & last payday was over 24h ago
 
     if let Ok(bank) = Bank::get(&pool, *msg.author.id.as_u64() as i64).await {
@@ -62,21 +63,23 @@ pub async fn payday(ctx: &Context, msg: &Message, _args: Args) -> CommandResult 
             )
             .await?;
 
-            let _ = msg
-                .reply(ctx, &format!("Your new balance: {}", &updated_amount))
-                .await;
+            std::mem::drop(
+                msg.reply(ctx, &format!("Your new balance: {}", &updated_amount))
+                    .await,
+            );
         } else {
-            let _ = msg
-                .reply(
+            std::mem::drop(
+                msg.reply(
                     ctx,
                     &format!("Wait {} hours for your next Payday!", (24 - &hours_diff)),
                 )
-                .await;
+                .await,
+            );
         }
     } else {
-        let _ = msg.reply(
-            ctx,
-            "Create your own bank first by running 'acc create'",
+        std::mem::drop(
+            msg.reply(ctx, "Create your own bank first by running 'acc create'")
+                .await,
         );
     }
     Ok(())
@@ -86,7 +89,7 @@ pub async fn payday(ctx: &Context, msg: &Message, _args: Args) -> CommandResult 
 #[description = "List the leading players"]
 #[num_args(0)]
 pub async fn leaderboard(ctx: &Context, msg: &Message, _args: Args) -> CommandResult {
-    let pool = get_client(&ctx).await?;
+    let pool = get_client(ctx).await?;
     let results = Bank::top10(&pool).await?;
 
     let mut rendered_leaderboard = String::from("Top Ten:\n");
@@ -107,17 +110,17 @@ pub async fn leaderboard(ctx: &Context, msg: &Message, _args: Args) -> CommandRe
 #[usage = "*amount* *from_user_mention* *to_user_mention*"]
 #[example = "1000 @HansTrashy @ApoY2k"]
 pub async fn transfer(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
-    let pool = get_client(&ctx).await?;
+    let pool = get_client(ctx).await?;
     let amount_to_transfer = match args.single::<i64>() {
         Ok(v) if v > 0 => v,
         Ok(_) => {
             // log
-            let _ = msg.channel_id.say(&ctx, "Invalid credit amount!").await;
+            std::mem::drop(msg.channel_id.say(&ctx, "Invalid credit amount!").await);
             return Ok(());
         }
         Err(_e) => {
             // log
-            let _ = msg.channel_id.say(&ctx, "Invalid credit amount!").await;
+            std::mem::drop(msg.channel_id.say(&ctx, "Invalid credit amount!").await);
             return Ok(());
         }
     };
@@ -141,7 +144,7 @@ pub async fn transfer(ctx: &Context, msg: &Message, mut args: Args) -> CommandRe
             }
 
             let mentioned_user_names: Vec<String> =
-                msg.mentions.iter().map(|u| u.name.to_owned()).collect();
+                msg.mentions.iter().map(|u| u.name.clone()).collect();
             msg.reply(
                 ctx,
                 &format!(
@@ -151,11 +154,15 @@ pub async fn transfer(ctx: &Context, msg: &Message, mut args: Args) -> CommandRe
             )
             .await?;
         } else {
-            msg.reply(ctx, "You cannot transfer more credits than you have in your bank!")
-                .await?;
+            msg.reply(
+                ctx,
+                "You cannot transfer more credits than you have in your bank!",
+            )
+            .await?;
         }
     } else {
-        msg.reply(ctx, "Create your own bank first by running 'acc create'").await?;
+        msg.reply(ctx, "Create your own bank first by running 'acc create'")
+            .await?;
     }
     Ok(())
 }

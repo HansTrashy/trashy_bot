@@ -24,7 +24,7 @@ use tracing::{debug, error};
 pub async fn mute(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     let duration = util::parse_duration(&args.single::<String>()?);
     let mute_message = args.rest();
-    let pool = get_client(&ctx).await?;
+    let pool = get_client(ctx).await?;
 
     if let Some(duration) = duration {
         if let Some(guild_id) = msg.guild_id {
@@ -76,19 +76,24 @@ pub async fn mute(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
                         if let Some(modlog_channel) = &guild_config.modlog_channel {
                             if !found_members.is_empty() {
                                 let description =
-                                    create_mute_message(&found_members, &duration, &mute_message)
+                                    create_mute_message(&found_members, &duration, mute_message)
                                         .await;
-                                let _ = ChannelId(*modlog_channel)
-                                    .send_message(&ctx, |m| {
-                                        m.embed(|e| e.description(description).color((0, 120, 220)))
-                                    })
-                                    .await;
+                                std::mem::drop(
+                                    ChannelId(*modlog_channel)
+                                        .send_message(&ctx, |m| {
+                                            m.embed(|e| {
+                                                e.description(description).color((0, 120, 220))
+                                            })
+                                        })
+                                        .await,
+                                );
                             }
                         }
 
-                        let _ = msg
-                            .react(ctx, ReactionType::Unicode("✅".to_string()))
-                            .await;
+                        std::mem::drop(
+                            msg.react(ctx, ReactionType::Unicode("\u{2705}".to_string()))
+                                .await,
+                        );
                     }
                 }
                 Err(_e) => {
@@ -248,7 +253,7 @@ async fn create_unmute_message(users: &[Member]) -> String {
 #[allowed_roles("Mods")]
 pub async fn unmute(ctx: &Context, msg: &Message, _args: Args) -> CommandResult {
     if let Some(guild_id) = msg.guild_id {
-        let pool = get_client(&ctx).await?;
+        let pool = get_client(ctx).await?;
         match ServerConfig::get(&pool, *guild_id.as_u64() as i64).await {
             Ok(server_config) => {
                 let guild_config: Guild = serde_json::from_value(server_config.config).unwrap();
@@ -258,7 +263,7 @@ pub async fn unmute(ctx: &Context, msg: &Message, _args: Args) -> CommandResult 
                     for user in &msg.mentions {
                         match guild_id.member(ctx, user).await {
                             Ok(mut member) => {
-                                let _ = member.remove_role(&ctx, RoleId(*mute_role));
+                                std::mem::drop(member.remove_role(&ctx, RoleId(*mute_role)).await);
                                 found_members.push(member);
                             }
                             Err(e) => error!("Could not get member: {:?}", e),
@@ -278,15 +283,20 @@ pub async fn unmute(ctx: &Context, msg: &Message, _args: Args) -> CommandResult 
                     if let Some(modlog_channel) = &guild_config.modlog_channel {
                         if !found_members.is_empty() {
                             let description = create_unmute_message(&found_members).await;
-                            let _ = ChannelId(*modlog_channel).send_message(&ctx, |m| {
-                                m.embed(|e| e.description(description).color((0, 120, 220)))
-                            });
+                            std::mem::drop(
+                                ChannelId(*modlog_channel)
+                                    .send_message(&ctx, |m| {
+                                        m.embed(|e| e.description(description).color((0, 120, 220)))
+                                    })
+                                    .await,
+                            );
                         }
                     }
 
-                    let _ = msg
-                        .react(ctx, ReactionType::Unicode("✅".to_string()))
-                        .await;
+                    std::mem::drop(
+                        msg.react(ctx, ReactionType::Unicode("\u{2705}".to_string()))
+                            .await,
+                    );
                 }
             }
             Err(_e) => {
@@ -305,7 +315,7 @@ pub async fn kick(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     let kick_message = args.rest();
 
     if let Some(guild_id) = msg.guild_id {
-        let pool = get_client(&ctx).await?;
+        let pool = get_client(ctx).await?;
         match ServerConfig::get(&pool, *guild_id.as_u64() as i64).await {
             Ok(server_config) => {
                 let guild_config: Guild = serde_json::from_value(server_config.config).unwrap();
@@ -313,27 +323,30 @@ pub async fn kick(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
                 let mut found_members = Vec::new();
                 for user in &msg.mentions {
                     let member = guild_id.member(ctx, user).await?;
-                    let _ = member.kick(ctx).await;
+                    std::mem::drop(member.kick(ctx).await);
                     found_members.push(member);
                 }
 
                 if let Some(modlog_channel) = &guild_config.modlog_channel {
                     if !found_members.is_empty() {
-                        let description = create_kick_message(&found_members, &kick_message).await;
-                        let _ = ChannelId(*modlog_channel)
-                            .send_message(&ctx, |m| {
-                                m.embed(|e| e.description(description).color((0, 120, 220)))
-                            })
-                            .await;
+                        let description = create_kick_message(&found_members, kick_message).await;
+                        std::mem::drop(
+                            ChannelId(*modlog_channel)
+                                .send_message(&ctx, |m| {
+                                    m.embed(|e| e.description(description).color((0, 120, 220)))
+                                })
+                                .await,
+                        );
                     }
                 }
 
-                let _ = msg
-                    .react(ctx, ReactionType::Unicode("✅".to_string()))
-                    .await;
+                std::mem::drop(
+                    msg.react(ctx, ReactionType::Unicode("\u{2705}".to_string()))
+                        .await,
+                );
             }
             Err(_e) => {
-                let _ = msg.reply(ctx, "Server config missing").await;
+                std::mem::drop(msg.reply(ctx, "Server config missing").await);
             }
         }
     }
@@ -348,7 +361,7 @@ pub async fn ban(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     let ban_msg = args.rest();
 
     if let Some(guild_id) = msg.guild_id {
-        let pool = get_client(&ctx).await?;
+        let pool = get_client(ctx).await?;
         match ServerConfig::get(&pool, *guild_id.as_u64() as i64).await {
             Ok(server_config) => {
                 let guild_config: Guild = serde_json::from_value(server_config.config).unwrap();
@@ -356,27 +369,30 @@ pub async fn ban(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
                 let mut found_members = Vec::new();
                 for user in &msg.mentions {
                     let member = guild_id.member(ctx, user).await?;
-                    let _ = member.ban_with_reason(&ctx, 0, ban_msg).await;
+                    std::mem::drop(member.ban_with_reason(&ctx, 0, ban_msg).await);
                     found_members.push(member);
                 }
 
                 if let Some(modlog_channel) = &guild_config.modlog_channel {
                     if !found_members.is_empty() {
                         let description = create_ban_message(&found_members, ban_msg).await;
-                        let _ = ChannelId(*modlog_channel)
-                            .send_message(&ctx, |m| {
-                                m.embed(|e| e.description(description).color((0, 120, 220)))
-                            })
-                            .await;
+                        std::mem::drop(
+                            ChannelId(*modlog_channel)
+                                .send_message(&ctx, |m| {
+                                    m.embed(|e| e.description(description).color((0, 120, 220)))
+                                })
+                                .await,
+                        );
                     }
                 }
 
-                let _ = msg
-                    .react(ctx, ReactionType::Unicode("✅".to_string()))
-                    .await;
+                std::mem::drop(
+                    msg.react(ctx, ReactionType::Unicode("\u{2705}".to_string()))
+                        .await,
+                );
             }
             Err(_e) => {
-                let _ = msg.reply(ctx, "Server config missing").await;
+                std::mem::drop(msg.reply(ctx, "Server config missing").await);
             }
         }
     }

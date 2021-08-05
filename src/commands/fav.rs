@@ -14,7 +14,6 @@ use serenity::{
     model::channel::Message,
     model::id::UserId,
 };
-use std::iter::FromIterator;
 use std::time::Duration;
 use tracing::{debug, trace};
 
@@ -24,21 +23,22 @@ use tracing::{debug, trace};
 #[example = "taishi wichsen"]
 #[bucket = "fav"]
 pub async fn post(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
-    let pool = get_client(&ctx).await?;
+    let pool = get_client(ctx).await?;
     let opt_out = if let Some(v) = ctx.data.read().await.get::<OptOut>() {
         v.clone()
     } else {
-        let _ = msg.reply(ctx, "OptOut list not available").await;
+        std::mem::drop(msg.reply(ctx, "OptOut list not available").await);
         panic!("no optout");
     };
 
     if opt_out.lock().await.set.contains(msg.author.id.as_u64()) {
-        let _ = msg
-            .channel_id
-            .send_message(&ctx.http, |m| {
-                m.content("You have opted out of the quote functionality")
-            })
-            .await;
+        std::mem::drop(
+            msg.channel_id
+                .send_message(&ctx.http, |m| {
+                    m.content("You have opted out of the quote functionality")
+                })
+                .await,
+        );
         return Ok(());
     }
 
@@ -70,9 +70,8 @@ pub async fn post(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
         .message(&ctx.http, chosen_fav.msg_id as u64)
         .await?;
 
-    match msg.delete(ctx).await {
-        Ok(_) => (),
-        Err(_) => debug!("Deletion is not supported in DMs"),
+    if msg.delete(ctx).await.is_err() {
+        debug!("Deletion is not supported in DMs");
     }
 
     if opt_out
@@ -81,9 +80,13 @@ pub async fn post(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
         .set
         .contains(fav_msg.author.id.as_u64())
     {
-        let _ = msg.channel_id.send_message(&ctx.http, |m| {
-            m.content("The user does not want to be quoted")
-        });
+        std::mem::drop(
+            msg.channel_id
+                .send_message(&ctx.http, |m| {
+                    m.content("The user does not want to be quoted")
+                })
+                .await,
+        );
         return Ok(());
     }
 
@@ -133,36 +136,27 @@ pub async fn post(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
         .await_reactions(&ctx)
         .timeout(Duration::from_secs(120))
         .author_id(msg.author.id)
-        .filter(|reaction| match reaction.emoji {
-            ReactionType::Unicode(ref value) if value.starts_with("🗑") => true,
-            _ => false,
-        })
+        .filter(|reaction| matches!(reaction.emoji, ReactionType::Unicode(ref value) if value.starts_with('🗑')))
         .await;
 
     let collector_label = bot_msg
         .await_reactions(&ctx)
         .timeout(Duration::from_secs(120))
         .author_id(msg.author.id)
-        .filter(|reaction| match reaction.emoji {
-            ReactionType::Unicode(ref value) if value.starts_with("🏷") => true,
-            _ => false,
-        })
+        .filter(|reaction| matches!(reaction.emoji, ReactionType::Unicode(ref value) if value.starts_with('🏷')))
         .await;
 
     let collector_info = bot_msg
         .await_reactions(&ctx)
         .timeout(Duration::from_secs(5 * 60_u64))
-        .filter(|reaction| match reaction.emoji {
-            ReactionType::Unicode(ref value) if value == "ℹ\u{fe0f}" => true,
-            _ => false,
-        })
+        .filter(|reaction| matches!(reaction.emoji, ReactionType::Unicode(ref value) if value == "\u{2139}\u{fe0f}"))
         .await;
 
     let c1 = collector_delete.for_each(|_reaction| {
         let chosen_fav_id = chosen_fav.id;
         let pool = pool.clone();
         async move {
-            let _ = Fav::delete(&pool, chosen_fav_id).await;
+            std::mem::drop(Fav::delete(&pool, chosen_fav_id).await);
         }
     });
     let c2 = collector_label.for_each(|reaction| {
@@ -173,7 +167,7 @@ pub async fn post(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
             let reaction = reaction.as_inner_ref();
             if let Ok(dm_channel) = reaction.user_id.unwrap().create_dm_channel(&ctx).await {
                 trace!(user = ?reaction.user_id, "Requesting labels from user");
-                let _ = dm_channel.say(&ctx, "Send me your labels!").await;
+                std::mem::drop(dm_channel.say(&ctx, "Send me your labels!").await);
 
                 if let Some(label_reply) = dm_channel
                     .id
@@ -183,14 +177,14 @@ pub async fn post(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
                     .await
                 {
                     // clear old tags for this fav
-                    let _ = Tag::delete(&pool, chosen_fav_id).await;
+                    std::mem::drop(Tag::delete(&pool, chosen_fav_id).await);
 
                     // TODO: make this a single statement
                     for tag in label_reply.content.split(' ') {
-                        let _ = Tag::create(&pool, chosen_fav_id, tag).await;
+                        std::mem::drop(Tag::create(&pool, chosen_fav_id, tag).await);
                     }
 
-                    let _ = label_reply.reply(&ctx, "added the tags!").await;
+                    std::mem::drop(label_reply.reply(&ctx, "added the tags!").await);
                 }
             }
         }
@@ -204,15 +198,17 @@ pub async fn post(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
             let reaction = reaction.as_inner_ref();
             if let Ok(dm_channel) = reaction.user_id.unwrap().create_dm_channel(&ctx).await {
                 trace!(user = ?reaction.user_id, "sending info source for quote");
-                let _ = dm_channel
-                    .say(
-                        &ctx,
-                        format!(
-                            "https://discordapp.com/channels/{}/{}/{}",
-                            &chosen_fav.server_id, &chosen_fav.channel_id, &chosen_fav.msg_id,
-                        ),
-                    )
-                    .await;
+                std::mem::drop(
+                    dm_channel
+                        .say(
+                            &ctx,
+                            format!(
+                                "https://discordapp.com/channels/{}/{}/{}",
+                                &chosen_fav.server_id, &chosen_fav.channel_id, &chosen_fav.msg_id,
+                            ),
+                        )
+                        .await,
+                );
             }
         }
     });
@@ -230,16 +226,16 @@ pub async fn untagged(ctx: &Context, msg: &Message, _args: Args) -> CommandResul
     let opt_out = match ctx.data.read().await.get::<OptOut>() {
         Some(v) => v.clone(),
         None => {
-            let _ = msg.reply(ctx, "OptOut list not available");
+            std::mem::drop(msg.reply(ctx, "OptOut list not available").await);
             panic!("no optout");
         }
     };
-    let pool = get_client(&ctx).await?;
+    let pool = get_client(ctx).await?;
 
     let results = Fav::untagged(&pool, *msg.author.id.as_u64() as i64).await?;
 
     if results.is_empty() {
-        let _ = msg.reply(ctx, "Du hat keine untagged Favs!").await;
+        std::mem::drop(msg.reply(ctx, "Du hat keine untagged Favs!").await);
     } else {
         let fav = results.first().unwrap();
         let fav_msg = ChannelId(fav.channel_id as u64)
@@ -253,9 +249,13 @@ pub async fn untagged(ctx: &Context, msg: &Message, _args: Args) -> CommandResul
             .set
             .contains(fav_msg.author.id.as_u64())
         {
-            let _ = msg.channel_id.send_message(&ctx.http, |m| {
-                m.content("The user does not want to be quoted")
-            });
+            std::mem::drop(
+                msg.channel_id
+                    .send_message(&ctx.http, |m| {
+                        m.content("The user does not want to be quoted")
+                    })
+                    .await,
+            );
             return Ok(());
         }
 
@@ -294,31 +294,29 @@ pub async fn untagged(ctx: &Context, msg: &Message, _args: Args) -> CommandResul
             })
             .await?;
 
-        let _ = bot_msg
-            .react(ctx, ReactionType::Unicode("🗑".to_string()))
-            .await;
-        let _ = bot_msg
-            .react(ctx, ReactionType::Unicode("🏷".to_string()))
-            .await;
+        std::mem::drop(
+            bot_msg
+                .react(ctx, ReactionType::Unicode("\u{1f5d1}".to_string()))
+                .await,
+        );
+        std::mem::drop(
+            bot_msg
+                .react(ctx, ReactionType::Unicode("\u{1f3f7}".to_string()))
+                .await,
+        );
 
         let collector_delete = bot_msg
             .await_reactions(&ctx)
             .timeout(Duration::from_secs(120))
             .author_id(msg.author.id)
-            .filter(|reaction| match reaction.emoji {
-                ReactionType::Unicode(ref value) if value.starts_with("🗑") => true,
-                _ => false,
-            })
+            .filter(|reaction| matches!(reaction.emoji, ReactionType::Unicode(ref value) if value.starts_with('🗑')))
             .await;
 
         let collector_label = bot_msg
             .await_reactions(&ctx)
             .timeout(Duration::from_secs(120))
             .author_id(msg.author.id)
-            .filter(|reaction| match reaction.emoji {
-                ReactionType::Unicode(ref value) if value.starts_with("🏷") => true,
-                _ => false,
-            })
+            .filter(|reaction| matches!(reaction.emoji, ReactionType::Unicode(ref value) if value.starts_with('🏷')))
             .await;
 
         let c1 = collector_delete.for_each(|_| {
@@ -326,7 +324,7 @@ pub async fn untagged(ctx: &Context, msg: &Message, _args: Args) -> CommandResul
             let fav_id = fav.id;
             async move {
                 trace!(fav = fav_id, "Delete Tag for fav");
-                let _ = Fav::delete(&pool, fav_id).await;
+                std::mem::drop(Fav::delete(&pool, fav_id).await);
             }
         });
         let c2 = collector_label.for_each(|reaction| {
@@ -337,7 +335,7 @@ pub async fn untagged(ctx: &Context, msg: &Message, _args: Args) -> CommandResul
                 let reaction = reaction.as_inner_ref();
                 if let Ok(dm_channel) = reaction.user_id.unwrap().create_dm_channel(&ctx).await {
                     trace!(user = ?reaction.user_id, "Requesting labels from user");
-                    let _ = dm_channel.say(&ctx, "Send me your labels!").await;
+                    std::mem::drop(dm_channel.say(&ctx, "Send me your labels!").await);
 
                     if let Some(label_reply) = dm_channel
                         .id
@@ -357,7 +355,7 @@ pub async fn untagged(ctx: &Context, msg: &Message, _args: Args) -> CommandResul
                             trace!(tag_creation = ?r, "Tag created");
                         }
 
-                        let _ = label_reply.reply(&ctx, "added the tags!").await;
+                        std::mem::drop(label_reply.reply(&ctx, "added the tags!").await);
                     }
                 }
             }
@@ -381,7 +379,7 @@ pub async fn add(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
         .await
         .expect("cannot find this message");
 
-    let pool = get_client(&ctx).await?;
+    let pool = get_client(ctx).await?;
 
     if FavBlock::check_blocked(&pool, fav_channel_id as i64, fav_msg_id as i64).await {
         // is blocked
@@ -412,19 +410,19 @@ pub async fn add(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
 #[description = "Shows your used tags so you do not have to remember them all"]
 #[num_args(0)]
 pub async fn tags(ctx: &Context, msg: &Message, _args: Args) -> CommandResult {
-    let pool = get_client(&ctx).await?;
+    let pool = get_client(ctx).await?;
     let mut messages = Vec::new();
     {
         let mut fav_tags = Tag::of_user(&pool, *msg.author.id.as_u64() as i64).await?;
 
         fav_tags.sort_unstable_by(|a, b| a.label.partial_cmp(&b.label).unwrap());
         let mut message_content = String::new();
-        for (key, group) in &fav_tags.into_iter().group_by(|e| e.label.to_owned()) {
+        for (key, group) in &fav_tags.into_iter().group_by(|e| e.label.clone()) {
             message_content.push_str(&format!("{} ({})\n", key, group.count()));
         }
 
-        for chunk in message_content.chars().chunks(1_500).into_iter() {
-            messages.push(String::from_iter(chunk));
+        for chunk in &message_content.chars().chunks(1_500) {
+            messages.push(chunk.collect::<String>());
         }
     }
 
@@ -448,7 +446,7 @@ pub async fn tags(ctx: &Context, msg: &Message, _args: Args) -> CommandResult {
 pub async fn block(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     let regex = crate::MESSAGE_REGEX.get().expect("regex not init");
     let (_, block_channel_id, block_msg_id) = util::parse_message_link(regex, args.rest())?;
-    let pool = get_client(&ctx).await?;
+    let pool = get_client(ctx).await?;
 
     // add to blocklist
     let fav_block = FavBlock::create(
@@ -470,15 +468,16 @@ pub async fn block(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
                 .create_dm_channel(&ctx)
                 .await
             {
-                let _ = dm_channel.say(ctx, format!("Es wurde gerade ein fav von dir geblockt. https://discordapp.com/channels/{}/{}/{}", blocked_fav.server_id as u64, blocked_fav.channel_id as u64, blocked_fav.msg_id as u64)).await;
+                std::mem::drop(dm_channel.say(ctx, format!("Es wurde gerade ein fav von dir geblockt. https://discordapp.com/channels/{}/{}/{}", blocked_fav.server_id as u64, blocked_fav.channel_id as u64, blocked_fav.msg_id as u64)).await);
             }
         })
         .collect::<Vec<_>>()
         .await;
 
-    let _ = msg
-        .react(ctx, ReactionType::Unicode("✅".to_string()))
-        .await;
+    std::mem::drop(
+        msg.react(ctx, ReactionType::Unicode("✅".to_string()))
+            .await,
+    );
 
     Ok(())
 }
@@ -489,7 +488,7 @@ pub async fn block(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
 #[allowed_roles("Mods")]
 pub async fn create_fav_list(ctx: &Context, msg: &Message) -> CommandResult {
     use tokio::io::{AsyncWriteExt, BufWriter};
-    let pool = get_client(&ctx).await?;
+    let pool = get_client(ctx).await?;
 
     let favs = Fav::list_all_from_server(
         &pool,
@@ -521,11 +520,10 @@ pub async fn create_fav_list(ctx: &Context, msg: &Message) -> CommandResult {
                 fav_msg
                     .attachments
                     .first()
-                    .map(|a| a.url.clone())
-                    .unwrap_or("No image".to_string()),
+                    .map_or_else(|| "No image".to_string(), |a| a.url.clone()),
             );
 
-            let _ = out_buf.write(line.as_bytes()).await;
+            std::mem::drop(out_buf.write(line.as_bytes()).await);
         }
     }
 

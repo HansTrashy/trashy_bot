@@ -20,7 +20,7 @@ pub async fn create(ctx: &Context, msg: &Message, mut args: Args) -> CommandResu
     let role_group_arg = args.single::<String>()?;
     let role_arg = args.single::<String>()?;
     let description_arg = args.single_quoted::<String>().ok();
-    let pool = get_client(&ctx).await?;
+    let pool = get_client(ctx).await?;
 
     let guild = msg.guild(&ctx).await.ok_or("No Guild found")?;
     debug!("Trying to find role: '{:?}'", &role_arg);
@@ -43,7 +43,7 @@ pub async fn create(ctx: &Context, msg: &Message, mut args: Args) -> CommandResu
     )
     .await?;
 
-    let _ = msg.reply(ctx, "Added rr!").await;
+    std::mem::drop(msg.reply(ctx, "Added rr!").await);
 
     Ok(())
 }
@@ -55,7 +55,7 @@ pub async fn create(ctx: &Context, msg: &Message, mut args: Args) -> CommandResu
 pub async fn description(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     let role_arg = args.single::<String>()?;
     let description = args.single_quoted::<String>().ok();
-    let pool = get_client(&ctx).await?;
+    let pool = get_client(ctx).await?;
 
     if let Some(guild) = msg.guild(&ctx.cache).await {
         if let Some(role) = guild.role_by_name(&role_arg) {
@@ -79,7 +79,7 @@ pub async fn description(ctx: &Context, msg: &Message, mut args: Args) -> Comman
 #[usage = "*role_name*"]
 pub async fn remove(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     let role_arg = args.rest();
-    let pool = get_client(&ctx).await?;
+    let pool = get_client(ctx).await?;
 
     if let Some(guild) = msg.guild(&ctx.cache).await {
         if let Some(role) = guild.role_by_name(role_arg) {
@@ -99,7 +99,7 @@ pub async fn remove(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
 #[allowed_roles("Mods")]
 #[description = "List all reaction roles"]
 pub async fn list(ctx: &Context, msg: &Message, _args: Args) -> CommandResult {
-    let pool = get_client(&ctx).await?;
+    let pool = get_client(ctx).await?;
     let results = ReactionRole::list(&pool).await?;
 
     let mut output = String::new();
@@ -109,7 +109,8 @@ pub async fn list(ctx: &Context, msg: &Message, _args: Args) -> CommandResult {
             r.emoji,
             r.role_group,
             r.role_name,
-            r.role_description.unwrap_or("No Description".to_string())
+            r.role_description
+                .unwrap_or_else(|| "No Description".to_string())
         ));
     }
 
@@ -134,9 +135,10 @@ pub async fn resetgroups(ctx: &Context, msg: &Message, _args: Args) -> CommandRe
         *state.lock().await = RRState::set(Vec::new());
     }
 
-    let _ = msg
-        .react(&ctx, ReactionType::Unicode("✅".to_string()))
-        .await;
+    std::mem::drop(
+        msg.react(&ctx, ReactionType::Unicode("\u{2705}".to_string()))
+            .await,
+    );
 
     Ok(())
 }
@@ -146,9 +148,9 @@ pub async fn resetgroups(ctx: &Context, msg: &Message, _args: Args) -> CommandRe
 #[description = "Post the reaction role groups"]
 pub async fn postgroups(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     let group_to_post = args.single::<String>()?;
-    let pool = get_client(&ctx).await?;
+    let pool = get_client(ctx).await?;
     let mut results = ReactionRole::list(&pool).await?;
-    results.sort_by_key(|r| r.role_group.to_owned());
+    results.sort_by_key(|r| r.role_group.clone());
 
     let mut rr_message_ids = {
         let data = ctx.data.read().await;
@@ -211,9 +213,10 @@ pub async fn postgroups(ctx: &Context, msg: &Message, mut args: Args) -> Command
             }
         }
         None => {
-            let _ = msg
-                .reply(&ctx, "Sorry, i cant find a group with that name!")
-                .await;
+            std::mem::drop(
+                msg.reply(&ctx, "Sorry, i cant find a group with that name!")
+                    .await,
+            );
         }
     }
 

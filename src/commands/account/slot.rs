@@ -13,17 +13,17 @@ use serenity::{
 #[usage = "*bet_amount*"]
 #[example = "1000"]
 pub async fn slot(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
-    let pool = get_client(&ctx).await?;
+    let pool = get_client(ctx).await?;
     let amount_to_bet = match args.single::<i64>() {
         Ok(v) if v > 0 => v,
         Ok(_) => {
             // log
-            let _ = msg.channel_id.say(&ctx, "Invalid bet!");
+            std::mem::drop(msg.channel_id.say(&ctx, "Invalid bet!").await);
             return Ok(());
         }
         Err(_e) => {
             // log
-            let _ = msg.channel_id.say(&ctx, "Invalid bet!");
+            std::mem::drop(msg.channel_id.say(&ctx, "Invalid bet!").await);
             return Ok(());
         }
     };
@@ -112,15 +112,15 @@ fn display_reels(full_reels: &[Vec<i64>], payout: i64, updated_amount: i64) -> S
     )
 }
 
-fn number_to_emoji(n: i64) -> &'static str {
+const fn number_to_emoji(n: i64) -> &'static str {
     match n {
-        0 => "🧀",
-        1 => "🍉",
-        2 => "🍒",
-        3 => "🥝",
-        4 => "🍩",
-        5 => "🥔",
-        _ => "🍆",
+        0 => "\u{1f9c0}",
+        1 => "\u{1f349}",
+        2 => "\u{1f352}",
+        3 => "\u{1f95d}",
+        4 => "\u{1f369}",
+        5 => "\u{1f954}",
+        _ => "\u{1f346}",
     }
 }
 

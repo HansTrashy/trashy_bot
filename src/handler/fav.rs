@@ -22,7 +22,7 @@ pub async fn add(ctx: Context, add_reaction: Reaction) {
             .await
             .unwrap();
 
-        let _ = channel.say(ctx, "This fav is blocked").await;
+        std::mem::drop(channel.say(ctx, "This fav is blocked").await);
         return;
     }
 
@@ -57,7 +57,7 @@ pub async fn add(ctx: Context, add_reaction: Reaction) {
             "Tags please! (space-separated): {}",
             add_reaction.message(&ctx.http).await.unwrap().content
         );
-        let _ = dm_channel.say(&ctx, content).await;
+        std::mem::drop(dm_channel.say(&ctx, content).await);
 
         if let Some(label_reply) = dm_channel
             .id
@@ -75,12 +75,14 @@ pub async fn add(ctx: Context, add_reaction: Reaction) {
                 trace!(tag_creation = ?r, "Tag created!");
             }
 
-            let _ = label_reply
-                .reply(
-                    &ctx,
-                    "Tags added! To edit tags, react with 🏷️ on the posted fav",
-                )
-                .await;
+            std::mem::drop(
+                label_reply
+                    .reply(
+                        &ctx,
+                        "Tags added! To edit tags, react with 🏷️ on the posted fav",
+                    )
+                    .await,
+            );
         }
     }
 }

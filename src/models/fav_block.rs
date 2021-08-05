@@ -20,7 +20,7 @@ impl FavBlock {
         .fetch_all(pool)
         .await
         {
-            Ok(rows) => rows.len() > 0,
+            Ok(rows) => !rows.is_empty(),
             Err(_) => false,
         }
     }

@@ -8,7 +8,7 @@ use serenity::utils::MessageBuilder;
 use tokio::time::sleep;
 use tracing::error;
 
-pub async fn on_startup(client: &serenity::Client) {
+pub async fn init(client: &serenity::Client) {
     let pool = client
         .data
         .read()
@@ -24,18 +24,20 @@ pub async fn on_startup(client: &serenity::Client) {
         if r.end_time <= Utc::now() {
             tokio::spawn(async move {
                 let source_msg_id = r.source_msg_id;
-                let _ = ChannelId(r.channel_id as u64)
-                    .send_message(&http, |m| {
-                        m.content(
-                            MessageBuilder::new()
-                                .push("Sorry, ")
-                                .mention(&UserId(r.user_id as u64))
-                                .push(" im late! You wanted me to remind you that: ")
-                                .push(r.msg)
-                                .build(),
-                        )
-                    })
-                    .await;
+                std::mem::drop(
+                    ChannelId(r.channel_id as u64)
+                        .send_message(&http, |m| {
+                            m.content(
+                                MessageBuilder::new()
+                                    .push("Sorry, ")
+                                    .mention(&UserId(r.user_id as u64))
+                                    .push(" im late! You wanted me to remind you that: ")
+                                    .push(r.msg)
+                                    .build(),
+                            )
+                        })
+                        .await,
+                );
 
                 let pool = data
                     .read()
@@ -44,7 +46,7 @@ pub async fn on_startup(client: &serenity::Client) {
                     .expect("Failed to get Pool")
                     .clone();
 
-                let _ = Reminder::delete(&pool, source_msg_id).await;
+                std::mem::drop(Reminder::delete(&pool, source_msg_id).await);
             });
         } else {
             let duration = r.end_time.signed_duration_since(Utc::now());
@@ -52,18 +54,20 @@ pub async fn on_startup(client: &serenity::Client) {
                 sleep(duration.to_std().unwrap()).await;
 
                 let source_msg_id = r.source_msg_id;
-                let _ = ChannelId(r.channel_id as u64)
-                    .send_message(&http, |m| {
-                        m.content(
-                            MessageBuilder::new()
-                                .push("Hey, ")
-                                .mention(&UserId(r.user_id as u64))
-                                .push("! You wanted me to remind you that: ")
-                                .push(r.msg)
-                                .build(),
-                        )
-                    })
-                    .await;
+                std::mem::drop(
+                    ChannelId(r.channel_id as u64)
+                        .send_message(&http, |m| {
+                            m.content(
+                                MessageBuilder::new()
+                                    .push("Hey, ")
+                                    .mention(&UserId(r.user_id as u64))
+                                    .push("! You wanted me to remind you that: ")
+                                    .push(r.msg)
+                                    .build(),
+                            )
+                        })
+                        .await,
+                );
 
                 let pool = data
                     .read()
@@ -72,7 +76,7 @@ pub async fn on_startup(client: &serenity::Client) {
                     .expect("Failed to get Pool")
                     .clone();
 
-                let _ = Reminder::delete(&pool, source_msg_id).await;
+                std::mem::drop(Reminder::delete(&pool, source_msg_id).await);
             });
         }
     }
@@ -114,7 +118,7 @@ pub async fn on_startup(client: &serenity::Client) {
                     .expect("Failed to get Pool")
                     .clone();
 
-                let _ = Mute::delete(&pool, m.server_id, m.user_id).await;
+                std::mem::drop(Mute::delete(&pool, m.server_id, m.user_id).await);
             };
 
             if m_clone.end_time <= Utc::now() {

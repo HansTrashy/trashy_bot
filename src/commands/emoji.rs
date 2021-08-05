@@ -7,9 +7,9 @@ use serenity::{
 #[command]
 #[description = "Post the 'Confused Cat' image"]
 async fn katzer(ctx: &Context, msg: &Message, _args: Args) -> CommandResult {
-    let _ = msg.channel_id.send_message(&ctx, |m| {
+    std::mem::drop(msg.channel_id.send_message(&ctx, |m| {
         m.embed(|e| e.image("https://cdn.discordapp.com/attachments/217015995385118721/632308780477972480/sinnbild.png"))
-    }).await;
+    }).await);
 
     Ok(())
 }
@@ -22,12 +22,13 @@ async fn emoji(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     let emoji_name = args.rest();
 
     if let Some(guild) = msg.guild(&ctx).await {
-        for (_id, e) in guild.emojis.iter() {
+        for e in guild.emojis.values() {
             if e.name == emoji_name {
-                let _ = msg
-                    .channel_id
-                    .send_message(&ctx, |m| m.content(format!("{}", e)))
-                    .await;
+                std::mem::drop(
+                    msg.channel_id
+                        .send_message(&ctx, |m| m.content(format!("{}", e)))
+                        .await,
+                );
                 return Ok(());
             }
         }

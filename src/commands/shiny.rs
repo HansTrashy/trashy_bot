@@ -14,7 +14,7 @@ use serenity::{
 #[only_in("guilds")]
 async fn list(ctx: &Context, msg: &Message, _args: Args) -> CommandResult {
     if let Some(server_id) = msg.guild_id {
-        let pool = get_client(&ctx).await?;
+        let pool = get_client(ctx).await?;
         let shinys = Shiny::list(&pool, *server_id.as_u64() as i64).await?;
 
         let mut content = MessageBuilder::new();
@@ -42,7 +42,7 @@ async fn list(ctx: &Context, msg: &Message, _args: Args) -> CommandResult {
 #[usage("*amount*")]
 async fn shiny(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     let amount = args.single::<i64>()?;
-    let pool = get_client(&ctx).await?;
+    let pool = get_client(ctx).await?;
 
     if let Ok(user_shiny) = Shiny::get(&pool, *msg.author.id.as_u64() as i64).await {
         let updated_shiny = Shiny::update(
@@ -52,7 +52,7 @@ async fn shiny(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
         )
         .await?;
 
-        respond(&ctx, msg, updated_shiny).await;
+        respond(ctx, msg, updated_shiny).await;
     } else if let Some(server_id) = msg.guild_id {
         let new_shiny = Shiny::create(
             &pool,
@@ -62,7 +62,7 @@ async fn shiny(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
             amount,
         )
         .await?;
-        respond(&ctx, msg, new_shiny).await;
+        respond(ctx, msg, new_shiny).await;
     }
 
     Ok(())
@@ -82,7 +82,7 @@ async fn respond(ctx: &Context, msg: &Message, shiny: Shiny) {
 #[usage("*amount* *user_mention*")]
 async fn setshiny(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     let amount = args.single::<i64>()?;
-    let pool = get_client(&ctx).await?;
+    let pool = get_client(ctx).await?;
 
     let mut response = Vec::new();
 
@@ -125,7 +125,7 @@ async fn setshiny(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
 #[usage("*user_mention_1* *user_mention_2*")]
 async fn removeshiny(ctx: &Context, msg: &Message, _args: Args) -> CommandResult {
     let mut response = Vec::new();
-    let pool = get_client(&ctx).await?;
+    let pool = get_client(ctx).await?;
 
     for user in &msg.mentions {
         // check if user has an entry already

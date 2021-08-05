@@ -56,18 +56,16 @@ pub async fn xkcd(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     let alt = schema.get_field("alt").unwrap();
     let img = schema.get_field("img").unwrap();
 
-    let query_parser = QueryParser::for_index(&index, vec![title, alt]);
+    let query_parser = QueryParser::for_index(index, vec![title, alt]);
 
     let mut top_docs = {
         let query = query_parser
             .parse_query(&xkcd_query)
             .map_err(|e| format!("Failed to parse query: {:?}", e))?;
 
-        let top_docs = searcher
+        searcher
             .search(&query, &TopDocs::with_limit(1))
-            .map_err(|e| format!("Failed index search: {:?}", e))?;
-
-        top_docs
+            .map_err(|e| format!("Failed index search: {:?}", e))?
     };
 
     let (_, doc_address) = top_docs.pop().ok_or("Nothing found")?;
@@ -190,13 +188,14 @@ pub async fn index_xkcd(ctx: &Context, msg: &Message) -> CommandResult {
 
         // report progess every 100 comics
         if i % 100 == 0 {
-            let _ = msg
-                .channel_id
-                .say(
-                    &ctx,
-                    &format!("Progess on xkcd indexing: {} of {}", i, newest_comic.num),
-                )
-                .await;
+            std::mem::drop(
+                msg.channel_id
+                    .say(
+                        &ctx,
+                        &format!("Progess on xkcd indexing: {} of {}", i, newest_comic.num),
+                    )
+                    .await,
+            );
         }
 
         // be nice on the api usage
@@ -218,8 +217,7 @@ pub async fn index_xkcd(ctx: &Context, msg: &Message) -> CommandResult {
         index_state.save();
     }
 
-    let _ = msg
-        .channel_id
+    msg.channel_id
         .say(
             &ctx,
             &format!("Completed indexing up to {}", newest_comic.num),

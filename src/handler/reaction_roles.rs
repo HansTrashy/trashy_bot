@@ -3,7 +3,10 @@ use crate::reaction_roles::State;
 use crate::util::get_client;
 use crate::ReactionRolesState;
 use serenity::{
-    model::{channel::Reaction, channel::ReactionType},
+    model::{
+        channel::Reaction,
+        channel::{Channel, ReactionType},
+    },
     prelude::*,
 };
 use tracing::{debug, error};
@@ -32,7 +35,7 @@ pub async fn add_role(ctx: Context, add_reaction: Reaction) {
                     .to_channel(&ctx)
                     .await
                     .ok()
-                    .and_then(|c| c.guild())
+                    .and_then(Channel::guild)
                 {
                     debug!("found guild for reaction");
                     if let Ok(mut member) = guild
@@ -77,7 +80,7 @@ pub async fn remove_role(ctx: Context, remove_reaction: Reaction) {
                     .to_channel(&ctx)
                     .await
                     .ok()
-                    .and_then(|c| c.guild())
+                    .and_then(Channel::guild)
                 {
                     debug!("found guild for reaction");
                     if let Ok(mut member) = guild

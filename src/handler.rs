@@ -60,21 +60,23 @@ impl EventHandler for Handler {
                 let member_name = new_member.user.name.to_string();
                 let member_discriminator = new_member.user.discriminator;
                 let member_avatar = new_member.user.static_avatar_url().unwrap_or_default();
-                let _ = ChannelId(userlog_channel)
-                    .send_message(&ctx, |m| {
-                        m.embed(|e| {
-                            e.author(|a| a.name(&member_name).icon_url(member_avatar))
-                                .color((0, 220, 0))
-                                .description(&information_body)
-                                .footer(|f| {
-                                    f.text(&format!(
-                                        "{}#{} | id: {}",
-                                        member_name, member_discriminator, member_id,
-                                    ))
-                                })
+                std::mem::drop(
+                    ChannelId(userlog_channel)
+                        .send_message(&ctx, |m| {
+                            m.embed(|e| {
+                                e.author(|a| a.name(&member_name).icon_url(member_avatar))
+                                    .color((0, 220, 0))
+                                    .description(&information_body)
+                                    .footer(|f| {
+                                        f.text(&format!(
+                                            "{}#{} | id: {}",
+                                            member_name, member_discriminator, member_id,
+                                        ))
+                                    })
+                            })
                         })
-                    })
-                    .await;
+                        .await,
+                );
             }
 
             let mute =
@@ -82,7 +84,7 @@ impl EventHandler for Handler {
 
             if let Ok(_mute) = mute {
                 if let Some(mute_role) = g_cfg.mute_role {
-                    let _ = new_member.add_role(&ctx, RoleId(mute_role)).await;
+                    std::mem::drop(new_member.add_role(&ctx, RoleId(mute_role)).await);
                 }
             }
         }
@@ -113,31 +115,33 @@ impl EventHandler for Handler {
             );
 
             if let Some(userlog_channel) = g_cfg.userlog_channel {
-                let _ = ChannelId(userlog_channel)
-                    .send_message(&ctx, |m| {
-                        m.embed(|e| {
-                            e.author(|a| {
-                                a.name(&user.name)
-                                    .icon_url(&user.static_avatar_url().unwrap_or_default())
-                            })
-                            .color((220, 0, 0))
-                            .description(&information_body)
-                            .footer(|f| {
-                                f.text(&format!(
-                                    "{}#{} | id: {}",
-                                    user.name, user.discriminator, &user.id,
-                                ))
+                std::mem::drop(
+                    ChannelId(userlog_channel)
+                        .send_message(&ctx, |m| {
+                            m.embed(|e| {
+                                e.author(|a| {
+                                    a.name(&user.name)
+                                        .icon_url(&user.static_avatar_url().unwrap_or_default())
+                                })
+                                .color((220, 0, 0))
+                                .description(&information_body)
+                                .footer(|f| {
+                                    f.text(&format!(
+                                        "{}#{} | id: {}",
+                                        user.name, user.discriminator, &user.id,
+                                    ))
+                                })
                             })
                         })
-                    })
-                    .await;
+                        .await,
+                );
             }
         }
     }
 
     async fn reaction_add(&self, ctx: Context, reaction: Reaction) {
         match reaction.emoji {
-            ReactionType::Unicode(ref s) if s.starts_with("📗") => {
+            ReactionType::Unicode(ref s) if s.starts_with('📗') => {
                 fav::add(ctx, reaction).await;
             }
             _ => {
@@ -147,8 +151,6 @@ impl EventHandler for Handler {
     }
 
     async fn reaction_remove(&self, ctx: Context, removed_reaction: Reaction) {
-        match removed_reaction.emoji {
-            _ => reaction_roles::remove_role(ctx, removed_reaction).await,
-        }
+        reaction_roles::remove_role(ctx, removed_reaction).await;
     }
 }

@@ -58,15 +58,15 @@ pub async fn userinfo(ctx: &Context, msg: &Message, _args: Args) -> CommandResul
                 .num_days()
                 .to_string()
         } else {
-            member
-                .joined_at
-                .map(|time| {
+            member.joined_at.map_or_else(
+                || "Unknown".to_string(),
+                |time| {
                     Utc::now()
                         .signed_duration_since(time)
                         .num_days()
                         .to_string()
-                })
-                .unwrap_or_else(|| "Unknown".to_string())
+                },
+            )
         };
 
         let roles = join_all(member.roles.iter().map(|r| r.to_role_cached(&ctx.cache)))

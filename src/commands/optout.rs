@@ -11,7 +11,7 @@ pub async fn optout(ctx: &Context, msg: &Message, _args: Args) -> CommandResult 
     let opt_out = match ctx.data.read().await.get::<OptOut>() {
         Some(v) => v.clone(),
         None => {
-            let _ = msg.reply(ctx, "OptOut list not available");
+            std::mem::drop(msg.reply(ctx, "OptOut list not available"));
             panic!("no optout");
         }
     };

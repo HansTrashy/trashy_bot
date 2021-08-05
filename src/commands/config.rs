@@ -20,29 +20,31 @@ pub struct Guild {
 #[allowed_roles("Mods")]
 pub async fn show_config(ctx: &Context, msg: &Message, _args: Args) -> CommandResult {
     if let Some(server_id) = msg.guild_id {
-        let pool = get_client(&ctx).await?;
+        let pool = get_client(ctx).await?;
         let server_config = ServerConfig::get(&pool, *server_id.as_u64() as i64).await;
 
         if let Ok(server_config) = server_config {
-            let _ = msg
-                .channel_id
-                .send_message(&ctx.http, |m| {
-                    m.embed(|e| {
-                        e.description(format!("{:?}", &server_config))
-                            .color((0, 120, 220))
+            std::mem::drop(
+                msg.channel_id
+                    .send_message(&ctx.http, |m| {
+                        m.embed(|e| {
+                            e.description(format!("{:?}", &server_config))
+                                .color((0, 120, 220))
+                        })
                     })
-                })
-                .await;
+                    .await,
+            );
         } else {
-            let _ = msg
-                .channel_id
-                .send_message(&ctx.http, |m| {
-                    m.embed(|e| {
-                        e.description("config for this server is not available")
-                            .color((255, 0, 0))
+            std::mem::drop(
+                msg.channel_id
+                    .send_message(&ctx.http, |m| {
+                        m.embed(|e| {
+                            e.description("config for this server is not available")
+                                .color((255, 0, 0))
+                        })
                     })
-                })
-                .await;
+                    .await,
+            );
         }
     }
 
@@ -54,7 +56,7 @@ pub async fn show_config(ctx: &Context, msg: &Message, _args: Args) -> CommandRe
 #[allowed_roles("Mods")]
 pub async fn set_modlog(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     let modlog_channel = args.parse::<u64>()?;
-    let pool = get_client(&ctx).await?;
+    let pool = get_client(ctx).await?;
 
     if let Some(server_id) = msg.guild_id {
         match ServerConfig::get(&pool, *server_id.as_u64() as i64).await {
@@ -71,20 +73,22 @@ pub async fn set_modlog(ctx: &Context, msg: &Message, args: Args) -> CommandResu
                 )
                 .await?;
 
-                let _ = msg
-                    .channel_id
-                    .send_message(&ctx.http, |m| {
-                        m.embed(|e| {
-                            e.description(format!("{:?}", &updated_config))
-                                .color((0, 120, 220))
+                std::mem::drop(
+                    msg.channel_id
+                        .send_message(&ctx.http, |m| {
+                            m.embed(|e| {
+                                e.description(format!("{:?}", &updated_config))
+                                    .color((0, 120, 220))
+                            })
                         })
-                    })
-                    .await;
+                        .await,
+                );
             }
             Err(_e) => {
-                let mut guild_config = Guild::default();
-
-                guild_config.modlog_channel = Some(modlog_channel);
+                let guild_config = Guild {
+                    modlog_channel: Some(modlog_channel),
+                    ..Guild::default()
+                };
 
                 let inserted_config = ServerConfig::create(
                     &pool,
@@ -93,12 +97,16 @@ pub async fn set_modlog(ctx: &Context, msg: &Message, args: Args) -> CommandResu
                 )
                 .await?;
 
-                let _ = msg.channel_id.send_message(&ctx.http, |m| {
-                    m.embed(|e| {
-                        e.description(format!("{:?}", &inserted_config))
-                            .color((0, 120, 220))
-                    })
-                });
+                std::mem::drop(
+                    msg.channel_id
+                        .send_message(&ctx.http, |m| {
+                            m.embed(|e| {
+                                e.description(format!("{:?}", &inserted_config))
+                                    .color((0, 120, 220))
+                            })
+                        })
+                        .await,
+                );
             }
         }
     }
@@ -111,7 +119,7 @@ pub async fn set_modlog(ctx: &Context, msg: &Message, args: Args) -> CommandResu
 #[allowed_roles("Mods")]
 pub async fn set_userlog(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     let userlog_channel = args.parse::<u64>()?;
-    let pool = get_client(&ctx).await?;
+    let pool = get_client(ctx).await?;
 
     if let Some(server_id) = msg.guild_id {
         match ServerConfig::get(&pool, *server_id.as_u64() as i64).await {
@@ -128,20 +136,22 @@ pub async fn set_userlog(ctx: &Context, msg: &Message, args: Args) -> CommandRes
                 )
                 .await?;
 
-                let _ = msg
-                    .channel_id
-                    .send_message(&ctx.http, |m| {
-                        m.embed(|e| {
-                            e.description(format!("{:?}", &inserted_config))
-                                .color((0, 120, 220))
+                std::mem::drop(
+                    msg.channel_id
+                        .send_message(&ctx.http, |m| {
+                            m.embed(|e| {
+                                e.description(format!("{:?}", &inserted_config))
+                                    .color((0, 120, 220))
+                            })
                         })
-                    })
-                    .await;
+                        .await,
+                );
             }
             Err(_e) => {
-                let mut guild_config = Guild::default();
-
-                guild_config.modlog_channel = Some(userlog_channel);
+                let guild_config = Guild {
+                    modlog_channel: Some(userlog_channel),
+                    ..Guild::default()
+                };
 
                 let inserted_config = ServerConfig::create(
                     &pool,
@@ -170,7 +180,7 @@ pub async fn set_userlog(ctx: &Context, msg: &Message, args: Args) -> CommandRes
 #[allowed_roles("Mods")]
 pub async fn set_muterole(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     let mute_role = args.parse::<u64>()?;
-    let pool = get_client(&ctx).await?;
+    let pool = get_client(ctx).await?;
 
     if let Some(server_id) = msg.guild_id {
         match ServerConfig::get(&pool, *server_id.as_u64() as i64).await {
@@ -187,20 +197,22 @@ pub async fn set_muterole(ctx: &Context, msg: &Message, args: Args) -> CommandRe
                 )
                 .await?;
 
-                let _ = msg
-                    .channel_id
-                    .send_message(&ctx.http, |m| {
-                        m.embed(|e| {
-                            e.description(format!("{:?}", &inserted_config))
-                                .color((0, 120, 220))
+                std::mem::drop(
+                    msg.channel_id
+                        .send_message(&ctx.http, |m| {
+                            m.embed(|e| {
+                                e.description(format!("{:?}", &inserted_config))
+                                    .color((0, 120, 220))
+                            })
                         })
-                    })
-                    .await;
+                        .await,
+                );
             }
             Err(_e) => {
-                let mut guild_config = Guild::default();
-
-                guild_config.mute_role = Some(mute_role);
+                let guild_config = Guild {
+                    mute_role: Some(mute_role),
+                    ..Guild::default()
+                };
 
                 let inserted_config = ServerConfig::create(
                     &pool,
@@ -209,15 +221,16 @@ pub async fn set_muterole(ctx: &Context, msg: &Message, args: Args) -> CommandRe
                 )
                 .await?;
 
-                let _ = msg
-                    .channel_id
-                    .send_message(&ctx.http, |m| {
-                        m.embed(|e| {
-                            e.description(format!("{:?}", &inserted_config))
-                                .color((0, 120, 220))
+                std::mem::drop(
+                    msg.channel_id
+                        .send_message(&ctx.http, |m| {
+                            m.embed(|e| {
+                                e.description(format!("{:?}", &inserted_config))
+                                    .color((0, 120, 220))
+                            })
                         })
-                    })
-                    .await;
+                        .await,
+                );
             }
         }
     }

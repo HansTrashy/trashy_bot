@@ -71,18 +71,17 @@ pub async fn quote(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
             })
             .await?;
 
-        match msg.delete(ctx).await {
-            Ok(_) => (),
-            Err(_) => debug!("Deleting in dms is not supported"),
+        if msg.delete(ctx).await.is_err() {
+            debug!("Deleting in dms is not supported");
         }
 
         let http = ctx.http.clone();
-        let _ = bot_msg
+        bot_msg
             .await_reactions(&ctx)
             .timeout(Duration::from_secs(60 * 60_u64))
-            .filter(|reaction| match reaction.emoji {
-                ReactionType::Unicode(ref value) if value == "ℹ\u{fe0f}" => true,
-                _ => false,
+            .filter(|reaction| {
+                matches!(reaction.emoji,
+                ReactionType::Unicode(ref value) if value == "\u{2139}\u{fe0f}")
             })
             .await
             .for_each(|reaction| {
@@ -93,15 +92,17 @@ pub async fn quote(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
                     if let Ok(dm_channel) = reaction.user_id.unwrap().create_dm_channel(http).await
                     {
                         trace!(user = ?reaction.user_id, "Sending info source for quote");
-                        let _ = dm_channel
-                            .say(
-                                http,
-                                format!(
-                                    "https://discord.com/channels/{}/{}/{}",
-                                    quote_server_id, quote_channel_id, quote_msg_id,
-                                ),
-                            )
-                            .await;
+                        std::mem::drop(
+                            dm_channel
+                                .say(
+                                    http,
+                                    format!(
+                                        "https://discord.com/channels/{}/{}/{}",
+                                        quote_server_id, quote_channel_id, quote_msg_id,
+                                    ),
+                                )
+                                .await,
+                        );
                     }
                 }
             })
@@ -127,8 +128,7 @@ async fn check_optout(ctx: &Context, msg: &Message, id: u64) -> CommandResult {
         .set
         .contains(&id)
     {
-        let _ = msg
-            .channel_id
+        msg.channel_id
             .send_message(&ctx.http, |m| {
                 m.content("OptOut is used by you or the quoted")
             })

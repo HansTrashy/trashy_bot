@@ -34,7 +34,7 @@ async fn roll(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
                     papertrail.extend(
                         rolls
                             .iter()
-                            .map(|x| x.to_string())
+                            .map(ToString::to_string)
                             .chain(vec![die.flat.to_string()].into_iter())
                             .collect::<Vec<_>>(),
                     );

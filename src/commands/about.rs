@@ -24,7 +24,7 @@ async fn about(ctx: &Context, msg: &Message, _args: Args) -> CommandResult {
         .say(
             ctx,
             format!("A really trashy bot!\nRunning for {}.\nSource: https://github.com/HansTrashy/trashy_bot",
-             util::humanize_duration(&chrono::Duration::from_std(running_since.elapsed()).unwrap_or(chrono::Duration::zero()))),
+             util::humanize_duration(&chrono::Duration::from_std(running_since.elapsed()).unwrap_or_else(|_| chrono::Duration::zero()))),
         )
         .await
     {
