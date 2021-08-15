@@ -1,6 +1,8 @@
+use nom::bytes::complete::tag;
+use nom::character::complete::digit1;
 use nom::{
-    branch::alt, bytes::complete::take_while, character::complete::char, character::is_digit,
-    combinator::opt, error::ErrorKind, multi::separated_list1, sequence::tuple, IResult,
+    branch::alt, combinator::opt, error::ErrorKind, multi::separated_list1, sequence::tuple,
+    IResult,
 };
 use rand::prelude::*;
 use serenity::prelude::*;
@@ -18,7 +20,7 @@ use tracing::error;
 async fn roll(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     let dice_str = args.rest().trim();
 
-    match parse_multiple_dice_str(dice_str.as_bytes()) {
+    match parse_multiple_dice_str(dice_str) {
         Ok((_, dice)) => {
             let mut total: isize = 0;
             let mut papertrail: Vec<String> = Vec::new();
@@ -65,34 +67,30 @@ struct Die {
     flat: isize,
 }
 
-fn parse_flat_part(input: &[u8]) -> IResult<&[u8], Option<(char, &[u8])>> {
-    opt(tuple((alt((char('+'), char('-'))), take_while(is_digit))))(input)
+fn parse_flat_part(input: &str) -> IResult<&str, Option<(&str, &str)>> {
+    opt(tuple((alt((tag("+"), tag("-"))), digit1)))(input)
 }
 
-fn parse_dice_str(input: &[u8]) -> IResult<&[u8], Die> {
-    let (input, number_digits) = take_while(is_digit)(input)?;
-    let (input, _) = char('d')(input)?;
-    let (input, side_digits) = take_while(is_digit)(input)?;
+fn parse_dice_str(input: &str) -> IResult<&str, Die> {
+    let (input, number_digits) = digit1(input)?;
+    let (input, _) = tag("d")(input)?;
+    let (input, side_digits) = digit1(input)?;
     let (input, flat_part) = parse_flat_part(input)?;
 
-    let number = std::str::from_utf8(number_digits)
-        .map_err(|_| nom::Err::Error(nom::error::Error::new(input, ErrorKind::Char)))?
+    let number = number_digits
         .parse::<usize>()
         .map_err(|_| nom::Err::Error(nom::error::Error::new(input, ErrorKind::Char)))?;
 
-    let sides = std::str::from_utf8(side_digits)
-        .map_err(|_| nom::Err::Error(nom::error::Error::new(input, ErrorKind::Char)))?
+    let sides = side_digits
         .parse::<usize>()
         .map_err(|_| nom::Err::Error(nom::error::Error::new(input, ErrorKind::Char)))?;
 
     let flat = match flat_part {
         Some((flat_sign, flat_digits)) => match flat_sign {
-            '+' => std::str::from_utf8(flat_digits)
-                .map_err(|_| nom::Err::Error(nom::error::Error::new(input, ErrorKind::Char)))?
+            "+" => flat_digits
                 .parse::<isize>()
                 .map_err(|_| nom::Err::Error(nom::error::Error::new(input, ErrorKind::Char)))?,
-            '-' => -std::str::from_utf8(flat_digits)
-                .map_err(|_| nom::Err::Error(nom::error::Error::new(input, ErrorKind::Char)))?
+            "-" => -flat_digits
                 .parse::<isize>()
                 .map_err(|_| nom::Err::Error(nom::error::Error::new(input, ErrorKind::Char)))?,
             _ => unreachable!("Reaching this means the nom parser failed"),
@@ -109,24 +107,29 @@ fn parse_dice_str(input: &[u8]) -> IResult<&[u8], Die> {
     Ok((input, die))
 }
 
-fn parse_multiple_dice_str(input: &[u8]) -> IResult<&[u8], Vec<Die>> {
-    separated_list1(char(' '), parse_dice_str)(input)
+fn parse_multiple_dice_str(input: &str) -> IResult<&str, Vec<Die>> {
+    separated_list1(tag(" "), parse_dice_str)(input)
 }
 
-#[test]
-fn test_nom_parser() {
-    let die_str = "1d6+2";
+#[cfg(test)]
+mod tests {
+    use crate::commands::roll::{parse_dice_str, parse_multiple_dice_str};
 
-    let (_, die) = parse_dice_str(die_str.as_bytes()).unwrap();
+    #[test]
+    fn test_nom_parser() {
+        let die_str = "1d6+2";
 
-    println!("{:?}", die);
-}
+        let (_, die) = parse_dice_str(die_str).unwrap();
 
-#[test]
-fn test_nom_parser_multi() {
-    let die_str = "1d6+2 2d20-3";
+        println!("{:?}", die);
+    }
 
-    let (_, die) = parse_multiple_dice_str(die_str.as_bytes()).unwrap();
+    #[test]
+    fn test_nom_parser_multi() {
+        let die_str = "1d6+2 2d20-3";
 
-    println!("{:?}", die);
+        let (_, die) = parse_multiple_dice_str(die_str).unwrap();
+
+        println!("{:?}", die);
+    }
 }

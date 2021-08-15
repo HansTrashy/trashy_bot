@@ -1,14 +1,14 @@
 pub mod general {
     use crate::commands::{
-        about::*, choose::*, emoji::*, poll::*, quote::*, remindme::*, roll::*, selfmute::*,
-        spongebob::*, userinfo::*, xkcd::*,
+        about::*, choose::*, emoji::*, fighting::*, poll::*, quote::*, remindme::*, roll::*,
+        selfmute::*, spongebob::*, userinfo::*, xkcd::*,
     };
     use serenity::framework::standard::macros::group;
 
     #[group]
     #[commands(
         about, roll, choose, xkcd, quote, userinfo, remindme, spongebob, selfmute, katzer, poll,
-        index_xkcd
+        index_xkcd, combo
     )]
     pub struct General;
 }
