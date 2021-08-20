@@ -33,9 +33,10 @@ impl EventHandler for Handler {
         tokio::spawn(async move {
             loop {
                 if let Ok(guild_channels) = GuildId(217015995385118721).channels(&ctx.http).await {
-                    tracing::debug!(?guild_channels);
                     let mut active_threads = Vec::new();
                     for (_id, channel) in guild_channels {
+                        tracing::info!(kind = ?channel.kind, name = ?channel.name(), meta = ?channel.thread_metadata, "CHANNEL");
+
                         if [ChannelType::PublicThread, ChannelType::PrivateThread]
                             .contains(&channel.kind)
                         {
