@@ -32,16 +32,28 @@ impl EventHandler for Handler {
 
         tokio::spawn(async move {
             loop {
-                if let Ok(guild_channel) = GuildId(217015995385118721).channels(&ctx.http).await {
-                    let mut active_public_threads = Vec::new();
-                    for (_id, channel) in guild_channel {
-                        if channel.kind == ChannelType::PublicThread {
-                            active_public_threads.push(channel);
+                if let Ok(guild_channels) = GuildId(217015995385118721).channels(&ctx.http).await {
+                    let mut active_threads = Vec::new();
+                    for (_id, channel) in guild_channels {
+                        if [ChannelType::PublicThread, ChannelType::PrivateThread]
+                            .contains(&channel.kind)
+                        {
+                            tracing::debug!(thread = ?channel.name(), "thread detected!");
+                            if let Some(meta) = channel.thread_metadata {
+                                if !meta.archived && !meta.locked {
+                                    active_threads.push(channel);
+                                }
+                            }
                         }
                     }
                     let mut content = String::from("Active Threads: \n");
-                    for thread in active_public_threads {
-                        content.push_str(&format!("{}\n", thread.name()));
+                    for thread in active_threads {
+                        content.push_str(&format!(
+                            "{} | Active Users: {} | Messages: {}\n",
+                            thread.name(),
+                            thread.member_count.unwrap_or(0),
+                            thread.message_count.unwrap_or(0),
+                        ));
                     }
                     std::mem::drop(
                         ChannelId(279934703904227328)
