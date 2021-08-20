@@ -58,9 +58,7 @@ impl EventHandler for Handler {
                     }
                     std::mem::drop(
                         ChannelId(279934703904227328)
-                            .send_message(&ctx, |m| {
-                                m.embed(|e| e.title("Active Threads").fields(active_threads))
-                            })
+                            .send_message(&ctx, |m| m.content(active_threads))
                             .await,
                     );
                 }
