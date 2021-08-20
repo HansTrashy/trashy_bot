@@ -31,11 +31,12 @@ impl EventHandler for Handler {
         ctx.set_activity(Activity::listening("$help")).await;
 
         tokio::spawn(async move {
+            tokio::time::sleep(std::time::Duration::from_secs(30)).await;
             loop {
                 if let Some(guild) = GuildId(217015995385118721).to_guild_cached(&ctx) {
                     let mut content = String::from("Active Threads: \n");
                     for channel in guild.threads {
-                        // tracing::info!(kind = ?channel.kind, name = ?channel.name(), meta = ?channel.thread_metadata, "CHANNEL");
+                        tracing::info!(kind = ?channel.kind, name = ?channel.name(), meta = ?channel.thread_metadata, "CHANNEL");
 
                         if channel.kind == ChannelType::PublicThread {
                             if let Some(meta) = channel.thread_metadata {
