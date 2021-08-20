@@ -20,6 +20,7 @@ use serenity::{
         user::User,
     },
     prelude::*,
+    utils::MessageBuilder,
 };
 use tracing::info;
 
@@ -34,18 +35,21 @@ impl EventHandler for Handler {
             tokio::time::sleep(std::time::Duration::from_secs(30)).await;
             loop {
                 if let Some(guild) = GuildId(217015995385118721).to_guild_cached(&ctx) {
-                    let mut content = String::from("Active Threads: \n");
+                    let mut active_threads = Vec::new();
                     for channel in guild.threads {
                         tracing::info!(kind = ?channel.kind, name = ?channel.name(), meta = ?channel.thread_metadata, "CHANNEL");
 
                         if channel.kind == ChannelType::PublicThread {
                             if let Some(meta) = channel.thread_metadata {
                                 if !meta.archived && !meta.locked {
-                                    content.push_str(&format!(
-                                        "{} | Active Users: ~{} | Messages: ~{}\n",
-                                        channel.name(),
-                                        channel.member_count.unwrap_or(0),
-                                        channel.message_count.unwrap_or(0),
+                                    active_threads.push((
+                                        MessageBuilder::new().mention(&channel).build(),
+                                        format!(
+                                            "Active Users: {}+ | Messages: {}+",
+                                            channel.member_count.unwrap_or(0),
+                                            channel.message_count.unwrap_or(0),
+                                        ),
+                                        false,
                                     ));
                                 }
                             }
@@ -53,7 +57,9 @@ impl EventHandler for Handler {
                     }
                     std::mem::drop(
                         ChannelId(279934703904227328)
-                            .send_message(&ctx, |m| m.content(content))
+                            .send_message(&ctx, |m| {
+                                m.embed(|e| e.title("Active Threads").fields(active_threads))
+                            })
                             .await,
                     );
                 }
