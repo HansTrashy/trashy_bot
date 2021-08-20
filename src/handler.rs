@@ -11,7 +11,7 @@ use serenity::{
     async_trait,
     model::{
         channel::Reaction,
-        channel::ReactionType,
+        channel::{ChannelType, ReactionType},
         gateway::{Activity, Ready},
         guild::Member,
         id::ChannelId,
@@ -29,6 +29,29 @@ pub struct Handler;
 impl EventHandler for Handler {
     async fn ready(&self, ctx: Context, ready: Ready) {
         ctx.set_activity(Activity::listening("$help")).await;
+
+        tokio::spawn(async move {
+            loop {
+                if let Ok(guild_channel) = GuildId(217015995385118721).channels(&ctx.http).await {
+                    let mut active_public_threads = Vec::new();
+                    for (_id, channel) in guild_channel {
+                        if channel.kind == ChannelType::PublicThread {
+                            active_public_threads.push(channel);
+                        }
+                    }
+                    let mut content = String::from("Active Threads: \n");
+                    for thread in active_public_threads {
+                        content.push_str(&format!("{}\n", thread.name()));
+                    }
+                    std::mem::drop(
+                        ChannelId(279934703904227328)
+                            .send_message(&ctx.http, |m| m.content(content))
+                            .await,
+                    );
+                }
+                tokio::time::sleep(std::time::Duration::from_secs(60 * 60)).await;
+            }
+        });
         info!("{} is connected!", ready.user.name);
     }
 
