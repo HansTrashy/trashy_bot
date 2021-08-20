@@ -21,7 +21,7 @@ async fn katzer(ctx: &Context, msg: &Message, _args: Args) -> CommandResult {
 async fn emoji(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     let emoji_name = args.rest();
 
-    if let Some(guild) = msg.guild(&ctx).await {
+    if let Some(guild) = msg.guild(&ctx) {
         for e in guild.emojis.values() {
             if e.name == emoji_name {
                 std::mem::drop(

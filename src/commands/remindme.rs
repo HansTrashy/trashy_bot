@@ -29,7 +29,7 @@ pub async fn remindme(ctx: &Context, msg: &Message, mut args: Args) -> CommandRe
         }
         Some(duration) => {
             let defaults = ContentSafeOptions::default();
-            let message = content_safe(&ctx, args.rest().to_string(), &defaults).await;
+            let message = content_safe(&ctx, args.rest().to_string(), &defaults);
 
             Reminder::create(
                 &pool,

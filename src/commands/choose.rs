@@ -63,8 +63,7 @@ pub async fn choose(ctx: &Context, msg: &Message, mut args: Args) -> CommandResu
                     &ctx.cache,
                     &sanitize_for_other_bot_commands(chosen),
                     &settings,
-                )
-                .await,
+                ),
             )
             .await
         {

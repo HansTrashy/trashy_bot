@@ -22,15 +22,14 @@ pub async fn create(ctx: &Context, msg: &Message, mut args: Args) -> CommandResu
     let description_arg = args.single_quoted::<String>().ok();
     let pool = get_client(ctx).await?;
 
-    let guild = msg.guild(&ctx).await.ok_or("No Guild found")?;
+    let guild = msg.guild(&ctx).ok_or("No Guild found")?;
     debug!("Trying to find role: '{:?}'", &role_arg);
     let role = guild.role_by_name(&role_arg).ok_or("Role not found")?;
 
     ReactionRole::create(
         &pool,
-        *msg.channel(&ctx.cache)
-            .await
-            .ok_or("No channel")?
+        *msg.channel(&ctx)
+            .await?
             .guild()
             .ok_or("No guild")?
             .guild_id
@@ -57,7 +56,7 @@ pub async fn description(ctx: &Context, msg: &Message, mut args: Args) -> Comman
     let description = args.single_quoted::<String>().ok();
     let pool = get_client(ctx).await?;
 
-    if let Some(guild) = msg.guild(&ctx.cache).await {
+    if let Some(guild) = msg.guild(ctx) {
         if let Some(role) = guild.role_by_name(&role_arg) {
             ReactionRole::change_description(
                 &pool,
@@ -81,7 +80,7 @@ pub async fn remove(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     let role_arg = args.rest();
     let pool = get_client(ctx).await?;
 
-    if let Some(guild) = msg.guild(&ctx.cache).await {
+    if let Some(guild) = msg.guild(ctx) {
         if let Some(role) = guild.role_by_name(role_arg) {
             ReactionRole::delete(
                 &pool,

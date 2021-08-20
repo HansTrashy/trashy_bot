@@ -29,7 +29,7 @@ nom = "6.1"
 
 [dependencies.serenity]
 git = "https://github.com/serenity-rs/serenity"
-branch = "current"
+branch = "next"
 default-features = false
 features = [
     "builder",

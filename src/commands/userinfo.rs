@@ -69,8 +69,10 @@ pub async fn userinfo(ctx: &Context, msg: &Message, _args: Args) -> CommandResul
             )
         };
 
-        let roles = join_all(member.roles.iter().map(|r| r.to_role_cached(&ctx.cache)))
-            .await
+        let roles = member
+            .roles
+            .iter()
+            .map(|r| r.to_role_cached(ctx))
             .into_iter()
             .filter_map(|r| r.map(|r| r.name))
             .collect();

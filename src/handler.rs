@@ -32,34 +32,27 @@ impl EventHandler for Handler {
 
         tokio::spawn(async move {
             loop {
-                if let Ok(guild_channels) = GuildId(217015995385118721).channels(&ctx.http).await {
-                    let mut active_threads = Vec::new();
-                    for (_id, channel) in guild_channels {
-                        tracing::info!(kind = ?channel.kind, name = ?channel.name(), meta = ?channel.thread_metadata, "CHANNEL");
+                if let Some(guild) = GuildId(217015995385118721).to_guild_cached(&ctx) {
+                    let mut content = String::from("Active Threads: \n");
+                    for channel in guild.threads {
+                        // tracing::info!(kind = ?channel.kind, name = ?channel.name(), meta = ?channel.thread_metadata, "CHANNEL");
 
-                        if [ChannelType::PublicThread, ChannelType::PrivateThread]
-                            .contains(&channel.kind)
-                        {
-                            tracing::debug!(thread = ?channel.name(), "thread detected!");
+                        if channel.kind == ChannelType::PublicThread {
                             if let Some(meta) = channel.thread_metadata {
                                 if !meta.archived && !meta.locked {
-                                    active_threads.push(channel);
+                                    content.push_str(&format!(
+                                        "{} | Active Users: ~{} | Messages: ~{}\n",
+                                        channel.name(),
+                                        channel.member_count.unwrap_or(0),
+                                        channel.message_count.unwrap_or(0),
+                                    ));
                                 }
                             }
                         }
                     }
-                    let mut content = String::from("Active Threads: \n");
-                    for thread in active_threads {
-                        content.push_str(&format!(
-                            "{} | Active Users: {} | Messages: {}\n",
-                            thread.name(),
-                            thread.member_count.unwrap_or(0),
-                            thread.message_count.unwrap_or(0),
-                        ));
-                    }
                     std::mem::drop(
                         ChannelId(279934703904227328)
-                            .send_message(&ctx.http, |m| m.content(content))
+                            .send_message(&ctx, |m| m.content(content))
                             .await,
                     );
                 }
