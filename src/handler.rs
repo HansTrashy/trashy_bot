@@ -1,6 +1,8 @@
 mod fav;
 mod reaction_roles;
 
+use std::os::windows::thread;
+
 use crate::commands::config::Guild;
 use crate::commands::userinfo::UserInfo;
 use crate::models::mute::Mute;
@@ -11,7 +13,7 @@ use serenity::{
     async_trait,
     model::{
         channel::Reaction,
-        channel::{ChannelType, ReactionType},
+        channel::{ChannelType, Message, ReactionType},
         gateway::{Activity, Ready},
         guild::Member,
         id::ChannelId,
@@ -32,6 +34,7 @@ impl EventHandler for Handler {
         ctx.set_activity(Activity::listening("$help")).await;
 
         tokio::spawn(async move {
+            let mut thread_message: Option<Message> = None;
             tokio::time::sleep(std::time::Duration::from_secs(30)).await;
             loop {
                 if let Some(guild) = GuildId(217015995385118721).to_guild_cached(&ctx) {
@@ -42,25 +45,27 @@ impl EventHandler for Handler {
                         if channel.kind == ChannelType::PublicThread {
                             if let Some(meta) = channel.thread_metadata {
                                 if !meta.archived && !meta.locked {
-                                    active_threads.push_str(
-                                        &MessageBuilder::new()
-                                            .mention(&channel)
-                                            .push("Active Users: ")
-                                            .push_bold(channel.member_count.unwrap_or(0))
-                                            .push("+ Messages: ")
-                                            .push_bold(channel.message_count.unwrap_or(0))
-                                            .push("+\n")
-                                            .build(),
-                                    );
+                                    active_threads.push_str(&format!(
+                                        "{:40} | User: {:>4}+ | Messages: {:>4}+",
+                                        MessageBuilder::new().mention(&channel).build(),
+                                        channel.member_count.unwrap_or(0),
+                                        channel.message_count.unwrap_or(0)
+                                    ));
                                 }
                             }
                         }
                     }
-                    std::mem::drop(
-                        ChannelId(279934703904227328)
-                            .send_message(&ctx, |m| m.content(active_threads))
-                            .await,
-                    );
+                    match thread_message {
+                        Some(ref mut msg) => {
+                            std::mem::drop(msg.edit(&ctx, |m| m.content(active_threads)).await);
+                        }
+                        None => {
+                            thread_message = ChannelId(279934703904227328)
+                                .send_message(&ctx, |m| m.content(active_threads))
+                                .await
+                                .ok();
+                        }
+                    }
                 }
                 tokio::time::sleep(std::time::Duration::from_secs(60 * 60)).await;
             }
