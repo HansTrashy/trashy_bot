@@ -44,7 +44,7 @@ impl EventHandler for Handler {
                             if let Some(meta) = channel.thread_metadata {
                                 if !meta.archived && !meta.locked {
                                     active_threads.push_str(&format!(
-                                        "{:40} | User: {:>4}+ | Messages: {:>4}+",
+                                        "{:40} | User: {:>4}+ | Messages: {:>4}+\n",
                                         MessageBuilder::new().mention(&channel).build(),
                                         channel.member_count.unwrap_or(0),
                                         channel.message_count.unwrap_or(0)
