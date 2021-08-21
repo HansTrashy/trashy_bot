@@ -1,8 +1,6 @@
 mod fav;
 mod reaction_roles;
 
-use std::os::windows::thread;
-
 use crate::commands::config::Guild;
 use crate::commands::userinfo::UserInfo;
 use crate::models::mute::Mute;
