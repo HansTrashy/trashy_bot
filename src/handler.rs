@@ -55,9 +55,11 @@ impl EventHandler for Handler {
                     }
                     match thread_message {
                         Some(ref mut msg) => {
+                            tracing::info!("message is posted already, editing...");
                             std::mem::drop(msg.edit(&ctx, |m| m.content(active_threads)).await);
                         }
                         None => {
+                            tracing::info!("message is not posted already, posting...");
                             thread_message = ChannelId(279934703904227328)
                                 .send_message(&ctx, |m| m.content(active_threads))
                                 .await
