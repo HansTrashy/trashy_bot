@@ -202,7 +202,7 @@ async fn normal_message(_ctx: &Context, msg: &Message) {
 }
 
 #[hook]
-async fn dispatch_error(ctx: &Context, msg: &Message, error: DispatchError, command_name: &str) {
+async fn dispatch_error(ctx: &Context, msg: &Message, error: DispatchError, _command_name: &str) {
     match error {
         DispatchError::Ratelimited(info) => {
             std::mem::drop(

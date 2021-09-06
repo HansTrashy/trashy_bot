@@ -1,6 +1,5 @@
 use chrono::prelude::*;
 use chrono::Utc;
-use futures::future::join_all;
 use serenity::prelude::*;
 use serenity::{
     framework::standard::{macros::command, Args, CommandResult},
