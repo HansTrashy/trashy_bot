@@ -5,22 +5,21 @@ use nom::{
     IResult,
 };
 use rand::prelude::*;
-use serenity::prelude::*;
-use serenity::{
-    framework::standard::{macros::command, Args, CommandResult},
-    model::channel::Message,
-};
-use tracing::error;
+use twilight_http::Client;
+use twilight_model::application::callback::{CallbackData, InteractionResponse};
+use twilight_model::application::interaction::application_command::CommandDataOption;
+use twilight_model::application::interaction::ApplicationCommand;
 
-#[command]
-#[description = "Roll some dice"]
-#[usage = "*dice_str* *dice_str*"]
-#[example = "1d6"]
-#[example = "2d20-3"]
-async fn roll(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
-    let dice_str = args.rest().trim();
+pub async fn roll(cmd: Box<ApplicationCommand>, http: Client) {
+    let die_str = match &cmd.data.options[0] {
+        CommandDataOption::String { value, .. } => value,
+        _ => {
+            tracing::error!("wrong command optiond dataype received!");
+            return;
+        }
+    };
 
-    match parse_multiple_dice_str(dice_str) {
+    match parse_multiple_dice_str(die_str) {
         Ok((_, dice)) => {
             let mut total: isize = 0;
             let mut papertrail: Vec<String> = Vec::new();
@@ -44,21 +43,88 @@ async fn roll(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
                 }
             }
 
-            msg.reply(
-                ctx,
-                &format!("Your Roll ({}): {}", papertrail.join("+"), total),
-            )
-            .await?;
+            let interaction_resp = InteractionResponse::ChannelMessageWithSource(CallbackData {
+                allowed_mentions: None,
+                components: None,
+                content: Some(format!("Your Roll ({}): {}", papertrail.join("+"), total)),
+                embeds: Vec::new(),
+                flags: None,
+                tts: None,
+            });
+
+            let resp = http
+                .interaction_callback(cmd.id, &cmd.token, &interaction_resp)
+                .exec()
+                .await;
+            tracing::debug!(?resp);
         }
         Err(e) => {
-            error!(?e, "Failed parsing input");
-            msg.reply(ctx, "Sorry that is not a valid die roll!")
-                .await?;
+            tracing::error!(?e, "Failed parsing input");
+            let interaction_resp = InteractionResponse::ChannelMessageWithSource(CallbackData {
+                allowed_mentions: None,
+                components: None,
+                content: Some("the given die string is invalid".to_string()),
+                embeds: Vec::new(),
+                flags: None,
+                tts: None,
+            });
+
+            let resp = http
+                .interaction_callback(cmd.id, &cmd.token, &interaction_resp)
+                .exec()
+                .await;
+            tracing::debug!(?resp);
         }
     }
-
-    Ok(())
 }
+
+// #[command]
+// #[description = "Roll some dice"]
+// #[usage = "*dice_str* *dice_str*"]
+// #[example = "1d6"]
+// #[example = "2d20-3"]
+// async fn roll(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
+//     let dice_str = args.rest().trim();
+
+//     match parse_multiple_dice_str(dice_str) {
+//         Ok((_, dice)) => {
+//             let mut total: isize = 0;
+//             let mut papertrail: Vec<String> = Vec::new();
+//             {
+//                 // dont hold rng over await points
+//                 let mut rng = rand::thread_rng();
+//                 for die in dice {
+//                     let mut rolls = Vec::new();
+//                     for _ in 0..die.number {
+//                         rolls.push(rng.gen_range(1..=(die.sides as isize)));
+//                     }
+
+//                     papertrail.extend(
+//                         rolls
+//                             .iter()
+//                             .map(ToString::to_string)
+//                             .chain(vec![die.flat.to_string()].into_iter())
+//                             .collect::<Vec<_>>(),
+//                     );
+//                     total += rolls.iter().sum::<isize>() + die.flat;
+//                 }
+//             }
+
+//             msg.reply(
+//                 ctx,
+//                 &format!("Your Roll ({}): {}", papertrail.join("+"), total),
+//             )
+//             .await?;
+//         }
+//         Err(e) => {
+//             error!(?e, "Failed parsing input");
+//             msg.reply(ctx, "Sorry that is not a valid die roll!")
+//                 .await?;
+//         }
+//     }
+
+//     Ok(())
+// }
 
 #[derive(Debug, PartialEq)]
 struct Die {
