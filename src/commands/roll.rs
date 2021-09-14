@@ -5,12 +5,13 @@ use nom::{
     IResult,
 };
 use rand::prelude::*;
-use twilight_http::Client;
 use twilight_model::application::callback::{CallbackData, InteractionResponse};
 use twilight_model::application::interaction::application_command::CommandDataOption;
 use twilight_model::application::interaction::ApplicationCommand;
 
-pub async fn roll(cmd: Box<ApplicationCommand>, http: Client) {
+use crate::TrashyContext;
+
+pub async fn roll(cmd: Box<ApplicationCommand>, ctx: &TrashyContext) {
     let die_str = match &cmd.data.options[0] {
         CommandDataOption::String { value, .. } => value,
         _ => {
@@ -24,8 +25,7 @@ pub async fn roll(cmd: Box<ApplicationCommand>, http: Client) {
             let mut total: isize = 0;
             let mut papertrail: Vec<String> = Vec::new();
             {
-                // dont hold rng over await points
-                let mut rng = rand::thread_rng();
+                let rng = &mut ctx.rng.lock().await;
                 for die in dice {
                     let mut rolls = Vec::new();
                     for _ in 0..die.number {
@@ -52,7 +52,8 @@ pub async fn roll(cmd: Box<ApplicationCommand>, http: Client) {
                 tts: None,
             });
 
-            let resp = http
+            let resp = ctx
+                .http
                 .interaction_callback(cmd.id, &cmd.token, &interaction_resp)
                 .exec()
                 .await;
@@ -69,7 +70,8 @@ pub async fn roll(cmd: Box<ApplicationCommand>, http: Client) {
                 tts: None,
             });
 
-            let resp = http
+            let resp = ctx
+                .http
                 .interaction_callback(cmd.id, &cmd.token, &interaction_resp)
                 .exec()
                 .await;

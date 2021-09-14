@@ -1,80 +1,57 @@
+use std::ops::DerefMut;
+
 use rand::prelude::*;
-// use rand::seq::SliceRandom;
-use crate::util::sanitize_for_other_bot_commands;
-use serenity::prelude::*;
-use serenity::utils::{content_safe, ContentSafeOptions};
-use serenity::{
-    framework::standard::{macros::command, Args, CommandResult},
-    model::channel::Message,
+use twilight_model::application::{
+    callback::{CallbackData, InteractionResponse},
+    interaction::{application_command::CommandDataOption, ApplicationCommand},
 };
-use tracing::error;
 
-#[command]
-#[description = "Choose between things"]
-#[aliases("ch00se")]
-#[min_args(2)]
-pub async fn choose(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
-    let settings = ContentSafeOptions::default().clean_channel(false);
+use crate::TrashyContext;
 
-    if args.len() < 2 {
-        return match msg
-            .channel_id
-            .say(ctx, "You have to give at least 2 options")
-            .await
-        {
-            Ok(_) => Ok(()),
-            Err(e) => {
-                error!("Failure sending message: {:?}", e);
-                Err(e.into())
-            }
-        };
-    }
+pub async fn choose(cmd: Box<ApplicationCommand>, ctx: &TrashyContext) {
+    let options = cmd
+        .data
+        .options
+        .get(0)
+        .map(|option| match option {
+            CommandDataOption::String { value, .. } => value.split_whitespace().collect(),
+            _ => vec![],
+        })
+        .unwrap_or_else(Vec::new);
 
-    let args = args
-        .iter::<String>()
-        .collect::<Result<Vec<_>, _>>()
-        .expect("Could not parse args");
+    let how_many = cmd
+        .data
+        .options
+        .get(1)
+        .map(|option| match option {
+            CommandDataOption::Integer { value, .. } => *value,
+            _ => 1,
+        })
+        .unwrap_or(1);
 
-    if args.windows(2).all(|w| w[0] == w[1]) {
-        return match msg
-            .channel_id
-            .say(
-                &ctx.http,
-                "You do not want to deceive me, the consequences would be dire",
-            )
-            .await
-        {
-            Ok(_) => Ok(()),
-            Err(e) => {
-                error!("Failure sending message: {:?}", e);
-                Err(e.into())
-            }
-        };
-    }
+    let chosen = {
+        let rng = &mut ctx.rng.lock().await;
+        let mut_rng = rng.deref_mut();
 
-    let chosen = args.choose(&mut rand::thread_rng());
+        (0..how_many)
+            .filter_map(|_| options.choose(mut_rng))
+            .copied()
+            .collect::<Vec<_>>()
+    };
 
-    if let Some(chosen) = chosen {
-        match msg
-            .channel_id
-            .say(
-                &ctx.http,
-                content_safe(
-                    &ctx.cache,
-                    &sanitize_for_other_bot_commands(chosen),
-                    &settings,
-                ),
-            )
-            .await
-        {
-            Ok(_) => Ok(()),
-            Err(e) => {
-                error!("Failure sending message: {:?}", e);
-                Err(e.into())
-            }
-        }
-    } else {
-        error!("Nothing was chosen");
-        Ok(())
-    }
+    let interaction_resp = InteractionResponse::ChannelMessageWithSource(CallbackData {
+        allowed_mentions: None,
+        components: None,
+        content: Some(chosen.join(", ")),
+        embeds: Vec::new(),
+        flags: None,
+        tts: None,
+    });
+
+    let resp = ctx
+        .http
+        .interaction_callback(cmd.id, &cmd.token, &interaction_resp)
+        .exec()
+        .await;
+    tracing::debug!(?resp);
 }
