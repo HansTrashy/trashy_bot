@@ -15,3 +15,9 @@ pub enum TrashyStartupError {
     #[error("Deserialization failure: {0}")]
     DeserializeFailed(#[from] DeserializeBodyError),
 }
+
+#[derive(Error, Debug)]
+pub enum TrashyCommandError {
+    #[error("The `{0}` command is unknown")]
+    UnknownCommand(String),
+}

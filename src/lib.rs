@@ -14,6 +14,8 @@ use twilight_gateway::{cluster::ShardScheme, Cluster, Event, EventTypeFlags, Int
 use twilight_http::Client;
 use twilight_model::application::{callback::InteractionResponse, interaction::Interaction};
 
+use crate::error::TrashyCommandError;
+
 #[derive(Clone)]
 pub struct TrashyContext {
     pub rng: Arc<Mutex<StdRng>>,
@@ -102,13 +104,17 @@ pub async fn handle_slash(
         Interaction::ApplicationCommand(cmd) => {
             tracing::debug!("application command");
             let name = cmd.data.name.as_str();
-            match name {
+            let result = match name {
                 "roll" => commands::roll::roll(cmd, &ctx).await,
                 "choose" => commands::choose::choose(cmd, &ctx).await,
-                unknown => tracing::warn!(?unknown, "unknown command"),
-            }
+                "sponge" => commands::spongebob::sponge(cmd, &ctx).await,
+                unknown => {
+                    tracing::warn!(?unknown, "unknown command");
+                    Err(TrashyCommandError::UnknownCommand(unknown.to_string()))
+                }
+            };
 
-            Ok(())
+            Ok(result?)
         }
         Interaction::MessageComponent(_cmd) => {
             tracing::debug!("message component not supported");
@@ -183,4 +189,21 @@ mod commands {
 
     pub mod choose;
     pub mod roll;
+    pub mod spongebob;
+    //TODO: quote (implement as soon as MESSAGE commands are supported by twilight)
+    //TODO: favs (implement as soon as MESSAGE commands are supported by twilight)
+
+    //TODO: remindme
+
+    //TODO: xkcds
+
+    //TODO: poll
+
+    //TODO: fighting
+
+    //TODO: userinfo
+
+    //TODO: copypasta system?
+
+    //TODO: lastfm?
 }

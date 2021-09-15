@@ -9,14 +9,18 @@ use twilight_model::application::callback::{CallbackData, InteractionResponse};
 use twilight_model::application::interaction::application_command::CommandDataOption;
 use twilight_model::application::interaction::ApplicationCommand;
 
+use crate::error::TrashyCommandError;
 use crate::TrashyContext;
 
-pub async fn roll(cmd: Box<ApplicationCommand>, ctx: &TrashyContext) {
-    let die_str = match &cmd.data.options[0] {
-        CommandDataOption::String { value, .. } => value,
+pub async fn roll(
+    cmd: Box<ApplicationCommand>,
+    ctx: &TrashyContext,
+) -> Result<(), TrashyCommandError> {
+    let die_str = match &cmd.data.options.get(0) {
+        Some(CommandDataOption::String { value, .. }) => value,
         _ => {
-            tracing::error!("wrong command optiond dataype received!");
-            return;
+            tracing::error!("wrong or no command option dataype received!");
+            return Ok(());
         }
     };
 
@@ -78,55 +82,8 @@ pub async fn roll(cmd: Box<ApplicationCommand>, ctx: &TrashyContext) {
             tracing::debug!(?resp);
         }
     }
+    Ok(())
 }
-
-// #[command]
-// #[description = "Roll some dice"]
-// #[usage = "*dice_str* *dice_str*"]
-// #[example = "1d6"]
-// #[example = "2d20-3"]
-// async fn roll(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
-//     let dice_str = args.rest().trim();
-
-//     match parse_multiple_dice_str(dice_str) {
-//         Ok((_, dice)) => {
-//             let mut total: isize = 0;
-//             let mut papertrail: Vec<String> = Vec::new();
-//             {
-//                 // dont hold rng over await points
-//                 let mut rng = rand::thread_rng();
-//                 for die in dice {
-//                     let mut rolls = Vec::new();
-//                     for _ in 0..die.number {
-//                         rolls.push(rng.gen_range(1..=(die.sides as isize)));
-//                     }
-
-//                     papertrail.extend(
-//                         rolls
-//                             .iter()
-//                             .map(ToString::to_string)
-//                             .chain(vec![die.flat.to_string()].into_iter())
-//                             .collect::<Vec<_>>(),
-//                     );
-//                     total += rolls.iter().sum::<isize>() + die.flat;
-//                 }
-//             }
-
-//             msg.reply(
-//                 ctx,
-//                 &format!("Your Roll ({}): {}", papertrail.join("+"), total),
-//             )
-//             .await?;
-//         }
-//         Err(e) => {
-//             error!(?e, "Failed parsing input");
-//             msg.reply(ctx, "Sorry that is not a valid die roll!")
-//                 .await?;
-//         }
-//     }
-
-//     Ok(())
-// }
 
 #[derive(Debug, PartialEq)]
 struct Die {

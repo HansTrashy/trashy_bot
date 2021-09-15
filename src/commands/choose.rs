@@ -6,9 +6,12 @@ use twilight_model::application::{
     interaction::{application_command::CommandDataOption, ApplicationCommand},
 };
 
-use crate::TrashyContext;
+use crate::{error::TrashyCommandError, TrashyContext};
 
-pub async fn choose(cmd: Box<ApplicationCommand>, ctx: &TrashyContext) {
+pub async fn choose(
+    cmd: Box<ApplicationCommand>,
+    ctx: &TrashyContext,
+) -> Result<(), TrashyCommandError> {
     let options = cmd
         .data
         .options
@@ -54,4 +57,6 @@ pub async fn choose(cmd: Box<ApplicationCommand>, ctx: &TrashyContext) {
         .exec()
         .await;
     tracing::debug!(?resp);
+
+    Ok(())
 }

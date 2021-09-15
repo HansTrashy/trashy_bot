@@ -1,15 +1,26 @@
-use serenity::prelude::*;
-use serenity::{
-    framework::standard::{macros::command, Args, CommandResult},
-    model::channel::Message,
+use twilight_model::{
+    application::{
+        callback::{CallbackData, InteractionResponse},
+        interaction::{application_command::CommandDataOption, ApplicationCommand},
+    },
+    channel::embed::{Embed, EmbedAuthor},
 };
 
-#[command]
-#[description = "Let spongebob say something"]
-#[aliases("sponge")]
-async fn spongebob(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
-    let spongify_this: String = args
-        .rest()
+use crate::{error::TrashyCommandError, TrashyContext};
+
+pub async fn sponge(
+    cmd: Box<ApplicationCommand>,
+    ctx: &TrashyContext,
+) -> Result<(), TrashyCommandError> {
+    let spongify_this = match &cmd.data.options.get(0) {
+        Some(CommandDataOption::String { value, .. }) => value,
+        _ => {
+            tracing::error!("wrong or no command option dataype received!");
+            return Ok(());
+        }
+    };
+
+    let spongified = spongify_this
         .chars()
         .enumerate()
         .map(|(i, c)| {
@@ -19,23 +30,46 @@ async fn spongebob(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
                 c.to_lowercase().to_string()
             }
         })
-        .collect();
+        .collect::<String>();
 
-    msg.channel_id
-        .send_message(&ctx.http, |m| {
-            m.embed(|e| {
-                e.author(|a| {
-                    a.name("Spongebob")
-                        .icon_url("https://cdn.discordapp.com/emojis/598837367343808532.png?v=1")
-                })
-                .description(&spongify_this)
-                .footer(|f| f.text(&format!("Spongified by: {}", &msg.author.name)))
-                .color((252, 230, 49))
-            })
-        })
-        .await?;
+    let embed = Embed {
+        author: Some(EmbedAuthor {
+            icon_url: Some(
+                "https://cdn.discordapp.com/emojis/598837367343808532.png?v=1".to_string(),
+            ),
+            name: Some("Spongebob".to_string()),
+            proxy_icon_url: None,
+            url: None,
+        }),
+        color: Some(0xFFFF00),
+        description: Some(spongified),
+        fields: Vec::new(),
+        footer: None,
+        image: None,
+        kind: "rich".to_string(),
+        provider: None,
+        thumbnail: None,
+        timestamp: None,
+        title: None,
+        url: None,
+        video: None,
+    };
 
-    msg.delete(ctx).await?;
+    let interaction_resp = InteractionResponse::ChannelMessageWithSource(CallbackData {
+        allowed_mentions: None,
+        components: None,
+        content: None,
+        embeds: vec![embed],
+        flags: None,
+        tts: None,
+    });
+
+    let resp = ctx
+        .http
+        .interaction_callback(cmd.id, &cmd.token, &interaction_resp)
+        .exec()
+        .await;
+    tracing::debug!(?resp);
 
     Ok(())
 }
