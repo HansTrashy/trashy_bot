@@ -1,76 +1,60 @@
-use crate::DatabasePool;
-use crate::ReqwestClient;
-use chrono::Duration;
+//! utility functions for the trashy bot
+
+use chrono::{Duration, Utc};
 use regex::Regex;
-use serenity::prelude::Context;
 use sqlx::postgres::PgPool;
 use std::time::Instant;
 
-pub async fn timed_request(
-    client: &reqwest::Client,
-    url: &str,
-) -> Result<(serde_json::Value, std::time::Duration), serenity::framework::standard::CommandError> {
-    let pre_request_time = Instant::now();
-    let res: serde_json::Value = client.get(url).send().await?.json().await?;
+use crate::error::TrashyCommandError;
 
-    Ok((res, pre_request_time.elapsed()))
-}
+// pub async fn timed_request(
+//     client: &reqwest::Client,
+//     url: &str,
+// ) -> Result<(serde_json::Value, std::time::Duration), TrashyCommandError> {
+//     let pre_request_time = Instant::now();
+//     let res: serde_json::Value = client.get(url).send().await?.json().await?;
 
-pub async fn get_reqwest_client(
-    ctx: &Context,
-) -> Result<reqwest::Client, serenity::framework::standard::CommandError> {
-    Ok(ctx
-        .data
-        .read()
-        .await
-        .get::<ReqwestClient>()
-        .ok_or("Failed to get reqwest client")?
-        .clone())
-}
+//     Ok((res, pre_request_time.elapsed()))
+// }
 
-pub async fn get_client(ctx: &Context) -> Result<PgPool, Box<dyn std::error::Error + Send + Sync>> {
-    Ok(ctx
-        .data
-        .read()
-        .await
-        .get::<DatabasePool>()
-        .ok_or("Failed to get pool")?
-        .clone())
-}
+/// parses a date or a duration str
+///
+/// duration str look like `1d` or `24h`, dates look like `2021-05-23`
+pub fn parse_duration_or_date(duration_str: &str) -> Option<Duration> {
+    let date = chrono::NaiveDateTime::parse_from_str(duration_str, "%Y-%m-%d %H:%M");
+    // let date = duration_str.parse::<chrono::DateTime<Utc>>();
 
-static OTHER_MOD_CMD: [char; 3] = ['%', '=', '$'];
-
-pub fn sanitize_for_other_bot_commands(output: &str) -> String {
-    output
-        .chars()
-        .filter(|&c| !OTHER_MOD_CMD.contains(&c))
-        .collect::<String>()
-}
-
-pub fn parse_duration(duration_str: &str) -> Option<Duration> {
-    let (digits, non_digits) = duration_str.chars().fold(
-        (String::with_capacity(5), String::with_capacity(5)),
-        |(mut d, mut nd), elem| {
-            if elem.is_digit(10) {
-                d.push(elem);
-            } else {
-                nd.push(elem);
-            }
-            (d, nd)
-        },
-    );
-
-    if let Ok(n) = digits.parse::<i64>() {
-        match non_digits.as_ref() {
-            "s" => Some(Duration::seconds(n)),
-            "m" => Some(Duration::minutes(n)),
-            "h" => Some(Duration::hours(n)),
-            "d" => Some(Duration::days(n)),
-            "w" => Some(Duration::weeks(n)),
-            _ => None,
+    match date {
+        Ok(datetime) => {
+            let datetime: chrono::DateTime<Utc> = chrono::DateTime::from_utc(datetime, chrono::Utc);
+            Some(datetime.signed_duration_since(Utc::now()))
         }
-    } else {
-        None
+        Err(_) => {
+            let (digits, non_digits) = duration_str.chars().fold(
+                (String::with_capacity(5), String::with_capacity(5)),
+                |(mut d, mut nd), elem| {
+                    if elem.is_digit(10) {
+                        d.push(elem);
+                    } else {
+                        nd.push(elem);
+                    }
+                    (d, nd)
+                },
+            );
+
+            if let Ok(n) = digits.parse::<i64>() {
+                match non_digits.as_ref() {
+                    "s" => Some(Duration::seconds(n)),
+                    "m" => Some(Duration::minutes(n)),
+                    "h" => Some(Duration::hours(n)),
+                    "d" => Some(Duration::days(n)),
+                    "w" => Some(Duration::weeks(n)),
+                    _ => None,
+                }
+            } else {
+                None
+            }
+        }
     }
 }
 
