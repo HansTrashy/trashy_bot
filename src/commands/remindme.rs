@@ -42,7 +42,7 @@ pub async fn remindme(
     let interaction_resp = InteractionResponse::ChannelMessageWithSource(CallbackData {
         allowed_mentions: None,
         components: None,
-        content: Some(format!("I will remind you @ {}", remind_date)),
+        content: Some(format!("I will remind you @ {}", remind_date)), //TODO: pretty print the date
         embeds: Vec::new(),
         flags: Some(MessageFlags::EPHEMERAL),
         tts: None,
