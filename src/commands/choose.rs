@@ -3,7 +3,7 @@ use std::ops::DerefMut;
 use rand::prelude::*;
 use twilight_model::application::{
     callback::{CallbackData, InteractionResponse},
-    interaction::{application_command::CommandDataOption, ApplicationCommand},
+    interaction::{application_command::CommandOptionValue, ApplicationCommand},
 };
 
 use crate::{error::TrashyCommandError, TrashyContext};
@@ -16,9 +16,12 @@ pub async fn choose(
         .data
         .options
         .get(0)
-        .map(|option| match option {
-            CommandDataOption::String { value, .. } => value.split_whitespace().collect(),
-            _ => vec![],
+        .map(|option| {
+            if let CommandOptionValue::String(v) = &option.value {
+                v.split_whitespace().collect()
+            } else {
+                Vec::new()
+            }
         })
         .unwrap_or_else(Vec::new);
 
@@ -26,9 +29,12 @@ pub async fn choose(
         .data
         .options
         .get(1)
-        .map(|option| match option {
-            CommandDataOption::Integer { value, .. } => *value,
-            _ => 1,
+        .map(|option| {
+            if let CommandOptionValue::Integer(v) = &option.value {
+                *v
+            } else {
+                1
+            }
         })
         .unwrap_or(1);
 

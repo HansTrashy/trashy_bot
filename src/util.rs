@@ -19,7 +19,7 @@ use crate::error::TrashyCommandError;
 
 /// parses a date or a duration str
 ///
-/// duration str look like `1d` or `24h`, dates look like `2021-05-23`
+/// duration str look like `1d` or `24h`, dates look like `2021-05-23 12:00`
 pub fn parse_duration_or_date(duration_str: &str) -> Option<Duration> {
     let date = chrono::NaiveDateTime::parse_from_str(duration_str, "%Y-%m-%d %H:%M");
     // let date = duration_str.parse::<chrono::DateTime<Utc>>();

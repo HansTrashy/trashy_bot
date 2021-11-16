@@ -4,7 +4,7 @@ use tokio::time::sleep;
 use twilight_model::{
     application::{
         callback::{CallbackData, InteractionResponse},
-        interaction::{application_command::CommandDataOption, ApplicationCommand},
+        interaction::{application_command::CommandOptionValue, ApplicationCommand},
     },
     channel::message::MessageFlags,
 };
@@ -21,19 +21,25 @@ pub async fn remindme(
         .get(0)
         .ok_or(TrashyCommandError::MissingOption)?;
 
-    let duration = match date_option {
-        CommandDataOption::String { value, .. } => util::parse_duration_or_date(&value)
-            .ok_or(TrashyCommandError::UnknownOption(value.to_string()))?,
-        o => return Err(TrashyCommandError::UnknownOption(o.name().to_string())),
+    let duration = if let CommandOptionValue::String(value) = &date_option.value {
+        util::parse_duration_or_date(&value)
+            .ok_or(TrashyCommandError::UnknownOption(value.to_string()))?
+    } else {
+        return Err(TrashyCommandError::UnknownOption(
+            date_option.name.to_string(),
+        ));
     };
 
     let message = cmd
         .data
         .options
         .get(1)
-        .map(|option| match option {
-            CommandDataOption::String { value, .. } => Ok(value.to_string()),
-            o => Err(TrashyCommandError::UnknownOption(o.name().to_string())),
+        .map(|option| {
+            if let CommandOptionValue::String(v) = &option.value {
+                Ok(v.to_string())
+            } else {
+                Err(TrashyCommandError::UnknownOption(option.name.to_string()))
+            }
         })
         .transpose()?;
 
@@ -80,7 +86,10 @@ pub async fn remindme(
 
     sleep(duration.to_std().unwrap()).await;
 
-    Reminder::delete(&ctx.db, reminder.id).await;
+    match Reminder::delete(&ctx.db, reminder.id).await {
+        Ok(_) => (),
+        Err(e) => tracing::error!(?e, "deleting reminder failed"),
+    };
 
     ctx.http
         .create_message(cmd.channel_id)

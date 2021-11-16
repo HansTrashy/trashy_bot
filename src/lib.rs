@@ -59,7 +59,7 @@ impl TrashyBot {
         let token = config.discord_token;
         let scheme = ShardScheme::Auto;
 
-        let http = Client::new(token.clone());
+        let http = Arc::new(Client::new(token.clone()));
         let current_user = http.current_user().exec().await?.model().await?;
         http.set_application_id(current_user.id.0.into());
         http.set_global_commands(&commands::commands())?
@@ -75,11 +75,13 @@ impl TrashyBot {
         let (cluster, mut events) = Cluster::builder(&token, intents)
             .event_types(flags)
             .shard_scheme(scheme)
-            .http_client(http.clone())
+            .http_client(Arc::clone(&http))
             .build()
             .await?;
 
-        let cluster_spawn = cluster.clone();
+        let cluster = Arc::new(cluster);
+
+        let cluster_spawn = Arc::clone(&cluster);
 
         tokio::spawn(async move {
             cluster_spawn.up().await;
@@ -98,7 +100,7 @@ impl TrashyBot {
 
         let context = TrashyContext {
             rng: Arc::new(Mutex::new(StdRng::seed_from_u64(41237102))),
-            http: Arc::new(http),
+            http: Arc::clone(&http),
             db: pool,
         };
 
@@ -181,7 +183,7 @@ mod commands {
             Command {
                 id: None,
                 application_id: None,
-                guild_id: Some(GuildId(884438532322652251)),
+                guild_id: Some(GuildId::new(884438532322652251).unwrap()),
                 kind: CommandType::ChatInput,
                 name: "roll".to_string(),
                 default_permission: None,
@@ -196,7 +198,7 @@ mod commands {
             Command {
                 id: None,
                 application_id: None,
-                guild_id: Some(GuildId(884438532322652251)),
+                guild_id: Some(GuildId::new(884438532322652251).unwrap()),
                 kind: CommandType::ChatInput,
                 name: "choose".to_string(),
                 default_permission: None,
@@ -220,7 +222,7 @@ mod commands {
             Command {
                 id: None,
                 application_id: None,
-                guild_id: Some(GuildId(884438532322652251)),
+                guild_id: Some(GuildId::new(884438532322652251).unwrap()),
                 kind: CommandType::ChatInput,
                 name: "sponge".to_string(),
                 default_permission: None,
@@ -235,7 +237,7 @@ mod commands {
             Command {
                 id: None,
                 application_id: None,
-                guild_id: Some(GuildId(884438532322652251)),
+                guild_id: Some(GuildId::new(884438532322652251).unwrap()),
                 kind: CommandType::ChatInput,
                 name: "remindme".to_string(),
                 default_permission: None,
@@ -280,6 +282,8 @@ mod commands {
     //TODO: lastfm?
 }
 
+/// Database models
 pub mod models {
+    /// reminder database model
     pub mod reminder;
 }

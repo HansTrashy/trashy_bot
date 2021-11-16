@@ -1,6 +1,6 @@
 use chrono::{DateTime, Utc};
 use sqlx::postgres::PgPool;
-use twilight_model::id::{ChannelId, InteractionId, MessageId, UserId};
+use twilight_model::id::{ChannelId, MessageId, UserId};
 
 /// type alias for db driver specific error
 pub type DbError = sqlx::Error;
@@ -42,9 +42,9 @@ impl Reminder {
         sqlx::query_as!(
             Self,
             "INSERT INTO reminders (channel_id, user_id, anchor_id, end_time, msg) VALUES ($1,$2,$3,$4,$5) RETURNING *",
-            channel_id.0 as i64,
-            user_id.0 as i64,
-            anchor_id.0 as i64,
+            channel_id.0.get() as i64,
+            user_id.0.get() as i64,
+            anchor_id.0.get() as i64,
             end_time,
             msg
         )

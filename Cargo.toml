@@ -2,7 +2,7 @@
 name = "trashy_bot"
 version = "0.3.0"
 authors = ["Denis Richartz <denisrichartz92@gmail.com>"]
-edition = "2018"
+edition = "2021"
 
 [profile.release]
 lto = "fat"
@@ -19,14 +19,14 @@ tokio = { version = "1", features = ["full"] }
 futures = "0.3"
 sqlx = { version = "0.5", default-features = false, features = [ "runtime-tokio-rustls", "migrate", "macros", "postgres", "chrono", "json", "offline" ] }
 tracing = "0.1"
-tracing-subscriber = { version = "0.2", features = ["env-filter"] }
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 tracing-futures = "0.2"
 toml = "0.5"
 nom = "7"
-twilight-cache-inmemory = "0.6"
-twilight-gateway = "0.6"
-twilight-http = "0.6"
-twilight-model = "0.6"
+twilight-cache-inmemory = "0.7"
+twilight-gateway = "0.7"
+twilight-http = "0.7"
+twilight-model = "0.7"
 thiserror = "1"
 anyhow = "1"
 # tantivy = "0.15"

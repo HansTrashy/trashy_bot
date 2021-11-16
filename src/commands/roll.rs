@@ -6,7 +6,7 @@ use nom::{
 };
 use rand::prelude::*;
 use twilight_model::application::callback::{CallbackData, InteractionResponse};
-use twilight_model::application::interaction::application_command::CommandDataOption;
+use twilight_model::application::interaction::application_command::CommandOptionValue;
 use twilight_model::application::interaction::ApplicationCommand;
 
 use crate::error::TrashyCommandError;
@@ -16,13 +16,18 @@ pub async fn roll(
     cmd: Box<ApplicationCommand>,
     ctx: &TrashyContext,
 ) -> Result<(), TrashyCommandError> {
-    let die_str = match &cmd.data.options.get(0) {
-        Some(CommandDataOption::String { value, .. }) => value,
-        _ => {
-            tracing::error!("wrong or no command option dataype received!");
-            return Ok(());
-        }
-    };
+    let die_str = cmd
+        .data
+        .options
+        .get(0)
+        .and_then(|option| {
+            if let CommandOptionValue::String(v) = &option.value {
+                Some(v)
+            } else {
+                None
+            }
+        })
+        .ok_or(TrashyCommandError::MissingOption)?;
 
     match parse_multiple_dice_str(die_str) {
         Ok((_, dice)) => {

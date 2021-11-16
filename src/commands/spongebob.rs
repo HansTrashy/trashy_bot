@@ -1,7 +1,7 @@
 use twilight_model::{
     application::{
         callback::{CallbackData, InteractionResponse},
-        interaction::{application_command::CommandDataOption, ApplicationCommand},
+        interaction::{application_command::CommandOptionValue, ApplicationCommand},
     },
     channel::embed::{Embed, EmbedAuthor},
 };
@@ -12,13 +12,18 @@ pub async fn sponge(
     cmd: Box<ApplicationCommand>,
     ctx: &TrashyContext,
 ) -> Result<(), TrashyCommandError> {
-    let spongify_this = match &cmd.data.options.get(0) {
-        Some(CommandDataOption::String { value, .. }) => value,
-        _ => {
-            tracing::error!("wrong or no command option dataype received!");
-            return Ok(());
-        }
-    };
+    let spongify_this = cmd
+        .data
+        .options
+        .get(0)
+        .and_then(|option| {
+            if let CommandOptionValue::String(v) = &option.value {
+                Some(v)
+            } else {
+                None
+            }
+        })
+        .ok_or(TrashyCommandError::MissingOption)?;
 
     let spongified = spongify_this
         .chars()
