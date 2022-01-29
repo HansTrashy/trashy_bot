@@ -175,89 +175,85 @@ pub async fn handle_interaction(
 mod commands {
     use twilight_model::{
         application::command::{ChoiceCommandOptionData, Command, CommandOption, CommandType},
-        id::GuildId,
+        id::{CommandVersionId, GuildId},
     };
+    use twilight_util::builder::command::{CommandBuilder, IntegerBuilder, StringBuilder};
 
     pub fn commands() -> Vec<Command> {
-        vec![
-            Command {
-                id: None,
-                application_id: None,
-                guild_id: Some(GuildId::new(884438532322652251).unwrap()),
-                kind: CommandType::ChatInput,
-                name: "roll".to_string(),
-                default_permission: None,
-                description: "Roll some die!".to_string(),
-                options: vec![CommandOption::String(ChoiceCommandOptionData {
-                    choices: vec![],
-                    description: "specify which die you want to roll".to_string(),
-                    name: "roll".to_string(),
-                    required: true,
-                })],
-            },
-            Command {
-                id: None,
-                application_id: None,
-                guild_id: Some(GuildId::new(884438532322652251).unwrap()),
-                kind: CommandType::ChatInput,
-                name: "choose".to_string(),
-                default_permission: None,
-                description: "Choose something!".to_string(),
-                options: vec![
-                    CommandOption::String(ChoiceCommandOptionData {
-                        choices: vec![],
-                        description: "specify which die you want to roll".to_string(),
-                        name: "options".to_string(),
-                        required: true,
-                    }),
-                    CommandOption::Integer(ChoiceCommandOptionData {
-                        choices: vec![],
-                        description: "specify how many options should be picked (default 1)"
-                            .to_string(),
-                        name: "pick".to_string(),
-                        required: false,
-                    }),
-                ],
-            },
-            Command {
-                id: None,
-                application_id: None,
-                guild_id: Some(GuildId::new(884438532322652251).unwrap()),
-                kind: CommandType::ChatInput,
-                name: "sponge".to_string(),
-                default_permission: None,
-                description: "sPonGiFy sOmE wOrdS!".to_string(),
-                options: vec![CommandOption::String(ChoiceCommandOptionData {
-                    choices: vec![],
-                    description: "specify what you want to spongify".to_string(),
-                    name: "text".to_string(),
-                    required: true,
-                })],
-            },
-            Command {
-                id: None,
-                application_id: None,
-                guild_id: Some(GuildId::new(884438532322652251).unwrap()),
-                kind: CommandType::ChatInput,
-                name: "remindme".to_string(),
-                default_permission: None,
-                description: "let the bot remind you!".to_string(),
-                options: vec![
-                    CommandOption::String(ChoiceCommandOptionData {
-                        choices: vec![],
-                        description: "date or duration".to_string(),
-                        name: "when".to_string(),
-                        required: true,
-                    }),
-                    CommandOption::String(ChoiceCommandOptionData {
-                        choices: vec![],
-                        description: "what should i remind you about?".to_string(),
-                        name: "message".to_string(),
-                        required: false,
-                    }),
-                ],
-            },
+        [
+            CommandBuilder::new(
+                "roll".to_string(),
+                "Roll some die!".to_string(),
+                CommandType::ChatInput,
+            )
+            .guild_id(GuildId::new(884438532322652251).unwrap())
+            .option(
+                StringBuilder::new(
+                    "roll".to_string(),
+                    "specify which die you want to roll".to_string(),
+                )
+                .required(true)
+                .build(),
+            )
+            .build(),
+            CommandBuilder::new(
+                "choose".to_string(),
+                "Choose something!".to_string(),
+                CommandType::ChatInput,
+            )
+            .guild_id(GuildId::new(884438532322652251).unwrap())
+            .option(
+                StringBuilder::new(
+                    "options".to_string(),
+                    "specify which die you want to roll".to_string(),
+                )
+                .required(true)
+                .build(),
+            )
+            .option(
+                IntegerBuilder::new(
+                    "pick".to_string(),
+                    "specify how many options should be picked (default 1)".to_string(),
+                )
+                .build(),
+            )
+            .build(),
+            CommandBuilder::new(
+                "sponge".to_string(),
+                "sPonGiFy sOmE wOrdS!".to_string(),
+                CommandType::ChatInput,
+            )
+            .guild_id(GuildId::new(884438532322652251).unwrap())
+            .option(
+                StringBuilder::new(
+                    "text".to_string(),
+                    "specify what you want to spongify".to_string(),
+                )
+                .required(true)
+                .build(),
+            )
+            .build(),
+            CommandBuilder::new(
+                "remindme".to_string(),
+                "let the bot remind you!".to_string(),
+                CommandType::ChatInput,
+            )
+            .guild_id(GuildId::new(884438532322652251).unwrap())
+            .option(
+                StringBuilder::new("when".to_string(), "date or duration".to_string())
+                    .required(true)
+                    .build(),
+            )
+            .option(
+                StringBuilder::new(
+                    "message".to_string(),
+                    "what should i remind you about?".to_string(),
+                )
+                .build(),
+            )
+            .build(),
         ]
+        .into()
     }
 
     pub mod choose;

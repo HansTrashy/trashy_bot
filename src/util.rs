@@ -1,9 +1,9 @@
 //! utility functions for the trashy bot
 
-use chrono::{Duration, Utc};
 use regex::Regex;
 use sqlx::postgres::PgPool;
 use std::time::Instant;
+use time::Duration;
 
 use crate::error::TrashyCommandError;
 
@@ -21,14 +21,13 @@ use crate::error::TrashyCommandError;
 ///
 /// duration str look like `1d` or `24h`, dates look like `2021-05-23 12:00`
 pub fn parse_duration_or_date(duration_str: &str) -> Option<Duration> {
-    let date = chrono::NaiveDateTime::parse_from_str(duration_str, "%Y-%m-%d %H:%M");
+    let format = time::macros::format_description!("[year]-[month]-[day] [hour]:[minute]");
+
+    let date = time::OffsetDateTime::parse(duration_str, &format);
     // let date = duration_str.parse::<chrono::DateTime<Utc>>();
 
     match date {
-        Ok(datetime) => {
-            let datetime: chrono::DateTime<Utc> = chrono::DateTime::from_utc(datetime, chrono::Utc);
-            Some(datetime.signed_duration_since(Utc::now()))
-        }
+        Ok(datetime) => Some((time::OffsetDateTime::now_utc() - datetime).abs()),
         Err(_) => {
             let (digits, non_digits) = duration_str.chars().fold(
                 (String::with_capacity(5), String::with_capacity(5)),
@@ -59,9 +58,9 @@ pub fn parse_duration_or_date(duration_str: &str) -> Option<Duration> {
 }
 
 pub fn humanize_duration(duration: &Duration) -> String {
-    let days = duration.num_days();
-    let hours = duration.num_hours() - days * 24_i64;
-    let minutes = duration.num_minutes() - (days * 24_i64 * 60_i64) - (hours * 60_i64);
+    let days = duration.whole_days();
+    let hours = duration.whole_hours() - days * 24_i64;
+    let minutes = duration.whole_minutes() - (days * 24_i64 * 60_i64) - (hours * 60_i64);
 
     match (days, hours, minutes) {
         (0, 0, 0) => "less than one minute".to_string(),
@@ -101,7 +100,7 @@ pub fn parse_message_link(regex: &Regex, link: &str) -> Result<(u64, u64, u64), 
 
 #[cfg(test)]
 mod tests {
-    use super::{humanize_duration, Duration};
+    use super::{humanize_duration, parse_duration_or_date, Duration};
 
     #[test]
     fn check_humanized_duration() {
@@ -116,5 +115,15 @@ mod tests {
         let duration = humanize_duration(&Duration::seconds(86399));
 
         assert_eq!(duration, "23 hours 59 minutes".to_string());
+    }
+
+    #[test]
+    fn parsing_duration_or_datetime() {
+        let r = parse_duration_or_date("16:00");
+        let format = time::macros::format_description!("[year]-[month]-[day] [hour]:[minute]");
+
+        let date = time::OffsetDateTime::parse("16:00", &format);
+
+        println!("{:?}", date);
     }
 }

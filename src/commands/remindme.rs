@@ -1,5 +1,3 @@
-use chrono::Utc;
-
 use tokio::time::sleep;
 use twilight_model::{
     application::{
@@ -43,7 +41,7 @@ pub async fn remindme(
         })
         .transpose()?;
 
-    let remind_date = Utc::now() + duration;
+    let remind_date = time::OffsetDateTime::now_utc() + duration;
 
     let interaction_resp = InteractionResponse::ChannelMessageWithSource(CallbackData {
         allowed_mentions: None,
@@ -84,7 +82,7 @@ pub async fn remindme(
     )
     .await?;
 
-    sleep(duration.to_std().unwrap()).await;
+    sleep(duration.try_into().unwrap()).await;
 
     match Reminder::delete(&ctx.db, reminder.id).await {
         Ok(_) => (),

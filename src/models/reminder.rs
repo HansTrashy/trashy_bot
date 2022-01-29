@@ -1,4 +1,3 @@
-use chrono::{DateTime, Utc};
 use sqlx::postgres::PgPool;
 use twilight_model::id::{ChannelId, MessageId, UserId};
 
@@ -17,7 +16,7 @@ pub struct Reminder {
     /// anchor id
     pub anchor_id: i64,
     /// when the reminder ends
-    pub end_time: DateTime<Utc>,
+    pub end_time: time::OffsetDateTime,
     /// a message that should be sent to the user at the designated time
     pub msg: String,
 }
@@ -36,7 +35,7 @@ impl Reminder {
         channel_id: ChannelId,
         user_id: UserId,
         anchor_id: MessageId,
-        end_time: DateTime<Utc>,
+        end_time: time::OffsetDateTime,
         msg: &str,
     ) -> Result<Self, DbError> {
         sqlx::query_as!(
