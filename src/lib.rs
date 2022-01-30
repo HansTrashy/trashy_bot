@@ -28,7 +28,7 @@ use sqlx::{postgres::PgPoolOptions, PgPool};
 use tokio::sync::Mutex;
 use twilight_cache_inmemory::{InMemoryCache, ResourceType};
 use twilight_gateway::{cluster::ShardScheme, Cluster, Event, EventTypeFlags, Intents};
-use twilight_http::{client::InteractionClient, Client};
+use twilight_http::Client;
 use twilight_model::{
     application::{callback::InteractionResponse, interaction::Interaction},
     id::{marker::ApplicationMarker, Id},
@@ -139,58 +139,59 @@ pub async fn handle_event(event: Event, ctx: TrashyContext) {
         }
         Event::InteractionCreate(interaction) => {
             tracing::debug!("Interaction");
-            // match handle_interaction(interaction.0, ctx.clone()).await {
-            //     Ok(_) => tracing::debug!("interaction completed"),
-            //     Err(e) => tracing::error!(?e, "interaction could not be completed"),
-            // }
+            match handle_interaction(interaction.0, ctx.clone()).await {
+                Ok(_) => tracing::debug!("interaction completed"),
+                Err(e) => tracing::error!(?e, "interaction could not be completed"),
+            }
         }
         _ => tracing::warn!(?event, "unsupported event!"),
     }
 }
 
-// /// the interaction handler
-// ///
-// /// this function handles dispatching of different interaction types
-// pub async fn handle_interaction(
-//     interaction: Interaction,
-//     ctx: TrashyContext,
-// ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-//     match interaction {
-//         Interaction::Ping(ping) => {
-//             ctx.http
-//                 .interaction_callback(ping.id, &ping.token, &InteractionResponse::Pong)
-//                 .exec()
-//                 .await?;
-//             Ok(())
-//         }
-//         Interaction::ApplicationCommand(cmd) => {
-//             tracing::debug!("application command");
-//             let name = cmd.data.name.as_str();
-//             let result = match name {
-//                 "roll" => commands::roll::roll(cmd, &ctx).await,
-//                 "choose" => commands::choose::choose(cmd, &ctx).await,
-//                 "sponge" => commands::spongebob::sponge(cmd, &ctx).await,
-//                 "remindme" => commands::remindme::remindme(cmd, &ctx).await,
-//                 unknown => {
-//                     tracing::warn!(?unknown, "unknown command");
-//                     Err(TrashyCommandError::UnknownCommand(unknown.to_string()))
-//                 }
-//             };
+/// the interaction handler
+///
+/// this function handles dispatching of different interaction types
+pub async fn handle_interaction(
+    interaction: Interaction,
+    ctx: TrashyContext,
+) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    match interaction {
+        Interaction::Ping(ping) => {
+            ctx.http
+                .interaction(ctx.app_id)
+                .interaction_callback(ping.id, &ping.token, &InteractionResponse::Pong)
+                .exec()
+                .await?;
+            Ok(())
+        }
+        Interaction::ApplicationCommand(cmd) => {
+            tracing::debug!("application command");
+            let name = cmd.data.name.as_str();
+            let result = match name {
+                "roll" => commands::roll::roll(cmd, &ctx).await,
+                "choose" => commands::choose::choose(cmd, &ctx).await,
+                "sponge" => commands::spongebob::sponge(cmd, &ctx).await,
+                "remindme" => commands::remindme::remindme(cmd, &ctx).await,
+                unknown => {
+                    tracing::warn!(?unknown, "unknown command");
+                    Err(TrashyCommandError::UnknownCommand(unknown.to_string()))
+                }
+            };
 
-//             Ok(result?)
-//         }
-//         Interaction::MessageComponent(_cmd) => {
-//             tracing::debug!("message component not supported");
+            Ok(result?)
+        }
+        Interaction::MessageComponent(_cmd) => {
+            tracing::debug!("message component not supported");
 
-//             Ok(())
-//         }
-//         _ => Err("unknown interaction type".into()),
-//     }
-// }
+            Ok(())
+        }
+        _ => Err("unknown interaction type".into()),
+    }
+}
 
 mod commands {
     use twilight_model::{
-        application::command::{ChoiceCommandOptionData, Command, CommandOption, CommandType},
+        application::command::{Command, CommandType},
         id::Id,
     };
     use twilight_util::builder::command::{CommandBuilder, IntegerBuilder, StringBuilder};

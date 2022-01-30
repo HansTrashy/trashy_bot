@@ -21,40 +21,41 @@ use crate::error::TrashyCommandError;
 ///
 /// duration str look like `1d` or `24h`, dates look like `2021-05-23 12:00`
 pub fn parse_duration_or_date(duration_str: &str) -> Option<Duration> {
-    //TODO: update to time 0.3 when sqlx supports it
+    //TODO: update to time 0.3 when sqlx supports it and then support dates with time
     // let format = time::macros::format_description!("[year]-[month]-[day] [hour]:[minute]");
     // let date = time::OffsetDateTime::parse(duration_str, &format);
 
     // match date {
     //     Ok(datetime) => Some((time::OffsetDateTime::now_utc() - datetime).abs()),
     //     Err(_) => {
-    //         let (digits, non_digits) = duration_str.chars().fold(
-    //             (String::with_capacity(5), String::with_capacity(5)),
-    //             |(mut d, mut nd), elem| {
-    //                 if elem.is_digit(10) {
-    //                     d.push(elem);
-    //                 } else {
-    //                     nd.push(elem);
-    //                 }
-    //                 (d, nd)
-    //             },
-    //         );
-
-    //         if let Ok(n) = digits.parse::<i64>() {
-    //             match non_digits.as_ref() {
-    //                 "s" => Some(Duration::seconds(n)),
-    //                 "m" => Some(Duration::minutes(n)),
-    //                 "h" => Some(Duration::hours(n)),
-    //                 "d" => Some(Duration::days(n)),
-    //                 "w" => Some(Duration::weeks(n)),
-    //                 _ => None,
-    //             }
-    //         } else {
-    //             None
-    //         }
+    //
     //     }
     // }
-    None
+
+    let (digits, non_digits) = duration_str.chars().fold(
+        (String::with_capacity(5), String::with_capacity(5)),
+        |(mut d, mut nd), elem| {
+            if elem.is_digit(10) {
+                d.push(elem);
+            } else {
+                nd.push(elem);
+            }
+            (d, nd)
+        },
+    );
+
+    if let Ok(n) = digits.parse::<i64>() {
+        match non_digits.as_ref() {
+            "s" => Some(Duration::seconds(n)),
+            "m" => Some(Duration::minutes(n)),
+            "h" => Some(Duration::hours(n)),
+            "d" => Some(Duration::days(n)),
+            "w" => Some(Duration::weeks(n)),
+            _ => None,
+        }
+    } else {
+        None
+    }
 }
 
 pub fn humanize_duration(duration: &Duration) -> String {
