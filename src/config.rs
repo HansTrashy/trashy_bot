@@ -11,7 +11,6 @@ pub struct Config {
     // pub delimiter: char,
     /// the discord bot token
     pub discord_token: String,
-    // pub application_id: u64,
     // pub lastfm_api_key: String,
     // pub xkcd_index: String,
     /// database url

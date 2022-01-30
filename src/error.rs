@@ -4,6 +4,7 @@ use thiserror::Error;
 use twilight_gateway::cluster::ClusterStartError;
 use twilight_http::response::DeserializeBodyError;
 use twilight_http::Error as TwilightError;
+use twilight_validate::message::MessageValidationError;
 
 #[derive(Error, Debug)]
 /// this error enum contains all variants how the bot startup may fail
@@ -46,6 +47,9 @@ pub enum TrashyCommandError {
     /// deserialize model error
     #[error("model could not be deserialized: {0}")]
     DeserializeModel(#[from] DeserializeBodyError),
+    /// message validation error
+    #[error("validation error: {0}")]
+    Validation(#[from] MessageValidationError),
     /// http error
     #[error("communication with discord failed: {0}")]
     Http(#[from] twilight_http::Error),

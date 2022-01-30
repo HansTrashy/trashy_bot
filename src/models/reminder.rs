@@ -1,5 +1,8 @@
 use sqlx::postgres::PgPool;
-use twilight_model::id::{ChannelId, MessageId, UserId};
+use twilight_model::id::{
+    marker::{ChannelMarker, MessageMarker, UserMarker},
+    Id,
+};
 
 /// type alias for db driver specific error
 pub type DbError = sqlx::Error;
@@ -32,18 +35,18 @@ impl Reminder {
     /// creating a reminder
     pub async fn create(
         pool: &PgPool,
-        channel_id: ChannelId,
-        user_id: UserId,
-        anchor_id: MessageId,
+        channel_id: Id<ChannelMarker>,
+        user_id: Id<UserMarker>,
+        anchor_id: Id<MessageMarker>,
         end_time: time::OffsetDateTime,
         msg: &str,
     ) -> Result<Self, DbError> {
         sqlx::query_as!(
             Self,
             "INSERT INTO reminders (channel_id, user_id, anchor_id, end_time, msg) VALUES ($1,$2,$3,$4,$5) RETURNING *",
-            channel_id.0.get() as i64,
-            user_id.0.get() as i64,
-            anchor_id.0.get() as i64,
+            channel_id.get() as i64,
+            user_id.get() as i64,
+            anchor_id.get() as i64,
             end_time,
             msg
         )

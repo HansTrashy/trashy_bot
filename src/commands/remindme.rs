@@ -47,7 +47,7 @@ pub async fn remindme(
         allowed_mentions: None,
         components: None,
         content: Some(format!("I will remind you @ {}", remind_date)), //TODO: pretty print the date
-        embeds: Vec::new(),
+        embeds: None,
         flags: Some(MessageFlags::EPHEMERAL),
         tts: None,
     });
@@ -55,6 +55,7 @@ pub async fn remindme(
     // drop the response here, we want to make a best effort to remind the user in any case, even if something went wrong with the interaction callback
     let _ = ctx
         .http
+        .interaction(ctx.app_id)
         .interaction_callback(cmd.id, &cmd.token, &interaction_resp)
         .exec()
         .await;

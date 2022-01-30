@@ -56,13 +56,14 @@ pub async fn roll(
                 allowed_mentions: None,
                 components: None,
                 content: Some(format!("Your Roll ({}): {}", papertrail.join("+"), total)),
-                embeds: Vec::new(),
+                embeds: None,
                 flags: None,
                 tts: None,
             });
 
             let resp = ctx
                 .http
+                .interaction(ctx.app_id)
                 .interaction_callback(cmd.id, &cmd.token, &interaction_resp)
                 .exec()
                 .await;
@@ -74,13 +75,14 @@ pub async fn roll(
                 allowed_mentions: None,
                 components: None,
                 content: Some("the given die string is invalid".to_string()),
-                embeds: Vec::new(),
+                embeds: None,
                 flags: None,
                 tts: None,
             });
 
             let resp = ctx
                 .http
+                .interaction(ctx.app_id)
                 .interaction_callback(cmd.id, &cmd.token, &interaction_resp)
                 .exec()
                 .await;

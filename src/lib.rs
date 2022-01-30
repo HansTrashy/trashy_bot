@@ -28,8 +28,11 @@ use sqlx::{postgres::PgPoolOptions, PgPool};
 use tokio::sync::Mutex;
 use twilight_cache_inmemory::{InMemoryCache, ResourceType};
 use twilight_gateway::{cluster::ShardScheme, Cluster, Event, EventTypeFlags, Intents};
-use twilight_http::Client;
-use twilight_model::application::{callback::InteractionResponse, interaction::Interaction};
+use twilight_http::{client::InteractionClient, Client};
+use twilight_model::{
+    application::{callback::InteractionResponse, interaction::Interaction},
+    id::{marker::ApplicationMarker, Id},
+};
 
 use crate::error::TrashyCommandError;
 
@@ -38,6 +41,8 @@ use crate::error::TrashyCommandError;
 ///
 /// the context contains ways to access all necessary datastores/interaction avenues
 pub struct TrashyContext {
+    /// application id
+    pub app_id: Id<ApplicationMarker>,
     /// a source for rng
     pub rng: Arc<Mutex<StdRng>>,
     /// communication with the discord api
@@ -60,11 +65,21 @@ impl TrashyBot {
         let scheme = ShardScheme::Auto;
 
         let http = Arc::new(Client::new(token.clone()));
-        // let current_user = http.current_user().exec().await?.model().await?;
-        // http.set_application_id(current_user.id.0.into());
-        // http.set_global_commands(&commands::commands())?
-        //     .exec()
-        //     .await?;
+
+        let app_id = http
+            .current_user_application()
+            .exec()
+            .await?
+            .model()
+            .await?
+            .id;
+
+        let interaction_client = http.interaction(app_id.clone());
+
+        interaction_client
+            .set_global_commands(&commands::commands())
+            .exec()
+            .await?;
 
         let intents = Intents::GUILD_MESSAGES | Intents::DIRECT_MESSAGES;
 
@@ -99,6 +114,7 @@ impl TrashyBot {
         sqlx::migrate!().run(&pool).await?;
 
         let context = TrashyContext {
+            app_id: app_id,
             rng: Arc::new(Mutex::new(StdRng::seed_from_u64(41237102))),
             http: Arc::clone(&http),
             db: pool,
@@ -172,114 +188,114 @@ pub async fn handle_event(event: Event, ctx: TrashyContext) {
 //     }
 // }
 
-// mod commands {
-//     use twilight_model::{
-//         application::command::{ChoiceCommandOptionData, Command, CommandOption, CommandType},
-//         id::{CommandVersionId, GuildId},
-//     };
-//     use twilight_util::builder::command::{CommandBuilder, IntegerBuilder, StringBuilder};
+mod commands {
+    use twilight_model::{
+        application::command::{ChoiceCommandOptionData, Command, CommandOption, CommandType},
+        id::Id,
+    };
+    use twilight_util::builder::command::{CommandBuilder, IntegerBuilder, StringBuilder};
 
-//     pub fn commands() -> Vec<Command> {
-//         [
-//             CommandBuilder::new(
-//                 "roll".to_string(),
-//                 "Roll some die!".to_string(),
-//                 CommandType::ChatInput,
-//             )
-//             .guild_id(GuildId::new(884438532322652251).unwrap())
-//             .option(
-//                 StringBuilder::new(
-//                     "roll".to_string(),
-//                     "specify which die you want to roll".to_string(),
-//                 )
-//                 .required(true)
-//                 .build(),
-//             )
-//             .build(),
-//             CommandBuilder::new(
-//                 "choose".to_string(),
-//                 "Choose something!".to_string(),
-//                 CommandType::ChatInput,
-//             )
-//             .guild_id(GuildId::new(884438532322652251).unwrap())
-//             .option(
-//                 StringBuilder::new(
-//                     "options".to_string(),
-//                     "specify which die you want to roll".to_string(),
-//                 )
-//                 .required(true)
-//                 .build(),
-//             )
-//             .option(
-//                 IntegerBuilder::new(
-//                     "pick".to_string(),
-//                     "specify how many options should be picked (default 1)".to_string(),
-//                 )
-//                 .build(),
-//             )
-//             .build(),
-//             CommandBuilder::new(
-//                 "sponge".to_string(),
-//                 "sPonGiFy sOmE wOrdS!".to_string(),
-//                 CommandType::ChatInput,
-//             )
-//             .guild_id(GuildId::new(884438532322652251).unwrap())
-//             .option(
-//                 StringBuilder::new(
-//                     "text".to_string(),
-//                     "specify what you want to spongify".to_string(),
-//                 )
-//                 .required(true)
-//                 .build(),
-//             )
-//             .build(),
-//             CommandBuilder::new(
-//                 "remindme".to_string(),
-//                 "let the bot remind you!".to_string(),
-//                 CommandType::ChatInput,
-//             )
-//             .guild_id(GuildId::new(884438532322652251).unwrap())
-//             .option(
-//                 StringBuilder::new("when".to_string(), "date or duration".to_string())
-//                     .required(true)
-//                     .build(),
-//             )
-//             .option(
-//                 StringBuilder::new(
-//                     "message".to_string(),
-//                     "what should i remind you about?".to_string(),
-//                 )
-//                 .build(),
-//             )
-//             .build(),
-//         ]
-//         .into()
-//     }
+    pub fn commands() -> Vec<Command> {
+        [
+            CommandBuilder::new(
+                "roll".to_string(),
+                "Roll some die!".to_string(),
+                CommandType::ChatInput,
+            )
+            .guild_id(Id::new(884438532322652251))
+            .option(
+                StringBuilder::new(
+                    "roll".to_string(),
+                    "specify which die you want to roll".to_string(),
+                )
+                .required(true)
+                .build(),
+            )
+            .build(),
+            CommandBuilder::new(
+                "choose".to_string(),
+                "Choose something!".to_string(),
+                CommandType::ChatInput,
+            )
+            .guild_id(Id::new(884438532322652251))
+            .option(
+                StringBuilder::new(
+                    "options".to_string(),
+                    "specify which die you want to roll".to_string(),
+                )
+                .required(true)
+                .build(),
+            )
+            .option(
+                IntegerBuilder::new(
+                    "pick".to_string(),
+                    "specify how many options should be picked (default 1)".to_string(),
+                )
+                .build(),
+            )
+            .build(),
+            CommandBuilder::new(
+                "sponge".to_string(),
+                "sPonGiFy sOmE wOrdS!".to_string(),
+                CommandType::ChatInput,
+            )
+            .guild_id(Id::new(884438532322652251))
+            .option(
+                StringBuilder::new(
+                    "text".to_string(),
+                    "specify what you want to spongify".to_string(),
+                )
+                .required(true)
+                .build(),
+            )
+            .build(),
+            CommandBuilder::new(
+                "remindme".to_string(),
+                "let the bot remind you!".to_string(),
+                CommandType::ChatInput,
+            )
+            .guild_id(Id::new(884438532322652251))
+            .option(
+                StringBuilder::new("when".to_string(), "date or duration".to_string())
+                    .required(true)
+                    .build(),
+            )
+            .option(
+                StringBuilder::new(
+                    "message".to_string(),
+                    "what should i remind you about?".to_string(),
+                )
+                .build(),
+            )
+            .build(),
+        ]
+        .into()
+    }
 
-//     pub mod choose;
-//     pub mod roll;
-//     pub mod spongebob;
-//     //TODO: quote (implement as soon as MESSAGE commands are supported by twilight)
-//     //TODO: favs (implement as soon as MESSAGE commands are supported by twilight)
+    pub mod choose;
+    pub mod roll;
+    pub mod spongebob;
+    //     //TODO: quote (implement as soon as MESSAGE commands are supported by twilight)
+    //     //TODO: favs (implement as soon as MESSAGE commands are supported by twilight)
 
-//     //TODO: remindme
-//     pub mod remindme;
+    //     //TODO: remindme
+    pub mod remindme;
 
-//     //TODO: xkcds
+    //     //TODO: xkcds
 
-//     //TODO: poll
+    //     //TODO: poll
 
-//     //TODO: fighting
+    //     //TODO: fighting
 
-//     //TODO: userinfo
+    //     //TODO: userinfo
 
-//     //TODO: copypasta system?
+    //     //TODO: copypasta system?
 
-//     //TODO: lastfm?
-// }
+    //     //TODO: lastfm?
+}
 
-// /// Database models
-// pub mod models {
-//     /// reminder database model
-//     pub mod reminder;
-// }
+/// Database models
+pub mod models {
+    /// reminder database model
+    pub mod reminder;
+}

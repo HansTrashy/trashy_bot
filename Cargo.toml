@@ -40,4 +40,5 @@ twilight-gateway = "0.9"
 twilight-http = "0.9"
 twilight-model = "0.9"
 twilight-util = { version = "0.9", features = ["builder"] }
+twilight-validate = "0.9"
 thiserror = "1"

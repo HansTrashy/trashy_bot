@@ -52,13 +52,14 @@ pub async fn choose(
         allowed_mentions: None,
         components: None,
         content: Some(chosen.join(", ")),
-        embeds: Vec::new(),
+        embeds: None,
         flags: None,
         tts: None,
     });
 
     let resp = ctx
         .http
+        .interaction(ctx.app_id)
         .interaction_callback(cmd.id, &cmd.token, &interaction_resp)
         .exec()
         .await;

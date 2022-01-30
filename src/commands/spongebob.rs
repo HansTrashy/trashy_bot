@@ -42,7 +42,7 @@ pub async fn sponge(
             icon_url: Some(
                 "https://cdn.discordapp.com/emojis/598837367343808532.png?v=1".to_string(),
             ),
-            name: Some("Spongebob".to_string()),
+            name: "Spongebob".to_string(),
             proxy_icon_url: None,
             url: None,
         }),
@@ -64,13 +64,14 @@ pub async fn sponge(
         allowed_mentions: None,
         components: None,
         content: None,
-        embeds: vec![embed],
+        embeds: Some(vec![embed]),
         flags: None,
         tts: None,
     });
 
     let resp = ctx
         .http
+        .interaction(ctx.app_id)
         .interaction_callback(cmd.id, &cmd.token, &interaction_resp)
         .exec()
         .await;
