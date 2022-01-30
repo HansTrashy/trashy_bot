@@ -60,11 +60,11 @@ impl TrashyBot {
         let scheme = ShardScheme::Auto;
 
         let http = Arc::new(Client::new(token.clone()));
-        let current_user = http.current_user().exec().await?.model().await?;
-        http.set_application_id(current_user.id.0.into());
-        http.set_global_commands(&commands::commands())?
-            .exec()
-            .await?;
+        // let current_user = http.current_user().exec().await?.model().await?;
+        // http.set_application_id(current_user.id.0.into());
+        // http.set_global_commands(&commands::commands())?
+        //     .exec()
+        //     .await?;
 
         let intents = Intents::GUILD_MESSAGES | Intents::DIRECT_MESSAGES;
 
@@ -72,7 +72,7 @@ impl TrashyBot {
             | EventTypeFlags::READY
             | EventTypeFlags::INTERACTION_CREATE;
 
-        let (cluster, mut events) = Cluster::builder(&token, intents)
+        let (cluster, mut events) = Cluster::builder(token, intents)
             .event_types(flags)
             .shard_scheme(scheme)
             .http_client(Arc::clone(&http))
@@ -123,163 +123,163 @@ pub async fn handle_event(event: Event, ctx: TrashyContext) {
         }
         Event::InteractionCreate(interaction) => {
             tracing::debug!("Interaction");
-            match handle_interaction(interaction.0, ctx.clone()).await {
-                Ok(_) => tracing::debug!("interaction completed"),
-                Err(e) => tracing::error!(?e, "interaction could not be completed"),
-            }
+            // match handle_interaction(interaction.0, ctx.clone()).await {
+            //     Ok(_) => tracing::debug!("interaction completed"),
+            //     Err(e) => tracing::error!(?e, "interaction could not be completed"),
+            // }
         }
         _ => tracing::warn!(?event, "unsupported event!"),
     }
 }
 
-/// the interaction handler
-///
-/// this function handles dispatching of different interaction types
-pub async fn handle_interaction(
-    interaction: Interaction,
-    ctx: TrashyContext,
-) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    match interaction {
-        Interaction::Ping(ping) => {
-            ctx.http
-                .interaction_callback(ping.id, &ping.token, &InteractionResponse::Pong)
-                .exec()
-                .await?;
-            Ok(())
-        }
-        Interaction::ApplicationCommand(cmd) => {
-            tracing::debug!("application command");
-            let name = cmd.data.name.as_str();
-            let result = match name {
-                "roll" => commands::roll::roll(cmd, &ctx).await,
-                "choose" => commands::choose::choose(cmd, &ctx).await,
-                "sponge" => commands::spongebob::sponge(cmd, &ctx).await,
-                "remindme" => commands::remindme::remindme(cmd, &ctx).await,
-                unknown => {
-                    tracing::warn!(?unknown, "unknown command");
-                    Err(TrashyCommandError::UnknownCommand(unknown.to_string()))
-                }
-            };
+// /// the interaction handler
+// ///
+// /// this function handles dispatching of different interaction types
+// pub async fn handle_interaction(
+//     interaction: Interaction,
+//     ctx: TrashyContext,
+// ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+//     match interaction {
+//         Interaction::Ping(ping) => {
+//             ctx.http
+//                 .interaction_callback(ping.id, &ping.token, &InteractionResponse::Pong)
+//                 .exec()
+//                 .await?;
+//             Ok(())
+//         }
+//         Interaction::ApplicationCommand(cmd) => {
+//             tracing::debug!("application command");
+//             let name = cmd.data.name.as_str();
+//             let result = match name {
+//                 "roll" => commands::roll::roll(cmd, &ctx).await,
+//                 "choose" => commands::choose::choose(cmd, &ctx).await,
+//                 "sponge" => commands::spongebob::sponge(cmd, &ctx).await,
+//                 "remindme" => commands::remindme::remindme(cmd, &ctx).await,
+//                 unknown => {
+//                     tracing::warn!(?unknown, "unknown command");
+//                     Err(TrashyCommandError::UnknownCommand(unknown.to_string()))
+//                 }
+//             };
 
-            Ok(result?)
-        }
-        Interaction::MessageComponent(_cmd) => {
-            tracing::debug!("message component not supported");
+//             Ok(result?)
+//         }
+//         Interaction::MessageComponent(_cmd) => {
+//             tracing::debug!("message component not supported");
 
-            Ok(())
-        }
-        _ => Err("unknown interaction type".into()),
-    }
-}
+//             Ok(())
+//         }
+//         _ => Err("unknown interaction type".into()),
+//     }
+// }
 
-mod commands {
-    use twilight_model::{
-        application::command::{ChoiceCommandOptionData, Command, CommandOption, CommandType},
-        id::{CommandVersionId, GuildId},
-    };
-    use twilight_util::builder::command::{CommandBuilder, IntegerBuilder, StringBuilder};
+// mod commands {
+//     use twilight_model::{
+//         application::command::{ChoiceCommandOptionData, Command, CommandOption, CommandType},
+//         id::{CommandVersionId, GuildId},
+//     };
+//     use twilight_util::builder::command::{CommandBuilder, IntegerBuilder, StringBuilder};
 
-    pub fn commands() -> Vec<Command> {
-        [
-            CommandBuilder::new(
-                "roll".to_string(),
-                "Roll some die!".to_string(),
-                CommandType::ChatInput,
-            )
-            .guild_id(GuildId::new(884438532322652251).unwrap())
-            .option(
-                StringBuilder::new(
-                    "roll".to_string(),
-                    "specify which die you want to roll".to_string(),
-                )
-                .required(true)
-                .build(),
-            )
-            .build(),
-            CommandBuilder::new(
-                "choose".to_string(),
-                "Choose something!".to_string(),
-                CommandType::ChatInput,
-            )
-            .guild_id(GuildId::new(884438532322652251).unwrap())
-            .option(
-                StringBuilder::new(
-                    "options".to_string(),
-                    "specify which die you want to roll".to_string(),
-                )
-                .required(true)
-                .build(),
-            )
-            .option(
-                IntegerBuilder::new(
-                    "pick".to_string(),
-                    "specify how many options should be picked (default 1)".to_string(),
-                )
-                .build(),
-            )
-            .build(),
-            CommandBuilder::new(
-                "sponge".to_string(),
-                "sPonGiFy sOmE wOrdS!".to_string(),
-                CommandType::ChatInput,
-            )
-            .guild_id(GuildId::new(884438532322652251).unwrap())
-            .option(
-                StringBuilder::new(
-                    "text".to_string(),
-                    "specify what you want to spongify".to_string(),
-                )
-                .required(true)
-                .build(),
-            )
-            .build(),
-            CommandBuilder::new(
-                "remindme".to_string(),
-                "let the bot remind you!".to_string(),
-                CommandType::ChatInput,
-            )
-            .guild_id(GuildId::new(884438532322652251).unwrap())
-            .option(
-                StringBuilder::new("when".to_string(), "date or duration".to_string())
-                    .required(true)
-                    .build(),
-            )
-            .option(
-                StringBuilder::new(
-                    "message".to_string(),
-                    "what should i remind you about?".to_string(),
-                )
-                .build(),
-            )
-            .build(),
-        ]
-        .into()
-    }
+//     pub fn commands() -> Vec<Command> {
+//         [
+//             CommandBuilder::new(
+//                 "roll".to_string(),
+//                 "Roll some die!".to_string(),
+//                 CommandType::ChatInput,
+//             )
+//             .guild_id(GuildId::new(884438532322652251).unwrap())
+//             .option(
+//                 StringBuilder::new(
+//                     "roll".to_string(),
+//                     "specify which die you want to roll".to_string(),
+//                 )
+//                 .required(true)
+//                 .build(),
+//             )
+//             .build(),
+//             CommandBuilder::new(
+//                 "choose".to_string(),
+//                 "Choose something!".to_string(),
+//                 CommandType::ChatInput,
+//             )
+//             .guild_id(GuildId::new(884438532322652251).unwrap())
+//             .option(
+//                 StringBuilder::new(
+//                     "options".to_string(),
+//                     "specify which die you want to roll".to_string(),
+//                 )
+//                 .required(true)
+//                 .build(),
+//             )
+//             .option(
+//                 IntegerBuilder::new(
+//                     "pick".to_string(),
+//                     "specify how many options should be picked (default 1)".to_string(),
+//                 )
+//                 .build(),
+//             )
+//             .build(),
+//             CommandBuilder::new(
+//                 "sponge".to_string(),
+//                 "sPonGiFy sOmE wOrdS!".to_string(),
+//                 CommandType::ChatInput,
+//             )
+//             .guild_id(GuildId::new(884438532322652251).unwrap())
+//             .option(
+//                 StringBuilder::new(
+//                     "text".to_string(),
+//                     "specify what you want to spongify".to_string(),
+//                 )
+//                 .required(true)
+//                 .build(),
+//             )
+//             .build(),
+//             CommandBuilder::new(
+//                 "remindme".to_string(),
+//                 "let the bot remind you!".to_string(),
+//                 CommandType::ChatInput,
+//             )
+//             .guild_id(GuildId::new(884438532322652251).unwrap())
+//             .option(
+//                 StringBuilder::new("when".to_string(), "date or duration".to_string())
+//                     .required(true)
+//                     .build(),
+//             )
+//             .option(
+//                 StringBuilder::new(
+//                     "message".to_string(),
+//                     "what should i remind you about?".to_string(),
+//                 )
+//                 .build(),
+//             )
+//             .build(),
+//         ]
+//         .into()
+//     }
 
-    pub mod choose;
-    pub mod roll;
-    pub mod spongebob;
-    //TODO: quote (implement as soon as MESSAGE commands are supported by twilight)
-    //TODO: favs (implement as soon as MESSAGE commands are supported by twilight)
+//     pub mod choose;
+//     pub mod roll;
+//     pub mod spongebob;
+//     //TODO: quote (implement as soon as MESSAGE commands are supported by twilight)
+//     //TODO: favs (implement as soon as MESSAGE commands are supported by twilight)
 
-    //TODO: remindme
-    pub mod remindme;
+//     //TODO: remindme
+//     pub mod remindme;
 
-    //TODO: xkcds
+//     //TODO: xkcds
 
-    //TODO: poll
+//     //TODO: poll
 
-    //TODO: fighting
+//     //TODO: fighting
 
-    //TODO: userinfo
+//     //TODO: userinfo
 
-    //TODO: copypasta system?
+//     //TODO: copypasta system?
 
-    //TODO: lastfm?
-}
+//     //TODO: lastfm?
+// }
 
-/// Database models
-pub mod models {
-    /// reminder database model
-    pub mod reminder;
-}
+// /// Database models
+// pub mod models {
+//     /// reminder database model
+//     pub mod reminder;
+// }

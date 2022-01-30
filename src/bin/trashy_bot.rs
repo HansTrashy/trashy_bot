@@ -1,22 +1,19 @@
 //! Trashy Bot
 
-use anyhow::{Context, Result};
 use trashy_bot::{config::Config, TrashyBot};
 
 #[tokio::main]
-async fn main() -> Result<()> {
+async fn main() {
     let config: Config = toml::from_str(
         &tokio::fs::read_to_string("config.toml")
             .await
-            .context("Could not load config file")?,
+            .expect("Could not load config file"),
     )
-    .context("Failed to parse config")?;
+    .expect("Failed to parse config");
 
     tracing_subscriber::fmt()
         .with_env_filter(&config.log_level)
         .init();
 
-    TrashyBot::run(config).await.context("failed to run bot")?;
-
-    Ok(())
+    TrashyBot::run(config).await.expect("failed to run bot");
 }

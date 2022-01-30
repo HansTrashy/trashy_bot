@@ -2,8 +2,6 @@
 
 use thiserror::Error;
 use twilight_gateway::cluster::ClusterStartError;
-use twilight_http::request::application::InteractionError;
-use twilight_http::request::prelude::create_message::CreateMessageError;
 use twilight_http::response::DeserializeBodyError;
 use twilight_http::Error as TwilightError;
 
@@ -13,9 +11,6 @@ pub enum TrashyStartupError {
     /// the twilight cluster could not be started
     #[error("Cluster startup failed: {0}")]
     ClusterStartupFailed(#[from] ClusterStartError),
-    /// a discord interaction failed
-    #[error("Interaction failed: {0}")]
-    InteractionFailed(#[from] InteractionError),
     /// generic twilight error
     #[error("Twilight Error: {0}")]
     TwilightError(#[from] TwilightError),
@@ -48,9 +43,6 @@ pub enum TrashyCommandError {
     /// missing data
     #[error("Missing data: {0}")]
     MissingData(String),
-    /// create message error
-    #[error("Message could not be created: {0}")]
-    MessageBuilder(#[from] CreateMessageError),
     /// deserialize model error
     #[error("model could not be deserialized: {0}")]
     DeserializeModel(#[from] DeserializeBodyError),

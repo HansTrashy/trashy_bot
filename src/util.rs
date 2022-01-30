@@ -21,40 +21,40 @@ use crate::error::TrashyCommandError;
 ///
 /// duration str look like `1d` or `24h`, dates look like `2021-05-23 12:00`
 pub fn parse_duration_or_date(duration_str: &str) -> Option<Duration> {
-    let format = time::macros::format_description!("[year]-[month]-[day] [hour]:[minute]");
+    //TODO: update to time 0.3 when sqlx supports it
+    // let format = time::macros::format_description!("[year]-[month]-[day] [hour]:[minute]");
+    // let date = time::OffsetDateTime::parse(duration_str, &format);
 
-    let date = time::OffsetDateTime::parse(duration_str, &format);
-    // let date = duration_str.parse::<chrono::DateTime<Utc>>();
+    // match date {
+    //     Ok(datetime) => Some((time::OffsetDateTime::now_utc() - datetime).abs()),
+    //     Err(_) => {
+    //         let (digits, non_digits) = duration_str.chars().fold(
+    //             (String::with_capacity(5), String::with_capacity(5)),
+    //             |(mut d, mut nd), elem| {
+    //                 if elem.is_digit(10) {
+    //                     d.push(elem);
+    //                 } else {
+    //                     nd.push(elem);
+    //                 }
+    //                 (d, nd)
+    //             },
+    //         );
 
-    match date {
-        Ok(datetime) => Some((time::OffsetDateTime::now_utc() - datetime).abs()),
-        Err(_) => {
-            let (digits, non_digits) = duration_str.chars().fold(
-                (String::with_capacity(5), String::with_capacity(5)),
-                |(mut d, mut nd), elem| {
-                    if elem.is_digit(10) {
-                        d.push(elem);
-                    } else {
-                        nd.push(elem);
-                    }
-                    (d, nd)
-                },
-            );
-
-            if let Ok(n) = digits.parse::<i64>() {
-                match non_digits.as_ref() {
-                    "s" => Some(Duration::seconds(n)),
-                    "m" => Some(Duration::minutes(n)),
-                    "h" => Some(Duration::hours(n)),
-                    "d" => Some(Duration::days(n)),
-                    "w" => Some(Duration::weeks(n)),
-                    _ => None,
-                }
-            } else {
-                None
-            }
-        }
-    }
+    //         if let Ok(n) = digits.parse::<i64>() {
+    //             match non_digits.as_ref() {
+    //                 "s" => Some(Duration::seconds(n)),
+    //                 "m" => Some(Duration::minutes(n)),
+    //                 "h" => Some(Duration::hours(n)),
+    //                 "d" => Some(Duration::days(n)),
+    //                 "w" => Some(Duration::weeks(n)),
+    //                 _ => None,
+    //             }
+    //         } else {
+    //             None
+    //         }
+    //     }
+    // }
+    None
 }
 
 pub fn humanize_duration(duration: &Duration) -> String {
@@ -119,11 +119,11 @@ mod tests {
 
     #[test]
     fn parsing_duration_or_datetime() {
-        let r = parse_duration_or_date("16:00");
-        let format = time::macros::format_description!("[year]-[month]-[day] [hour]:[minute]");
+        // let r = parse_duration_or_date("16:00");
+        // let format = time::macros::format_description!("[year]-[month]-[day] [hour]:[minute]");
 
-        let date = time::OffsetDateTime::parse("16:00", &format);
+        // let date = time::OffsetDateTime::parse("16:00", &format);
 
-        println!("{:?}", date);
+        // println!("{:?}", date);
     }
 }
