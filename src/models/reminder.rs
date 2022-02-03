@@ -15,7 +15,7 @@ pub struct Reminder {
 
 impl Reminder {
     pub async fn list(pool: &PgPool) -> Result<Vec<Self>, DbError> {
-        sqlx::query_as!(Self, "SELECT * FROM reminders")
+        sqlx::query_as::<_, Self>("SELECT * FROM reminders")
             .fetch_all(pool)
             .await
     }
@@ -28,25 +28,25 @@ impl Reminder {
         end_time: DateTime<Utc>,
         msg: &str,
     ) -> Result<Self, DbError> {
-        sqlx::query_as!(
-            Self,
-            "INSERT INTO reminders (channel_id, source_msg_id, user_id, end_time, msg) VALUES ($1,$2,$3,$4,$5) RETURNING *",
-            channel_id,
-            source_msg_id,
-            user_id,
-            end_time, msg
+        sqlx::query_as::<_, Self>(
+            "INSERT INTO reminders (channel_id, source_msg_id, user_id, end_time, msg) VALUES ($1,$2,$3,$4,$5) RETURNING *"
         )
+        .bind(channel_id)
+        .bind(source_msg_id)
+        .bind(user_id)
+        .bind(end_time)
+        .bind(msg)
         .fetch_one(pool)
         .await
     }
 
     pub async fn delete(pool: &PgPool, source_msg_id: i64) -> Result<u64, DbError> {
-        Ok(sqlx::query!(
-            "DELETE FROM reminders WHERE source_msg_id = $1",
-            source_msg_id
+        Ok(
+            sqlx::query("DELETE FROM reminders WHERE source_msg_id = $1")
+                .bind(source_msg_id)
+                .execute(pool)
+                .await?
+                .rows_affected(),
         )
-        .execute(pool)
-        .await?
-        .rows_affected())
     }
 }

@@ -12,13 +12,11 @@ pub struct FavBlock {
 
 impl FavBlock {
     pub async fn check_blocked(pool: &PgPool, channel_id: i64, msg_id: i64) -> bool {
-        match sqlx::query!(
-            "SELECT * FROM fav_blocks WHERE channel_id = $1 AND msg_id = $2",
-            channel_id,
-            msg_id
-        )
-        .fetch_all(pool)
-        .await
+        match sqlx::query("SELECT * FROM fav_blocks WHERE channel_id = $1 AND msg_id = $2")
+            .bind(channel_id)
+            .bind(msg_id)
+            .fetch_all(pool)
+            .await
         {
             Ok(rows) => !rows.is_empty(),
             Err(_) => false,
@@ -31,13 +29,12 @@ impl FavBlock {
         channel_id: i64,
         msg_id: i64,
     ) -> Result<Self, DbError> {
-        sqlx::query_as!(
-            Self,
+        sqlx::query_as::<_, Self>(
             "INSERT INTO fav_blocks (server_id, channel_id, msg_id) VALUES ($1,$2,$3) RETURNING *",
-            server_id,
-            channel_id,
-            msg_id,
         )
+        .bind(server_id)
+        .bind(channel_id)
+        .bind(msg_id)
         .fetch_one(pool)
         .await
     }

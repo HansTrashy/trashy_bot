@@ -11,17 +11,14 @@ pub struct ServerConfig {
 
 impl ServerConfig {
     pub async fn get(pool: &PgPool, server_id: i64) -> Result<Self, DbError> {
-        sqlx::query_as!(
-            Self,
-            "SELECT * FROM server_configs WHERE server_id = $1",
-            server_id
-        )
-        .fetch_one(pool)
-        .await
+        sqlx::query_as::<_, Self>("SELECT * FROM server_configs WHERE server_id = $1")
+            .bind(server_id)
+            .fetch_one(pool)
+            .await
     }
 
     pub async fn list(pool: &PgPool) -> Result<Vec<Self>, DbError> {
-        sqlx::query_as!(Self, "SELECT * FROM server_configs")
+        sqlx::query_as::<_, Self>("SELECT * FROM server_configs")
             .fetch_all(pool)
             .await
     }
@@ -31,12 +28,11 @@ impl ServerConfig {
         server_id: i64,
         config: serde_json::Value,
     ) -> Result<Self, DbError> {
-        sqlx::query_as!(
-            Self,
+        sqlx::query_as::<_, Self>(
             "INSERT INTO server_configs (server_id, config) VALUES ($1,$2) RETURNING *",
-            server_id,
-            config,
         )
+        .bind(server_id)
+        .bind(config)
         .fetch_one(pool)
         .await
     }
@@ -46,12 +42,11 @@ impl ServerConfig {
         server_id: i64,
         config: serde_json::Value,
     ) -> Result<Self, DbError> {
-        sqlx::query_as!(
-            Self,
+        sqlx::query_as::<_, Self>(
             "UPDATE server_configs SET config = $1 WHERE server_id = $2 RETURNING *",
-            config,
-            server_id,
         )
+        .bind(config)
+        .bind(server_id)
         .fetch_one(pool)
         .await
     }

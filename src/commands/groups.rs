@@ -72,13 +72,3 @@ pub mod greenbook {
     #[commands(post, untagged, add, tags, block, create_fav_list)]
     pub struct Greenbook;
 }
-
-pub mod roles {
-    use crate::commands::reaction_roles::*;
-    use serenity::framework::standard::macros::group;
-
-    #[group]
-    #[prefix("roles")]
-    #[commands(list, create, remove, postgroups, resetgroups, description)]
-    pub struct Roles;
-}

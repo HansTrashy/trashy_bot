@@ -21,7 +21,6 @@ mod config;
 mod handler;
 mod migrations;
 mod models;
-mod reaction_roles;
 mod rules;
 mod startup;
 mod util;
@@ -60,11 +59,6 @@ impl TypeMapKey for DatabasePool {
 struct Config;
 impl TypeMapKey for Config {
     type Value = config::Config;
-}
-
-struct ReactionRolesState;
-impl TypeMapKey for ReactionRolesState {
-    type Value = Arc<Mutex<self::reaction_roles::State>>;
 }
 
 struct RulesState;
@@ -287,7 +281,6 @@ async fn main() {
         .group(&commands::groups::config::CONFIG_GROUP)
         .group(&commands::groups::greenbook::GREENBOOK_GROUP)
         // .group(&commands::groups::rules::RULES_GROUP)
-        .group(&commands::groups::roles::ROLES_GROUP)
         .group(&commands::groups::account::ACCOUNT_GROUP)
         .group(&commands::groups::moderation::MODERATION_GROUP)
         .group(&commands::groups::misc::MISC_GROUP)
@@ -303,7 +296,6 @@ async fn main() {
         .await
         .expect("Err creating client");
 
-    let rr_state = Arc::new(Mutex::new(self::reaction_roles::State::load_set()));
     let rules_state = Arc::new(Mutex::new(self::rules::State::load()));
 
     let pool = PgPoolOptions::new()
@@ -329,7 +321,6 @@ async fn main() {
         let mut data = client.data.write().await;
 
         data.insert::<ShardManagerContainer>(Arc::clone(&client.shard_manager));
-        data.insert::<ReactionRolesState>(rr_state);
         data.insert::<RulesState>(rules_state);
         data.insert::<OptOut>(Arc::clone(&opt_out));
         data.insert::<DatabasePool>(pool);

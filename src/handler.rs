@@ -1,5 +1,4 @@
 mod fav;
-mod reaction_roles;
 
 use crate::commands::config::Guild;
 use crate::commands::userinfo::UserInfo;
@@ -185,13 +184,7 @@ impl EventHandler for Handler {
             ReactionType::Unicode(ref s) if s.starts_with('📗') => {
                 fav::add(ctx, reaction).await;
             }
-            _ => {
-                reaction_roles::add_role(ctx, reaction).await;
-            }
+            _ => (),
         }
-    }
-
-    async fn reaction_remove(&self, ctx: Context, removed_reaction: Reaction) {
-        reaction_roles::remove_role(ctx, removed_reaction).await;
     }
 }
