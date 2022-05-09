@@ -19,4 +19,5 @@ pub mod selfmute;
 pub mod shiny;
 pub mod spongebob;
 pub mod userinfo;
+pub mod uwuify;
 pub mod xkcd;
